@@ -1,193 +1,242 @@
 # Project Research Summary
 
-**Project:** OpenClaw AI Phone Concierge (Vercel Sandbox)
-**Domain:** AI phone concierge / local service provider matchmaker
+**Project:** OpenClaw — AI Phone Concierge / Service Matchmaker
+**Domain:** Voice AI telephony agent / local service provider matchmaker
 **Researched:** 2026-03-14
 **Confidence:** MEDIUM-HIGH
 
 ## Executive Summary
 
-OpenClaw is an AI phone concierge that accepts inbound calls from users, interprets their service need in natural language, searches Google Maps for local providers, calls those providers on the user's behalf, and bridges the user directly to whoever picks up — all within a single uninterrupted phone call. The product occupies a gap no current consumer tool fills: the full loop from inbound intent to live call transfer, with no app install and no user account required. The technical foundation is constrained by the project: OpenClaw gateway running in a Vercel Sandbox (Firecracker microVM) on port 18789, Telnyx Call Control v2 for all telephony, and ClawdTalk/voice-call plugin as the bridge between the two.
+OpenClaw is a stateful, event-driven voice orchestration system that receives inbound phone calls, extracts service intent from natural speech, searches Google Places for ranked local providers, calls providers sequentially while keeping the user on a warm hold, then bridges the user live to the first confirmed-available provider. The product fills a genuine gap: no consumer-facing product today performs the full loop (intent capture → outbound calling → live transfer) via a single phone call with no app and no registration required. The recommended implementation approach is the OpenClaw gateway running as a persistent daemon inside Vercel Sandbox, with Telnyx Call Control v2 handling all telephony, and a conference bridge pattern for live transfer (not blind transfer or SIP REFER).
 
-The recommended approach is to build the core call loop in strict dependency order — infrastructure first, then conversation, then outbound dialing and transfer — because the entire product delivers zero user value until all six steps of the loop function end-to-end. The architecture is a webhook-command pattern: Telnyx fires HTTP webhook events, the Express server acknowledges immediately and dispatches asynchronously to the OpenClaw agent loop, which issues REST commands back to Telnyx. A dual-leg conference bridge (not blind transfer) is the correct implementation for live transfer, allowing the agent to narrate progress while the provider leg is being established.
+The critical architectural insight is that the core value chain is indivisible: a break at any point in the sequence (inbound call → intent extraction → provider search → outbound dialing → live bridge) produces zero user value. This means the entire happy-path loop must be built and validated end-to-end before any ancillary features (dashboard, AMD tuning, urgency detection) are worth implementing. The build order is strictly layered: telephony foundation → voice conversation core → provider discovery → outbound calling → live transfer → post-call SMS → dashboard.
 
-The two most consequential risk categories are infrastructure gotchas that must be resolved before a single real call can work (OpenClaw device pairing failure in the Vercel Sandbox, sandbox timeout killing active calls, and 10DLC registration for SMS) and real-time voice latency that must be actively managed from the start (streaming STT/TTS throughout, filler audio on tool delays, no blocking API calls inside the LLM loop). Shipping the wrong architectural pattern for call state — mutable records instead of event-log — will cause hard-to-diagnose bugs under concurrent webhook load that are expensive to refactor later.
+The top risks are infrastructure-level, not product-level. OpenClaw device pairing fails silently inside Vercel Sandbox (must be pre-wired before gateway starts), Vercel Sandbox timeouts will kill active calls without a keep-alive loop, outbound numbers will be flagged as spam without carrier registration, and SMS will be silently blocked without 10DLC registration. All four of these must be addressed in Phase 1 before any real telephony testing begins. The conference bridge pattern for live transfer is the highest-complexity implementation task and must be built to a strict state machine to prevent the user from being dropped mid-transfer.
+
+---
 
 ## Key Findings
 
 ### Recommended Stack
 
-The stack is tightly constrained by project choices and has well-researched official options for each layer. OpenClaw (latest, 2026.2.17+) runs as a persistent gateway daemon; Telnyx SDK v6.7.0 (TypeScript rewrite, Node.js >= 20 required) handles all telephony; `@googlemaps/places` (not the legacy `@googleapis/places`) wraps the new Places API v1. For data, `better-sqlite3` + `drizzle-orm` is correct for session-scoped state in the sandbox; an external Postgres (Neon/Supabase) would be needed only if call history must survive sandbox restarts. Express v5 handles the webhook receiver and serves the dashboard SPA. The `Vercel Serverless Functions` are explicitly incompatible — they spin down between requests and cannot hold the persistent gateway connection.
+The stack is constrained by the project's deployment target (Vercel Sandbox as a persistent MicroVM, not serverless functions) and telephony provider (Telnyx). All major technology choices flow from this. The OpenClaw gateway runs on port 18789 as the long-lived process. An Express v5 webhook server runs co-located to receive Telnyx Call Control events. SQLite via better-sqlite3 and drizzle-orm handles session-scoped call history. Google Places API (New) via `@googlemaps/places` 2.3.0 provides provider search. Node.js 20 LTS is required by the Telnyx SDK v6.
+
+The live transfer mechanism is the most consequential stack decision: use Telnyx conference bridge (three-way), not `transfer-call` API or SIP REFER. Blind transfer and SIP REFER drop the user before confirming provider availability. The conference pattern lets the agent remain on the call, confirm the provider, speak to both parties, then exit while both legs remain connected.
 
 **Core technologies:**
-- **OpenClaw gateway**: AI agent runtime and orchestration — project constraint; runs persistently on port 18789 inside Vercel Sandbox
-- **Telnyx Call Control v2 + telnyx@6.7.0**: All telephony (STT, TTS, SMS, outbound dialing, conference bridge) — v1 is deprecated; v2 required by voice-call plugin
-- **ClawdTalk / OpenClaw voice-call plugin**: Telnyx event-to-agent-tool translation — avoids building a custom media stream bridge
-- **Telnyx STT (Deepgram Flux at edge)**: Sub-second real-time transcription — 100-300ms faster than cloud-routed Deepgram; no separate STT service needed
-- **OpenAI TTS (via OpenClaw messages.tts)**: Agent voice output — streaming PCM compatible with Telnyx; ElevenLabs is the upgrade path for voice quality
-- **@googlemaps/places (v1)**: Local business search with phone, rating, hours — Places API v1; the legacy client is being sunset
-- **better-sqlite3 + drizzle-orm**: Session-scoped call state and history — zero-infrastructure; drizzle-orm supports Postgres migration with same API
-- **Express v5**: Webhook handler + REST API for dashboard — matches Telnyx documentation ecosystem; must run as persistent process, not serverless
+- **OpenClaw gateway (latest 2026.2.17+):** AI agent runtime, tool orchestration, plugin architecture — project constraint; runs as persistent daemon on port 18789
+- **Telnyx Call Control v2 + `telnyx` npm v6.13.0:** All telephony (inbound/outbound calls, STT, TTS, SMS, bridge, conference) — official SDK with full TypeScript coverage; Node >=20 required
+- **Node.js 20 LTS + TypeScript 5.9.3:** Runtime and type safety — EOL versions break Telnyx SDK; strict types prevent mishandled call state
+- **`@googlemaps/places` 2.3.0 (Places API New):** Provider search with phone numbers, ratings, hours — use only this, not legacy `@google/maps`; bill per field with explicit field masks
+- **better-sqlite3 12.8.0 + drizzle-orm 0.45.1:** Session-scoped call state and history — SQLite correct for v1 (in-sandbox); drizzle supports Neon Postgres swap post-launch without schema changes
+- **Express.js 5.2.1:** Webhook receiver and dashboard API — persistent process required; Vercel serverless functions cannot maintain WebSocket connections or handle calls lasting minutes
+- **Telnyx built-in STT (Deepgram Flux) + TTS (NaturalHD):** Voice pipeline — no additional API keys; Telnyx-edge-hosted Deepgram gives 100-300ms lower latency than cloud-routed STT
+- **zod 4.3.6:** Webhook payload validation — Telnyx sends rich JSON per call event; validate before acting to prevent mishandled call state
 
 ### Expected Features
 
-The entire v1 feature set is a single value delivery chain: breaking any link in the chain produces zero user value. All must ship together.
+The core loop is non-negotiable: all nine P1 features must ship together because each is a prerequisite for the next. The product has no partial-launch mode.
 
-**Must have (table stakes):**
-- Natural-language intent capture with clarification — users describe needs in plain speech; no scripted prompts
-- Sub-800ms perceived response latency — streaming STT + LLM + TTS throughout; silence feels broken
-- Live verbal status narration — user hears agent narrating search and dialing; silence causes hang-ups
-- Google Maps provider search with ranking — rating, proximity, open status via Places API v1
-- Outbound availability check calls with AI disclosure — legally and ethically mandatory
-- Multi-provider fallback cascade — try next provider automatically on no-answer
-- Live warm call transfer with context briefing — agent briefs provider before bridging user
-- Post-call SMS recap with BuyMeACoffee link — providers tried, outcome, connected provider number
-- Graceful failure fallback — verbal report + SMS provider list when no one answers
+**Must have — table stakes (P1, must all launch together):**
+- Natural language intent capture with clarification prompts — service type, location, urgency from a single open-ended question
+- Google Places provider search ranked by rating, review count, proximity, open status
+- Live verbal status narration — user hears what the agent is doing; silence kills calls
+- Outbound availability check calls with AI disclosure (California SB-1001 / FCC rules apply)
+- Multi-provider fallback cascade — try next automatically if first is unavailable
+- Warm live call transfer to confirmed-available provider, with context briefing before bridge
+- Graceful no-answer fallback — verbal report plus SMS provider list
+- Post-call SMS recap — providers contacted, outcome, connected provider, BuyMeACoffee tip link
+- Call outcome logging — shared data model for SMS recap and dashboard
 
-**Should have (competitive differentiators, add at v1.x):**
+**Should have — competitive differentiators (P2, add after v1 validation):**
 - Call history web dashboard — trigger: users ask "who did you connect me with last time?"
-- Answering machine detection (AMD) tuning — trigger: too many call legs wasted on voicemail
-- Urgency detection and re-ranking — trigger: enough calls to tune signals
-- Custom provider directory — trigger: Google results poor in specific categories
+- Answering machine detection (AMD) — trigger: too many provider legs wasted on voicemail
+- Urgency detection and provider re-ranking — trigger: enough real calls to tune signals
+- Web search fallback for providers — trigger: Places returns too few results in low-coverage areas
+- Custom provider directory — trigger: service categories where Google results are consistently poor
 
-**Defer (v2+):**
-- Proactive monitoring and push suggestions — requires persistent user profiles, scheduled jobs, outbound-initiated contact; large scope delta
-- Provider outcome-based ranking feedback loop — needs call volume to be statistically significant
+**Defer — v2+ only:**
+- Proactive monitoring and push suggestions — requires persistent user profiles and scheduled infrastructure; large scope delta from v1
+- Provider outcome-based ranking feedback loop — needs statistical call volume to be meaningful
 - Multi-language support — validate English-market demand first
+
+**Anti-features — deliberately out of scope:**
+- Scheduling or booking on behalf of user (liability, incompatible provider systems)
+- Payment processing or job quotes (PCI compliance; 48% provider refusal rate from Google Duplex data)
+- Provider-side portal (two-sided marketplace doubles the acquisition problem)
+- Mobile app (phone + SMS + web covers 100% of interaction surface)
+- AI identity deception (illegal under California SB-1001 and FCC rules)
 
 ### Architecture Approach
 
-The system has three runtime boundaries: the Telnyx platform (owns all telephony), the Vercel Sandbox MicroVM (hosts the OpenClaw gateway, webhook server, call state store, and dashboard), and external APIs (Google Maps, web search, BuyMeACoffee). The gateway is the only persistent process; everything else is either stateless (webhook handler) or external. Call state must be tracked by `call_control_id` as an event log — not a mutable record — and flushed to an external store after each significant transition. The dashboard reads the same store via an internal REST API and is fully decoupled from the call flow.
+The system follows a webhook-command loop: Telnyx fires HTTP POST events for every call state transition; the Express server returns 200 immediately and dispatches async processing; the agent issues REST commands back to Telnyx. All call state is tracked in a per-session object keyed by `call_control_id`, indexed by ALL active legs (both user Leg A and each provider Leg B) for O(1) lookup on every webhook. The agent loop runs mid-call with tool calls (maps_search, outbound_dial, bridge) executed while the user hears TTS progress narration.
 
 **Major components:**
-1. **Telnyx Webhook Receiver (Express)** — receives all call state transition events; must return 200 OK immediately and dispatch async
-2. **OpenClaw Gateway + Voice-Call Plugin** — persistent daemon; routes Telnyx events to the agent loop; issues STT/TTS/dial commands back
-3. **Agent Loop (LLM)** — decides what to do at each turn; invokes tools (maps_search, voice_call, sms_send); runs streaming inference
-4. **Call State Store** — event-log keyed by `call_control_id`; in-memory during call, persisted to SQLite/Postgres after hangup
-5. **Google Maps Tool Plugin** — `searchNearby` via Places API v1; explicit field mask (name, phone, rating, hours); ranked by rating + proximity + open status
-6. **Dual-Leg Conference Bridge** — Leg A (user) stays active while Leg B (provider) is dialed; bridge issued only on `call.answered` for Leg B; agent speaks final message before bridging
-7. **SMS Tool** — post-call summary via Telnyx SMS API; requires 10DLC registration before production
-8. **Web Dashboard** — reads call log via internal REST; decoupled from call flow; can be built in parallel
+1. **Telnyx Call Control v2** — owns all telephony: PSTN ingress/egress, STT, TTS, call legs, conferencing, SMS; communicates via REST commands + webhook events
+2. **OpenClaw Gateway (port 18789)** — persistent daemon: session management, event routing, plugin orchestration, agent LLM loop
+3. **Voice-Call Plugin** — translates Telnyx events into agent tool calls; owns `voice_call` tool actions; runs webhook server (port 3334, in-process with gateway)
+4. **Session State Store** — in-memory Map (hot path) + SQLite write on phase transitions; must index by ALL call_control_ids (Leg A and all Leg Bs)
+5. **Google Maps Tool** — `@googlemaps/places` Places API (New) searchNearby; explicit field masks mandatory to control billing
+6. **SMS Tool** — Telnyx Messaging API; 10DLC-registered; consent-gated per TCPA
+7. **Web Dashboard** — Express-served SPA reading SQLite call records; independent of call flow
+
+**Key architectural patterns to follow:**
+- Return 200 from webhook endpoint immediately, then process async — Telnyx retries on slow response, causing duplicate actions
+- Gate every Leg B action on received webhook events, never on elapsed time — bridge fires only on confirmed `call.answered` for Leg B
+- Speak final TTS to user BEFORE issuing bridge command — TTS after bridge is silently discarded
+- Periodic TTS updates on Leg A every 15-20 seconds while CALLING_PROVIDERS — silence exceeding 20 seconds causes hang-ups
+- Explicit state machine: GREETING → GATHERING → SEARCHING → CALLING_PROVIDERS → BRIDGING → ENDED
 
 ### Critical Pitfalls
 
-1. **OpenClaw device pairing fails silently in Vercel Sandbox** — pre-pair by writing `paired.json` with Ed25519 public key and clearing `pending.json` before the gateway starts; add loopback addresses to `trustedProxies`; must be resolved in Phase 1 before any feature testing
-2. **Sandbox timeout kills active calls** — implement `extendTimeout` keep-alive every 10 minutes; set sandbox timeout to plan maximum; store all call state externally so restart can recover; must be wired in Phase 1
-3. **10DLC registration blocks SMS silently** — register brand + campaign in Telnyx Mission Control immediately in Phase 1; approval takes days to weeks; no workaround during review; do not wait for SMS feature phase
-4. **Live transfer drops user or produces silence** — implement as an explicit state machine; gate every Leg B action strictly on received `call.answered` webhook (never elapsed time); speak final message to user before issuing bridge; hang up agent's own participation, never Leg A
-5. **Call state corruption under concurrent webhooks** — model call state as append-only event log, not a mutable record; use single-writer pattern per `call_control_id`; establish this before adding any complexity
-6. **Voice latency exceeds 800ms** — use streaming everywhere (STT, LLM, TTS); inject spoken filler audio if tool execution exceeds 1 second; never block the LLM loop on synchronous API calls; test with real PSTN calls, not localhost
-7. **Outbound calls flagged as spam** — register number with Free Caller Registry and add CNAM before first production dial; enable STIR/SHAKEN A-attestation; use a pool of caller IDs for rotation; recovery takes days to weeks
+1. **OpenClaw device pairing fails silently in Vercel Sandbox** — MicroVM proxy headers break loopback detection; cron jobs and WebSocket features crash with `"pairing required"` (1008) while HTTP chat still works, creating false impression of success. Prevention: pre-pair by writing `paired.json` and clearing `pending.json` before `openclaw start`. Must be solved in Phase 1 before any testing is possible.
+
+2. **Vercel Sandbox timeout kills active calls** — Default 5-minute sandbox timeout; maximum is 45 min (Hobby) or 5 hours (Pro). On timeout, the gateway WebSocket drops and all active calls go dead with no graceful cleanup. Prevention: implement a keep-alive loop calling `extendTimeout` every 10 minutes; store call state externally; implement graceful Telnyx call cleanup on gateway disconnect.
+
+3. **10DLC registration silently blocks all SMS** — As of February 2025, U.S. carriers silently filter all unregistered A2P SMS; no error is returned to sender. Prevention: start 10DLC brand + campaign registration in Phase 1 alongside number provisioning. Approval takes 1-5 business days and cannot be done last-minute.
+
+4. **Live transfer drops user due to bridge sequencing errors** — Issuing bridge before Leg B's `call.answered` event, or sending `hangup` on Leg A instead of agent-only exit, disconnects the user. Prevention: implement as explicit state machine; gate every action on webhook confirmation; test with voicemail and slow-answer scenarios before production.
+
+5. **Outbound number flagged as spam by carriers** — Sequential calls to local businesses from the same number with low answer rates match robocaller behavioral patterns; number gets silently labeled "Spam Likely" with no error returned. Prevention: register with Free Caller Registry, add CNAM, enable STIR/SHAKEN A-attestation, rotate caller IDs, add minimum inter-call delay. Must be configured before first production volume.
+
+6. **Google Places wildcard field mask causes 5-10x cost explosion** — `*` field mask bills at Preferred tier rate. Prevention: use explicit field masks from day one (`displayName`, `nationalPhoneNumber`, `rating`, `userRatingCount`); set Google Maps Platform billing alerts.
+
+7. **Call state corruption from concurrent webhook handlers** — Two Telnyx webhooks for the same call arriving in parallel cause last-write-wins corruption; agent loses context, asks repeated questions, or transfers to wrong provider. Prevention: single-writer pattern per `call_control_id`; serialize event processing per session.
+
+8. **TTS reads LLM markdown output literally** — LLM produces asterisks, bullet points, URLs; TTS reads them aloud. Prevention: explicit system prompt instructions (plain spoken English only, no markdown) plus a TTS sanitization preprocessing step.
+
+---
 
 ## Implications for Roadmap
 
-The architecture's build order is deterministic — each component depends on the prior one and has a clear testable end state. The FEATURES.md dependency graph and ARCHITECTURE.md build sequence both point to the same four-phase structure.
+Based on the layered architecture dependency chain from ARCHITECTURE.md and the pitfall-to-phase mapping from PITFALLS.md, a 7-phase structure is recommended. Phases 1-5 are the indivisible critical path. Phases 6-7 are independent enhancements that can be deferred.
 
-### Phase 1: Foundation and Infrastructure
+### Phase 1: Infrastructure Foundation
+**Rationale:** Four blocking pitfalls (device pairing, sandbox timeout, 10DLC registration, number spam registration) must be resolved before any telephony testing is possible. These are not code features — they are provisioning and configuration steps that have multi-day lead times. Doing them last forces late-stage rework that delays everything downstream.
+**Delivers:** Working Vercel Sandbox with OpenClaw gateway pre-paired and auto-starting, public HTTPS webhook URL with dynamic update on restart, Telnyx number provisioned and carrier-registered, sandbox keep-alive loop, and 10DLC registration initiated.
+**Addresses:** Sandbox provisioning, webhook URL management, telephony account setup
+**Avoids:** Device pairing failure (Pitfall 1), sandbox timeout killing calls (Pitfall 9), 10DLC blocking SMS (Pitfall 5), spam flagging (Pitfall 4)
+**Research flag:** NEEDS RESEARCH — OpenClaw-specific `paired.json` pre-pairing schema has limited official documentation; verify exact format and startup sequence against current OpenClaw release before writing the startup script.
 
-**Rationale:** Nothing else can be tested without a running sandbox, a connected Telnyx number, and working webhook delivery. Three critical pitfalls (device pairing, sandbox timeout, 10DLC registration) must be addressed here — if deferred, they block later phases.
+### Phase 2: Inbound Call + Voice Conversation Core
+**Rationale:** The webhook-command loop, session state model, STT/TTS pipeline, and call state machine are foundational to every subsequent phase. Building these correctly — especially async webhook handling, single-writer state management, and latency controls — prevents the most expensive bugs (call state corruption, duplicate actions, caller hang-ups from silence). Establish the latency budget and TTS sanitation here, not during Phase 4 when the full dual-leg complexity is in play.
+**Delivers:** An inbound call that is answered, speaks a greeting, captures user speech, extracts service intent (service type + location) within 2 turns, and maintains correct conversational context across multiple turns without state corruption or latency spikes.
+**Uses:** Telnyx STT/TTS, OpenClaw voice-call plugin, Express webhook server, zod validation, in-memory session store with phase tracking
+**Implements:** Webhook-command loop, explicit call state machine, async 200-first webhook pattern, TTS sanitization pipeline
+**Avoids:** Call state corruption (Pitfall 2), voice latency >800ms (Pitfall 6), TTS markdown artifacts (Pitfall 10), webhook slow response causing duplicate actions (Pitfall 20), over-interrogating callers (Pitfall 13), VAD end-of-turn issues (Pitfall 12), multi-turn context rot (Pitfall 11)
+**Research flag:** STANDARD PATTERNS — Telnyx webhook integration is fully documented; Express async webhook pattern is established.
 
-**Delivers:** Vercel Sandbox running OpenClaw gateway with device pre-paired; Telnyx number provisioned with webhook URL configured; Express webhook receiver answering and acknowledging calls; sandbox timeout keep-alive wired; 10DLC brand + campaign registration initiated.
+### Phase 3: Provider Discovery
+**Rationale:** Intent extraction from Phase 2 feeds provider search. This phase can be built and tested independently against Phase 2 output without live outbound calling. Google Places API integration with correct field masks and ranking logic must be validated in isolation — wrong field masks cause billing explosions; wrong ranking produces poor matches that waste the outbound calls in Phase 4.
+**Delivers:** Given a service type and location, the system searches Google Places API (New), deduplicates results, ranks by business_status/rating/distance, and returns an ordered provider list. Agent speaks a verbal preview to the user ("Found 6 plumbers near you, calling the top-rated one now").
+**Uses:** `@googlemaps/places` 2.3.0, Places API (New) searchNearby, explicit field masks, ranking algorithm in `lib/search/rank.ts`
+**Implements:** Maps search tool plugin, provider ranking, result summarization for LLM context injection
+**Avoids:** Google Places wildcard field mask cost explosion (Pitfall 8), 20-result limit requiring multi-query strategy (Pitfall 17), Google Places data storage ToS violation (Pitfall 18)
+**Research flag:** STANDARD PATTERNS — Google Places API (New) is well-documented with official SDK; field mask billing model is explicitly documented.
 
-**Addresses:** Sandbox setup, Telnyx number provisioning, webhook infrastructure
-**Avoids:** OpenClaw device pairing failure (Pitfall 1), Sandbox timeout drops calls (Pitfall 9), 10DLC blocking SMS (Pitfall 5)
-**Research flag:** Needs phase research — OpenClaw device pre-pairing procedure has limited official documentation; Vercel Sandbox provisioning script is project-specific
+### Phase 4: Outbound Provider Calling + Live Transfer
+**Rationale:** This is the highest-complexity phase and the core product differentiator. It requires correct dual-leg state management, keep-warm TTS on the user leg, AMD configuration, and a precisely sequenced bridge operation. All prior phases must be stable before starting. The conference bridge pattern must be implemented from the beginning — retrofitting it after building around blind transfer is expensive.
+**Delivers:** The full core loop working end-to-end: agent dials providers sequentially while user hears narrated status updates, skips voicemails/no-answers, and bridges user to the first confirmed-available provider without the user ever dropping.
+**Uses:** Telnyx outbound dial, bridge API, AMD in `detect_beep`/`premium` mode, session state multi-leg indexing
+**Implements:** Dual-leg bridge pattern, provider outreach loop with fallback cascade, keep-warm TTS scheduler (every 15-20s), multi-leg session indexing, AI disclosure on outbound calls, max-dial circuit breaker (hard limit: 4 providers per call)
+**Avoids:** Live transfer dropping user (Pitfall 3), outbound number spam flagging (Pitfall 4), AMD misclassification (Pitfall 7), stale Google Places phone numbers (Pitfall 14), cost runaway from unthrottled dials (Pitfall 16), TTS after bridge being discarded (Architecture anti-pattern)
+**Research flag:** NEEDS RESEARCH — dual-leg bridge state machine with OpenClaw tool call integration has limited documented examples; conference bridge vs. bridge API choice for the specific "agent drops off, two parties stay" use case needs verification before implementation begins.
 
-### Phase 2: Core Inbound Conversation
+### Phase 5: Post-Call SMS Recap
+**Rationale:** SMS depends on completed call outcomes from Phase 4. 10DLC registration initiated in Phase 1 should be approved by now. TCPA verbal consent capture must be built into the Phase 2 conversation flow — it cannot be retrofitted without re-testing the entire intake flow.
+**Delivers:** After call ends, user receives SMS with providers attempted, outcome, connected provider name and number, and BuyMeACoffee tip link. Verbal consent captured on call before SMS is sent. Call record written to SQLite for dashboard.
+**Uses:** Telnyx Messaging API, better-sqlite3, drizzle-orm, BuyMeACoffee static URL (no API integration needed)
+**Implements:** SMS tool plugin, consent capture step in Phase 2 conversation flow, call record persistence schema (shared with Phase 6 dashboard)
+**Avoids:** TCPA consent exposure (Pitfall 15), 10DLC blocking (Pitfall 5)
+**Research flag:** STANDARD PATTERNS — Telnyx SMS API is straightforward; TCPA consent capture is a UX flow decision, not a technical research gap.
 
-**Rationale:** The agent cannot search or dial until it can hold a conversation. Latency and TTS format problems must be caught here — before outbound calls add complexity. Call state model must be established correctly before concurrent webhooks create corruption bugs.
+### Phase 6: Call History Dashboard
+**Rationale:** Dashboard reads from the SQLite call records written in Phase 5 and is independent of the call flow. Can be developed in parallel with Phase 5 once the data schema is defined. Lower priority than the core loop; add when users ask "who did you connect me with last time?"
+**Delivers:** Read-only web UI showing call history: date, service type, providers attempted, outcome, connected provider. Served from the Vercel Sandbox by Express.
+**Uses:** Vite + React 19 or plain HTML/JS served by Express; SQLite via drizzle-orm; `/api/calls` endpoint
+**Implements:** Call history SPA, basic authentication
+**Avoids:** No specific pitfall; standard web development patterns apply
+**Research flag:** STANDARD PATTERNS — read-only dashboard with Express + SQLite is well-understood; no research needed.
 
-**Delivers:** Inbound call answered; agent greeting spoken; streaming STT capturing user utterance; LLM processing intent with clarification; agent response via streaming TTS in spoken plain English (no markdown artifacts); call state written as event log keyed by `call_control_id`; webhook signature verification enforced.
-
-**Addresses:** Natural language intent capture, clarification prompts, sub-800ms response latency, live verbal status narration
-**Avoids:** Voice latency (Pitfall 6), TTS reads markdown literally (Pitfall 10), Call state corruption (Pitfall 2), Webhook signature bypass (Security)
-**Research flag:** Standard patterns for streaming TTS and STT are well-documented; OpenClaw voice-call plugin system prompt constraints may need experimentation
-
-### Phase 3: Provider Search and Outbound Dialing
-
-**Rationale:** Provider search feeds outbound dialing, which requires the dual-leg bridge. All three must work together. Number hygiene (spam registration, AMD config) must be configured before any production dialing volume. This is the most complex phase and the one where the most pitfalls cluster.
-
-**Delivers:** Google Maps Places API search with explicit field mask and ranked results; agent verbal announcement of top provider; outbound Leg B dial with AI disclosure; answering machine detection in `premium` mode; multi-provider fallback cascade on no-answer; dual-leg conference bridge triggered strictly on Leg B `call.answered`; agent speaks final context briefing before bridging; agent exits bridge leaving user and provider connected.
-
-**Addresses:** Provider search with ranking, outbound availability check calls, warm call transfer, multi-provider fallback, graceful failure fallback
-**Avoids:** Live transfer drops user (Pitfall 3), Outbound calls flagged as spam (Pitfall 4), AMD misclassification (Pitfall 7), Google Places wildcard field mask cost (Pitfall 8)
-**Research flag:** Needs phase research — dual-leg conference bridge state machine has limited OpenClaw-specific examples; AMD tuning parameters need real PSTN testing data
-
-### Phase 4: Post-Call Wrap-Up and Persistence
-
-**Rationale:** SMS recap and call logging share a data model; build them together. Dashboard reads the same records and can be built in parallel once the schema is defined. 10DLC approval (started in Phase 1) should be approved by now.
-
-**Delivers:** Post-call SMS recap triggered on Leg A `call.hangup` (providers tried, outcome, connected provider, BuyMeACoffee link); call outcome persisted to SQLite with full event log; web dashboard serving call history by caller phone number; graceful sandbox restart recovery (external call state survives restart).
-
-**Addresses:** Post-call SMS recap, BuyMeACoffee tip link, call outcome logging, call history web dashboard
-**Avoids:** SMS sent before user hangs up (UX pitfall), SMS blocked by unregistered 10DLC
-**Research flag:** Standard patterns — SMS API and SQLite persistence are well-documented; dashboard is standard React/Express
+### Phase 7: Post-Validation Enhancements (v1.x)
+**Rationale:** Add after v1 is validated with real users. Each enhancement addresses a specific gap observed in production data, not a speculative improvement.
+**Delivers (as a group):** AMD tuning against real voicemail patterns, urgency detection and provider re-ranking, web search fallback for low-coverage areas, custom vetted provider directory for consistently poor-performing categories
+**Trigger criteria:** AMD when >15% of call attempts are wasted on voicemail; urgency detection when enough real calls exist to tune signals; web search when Places returns <3 results in a market; custom directory when a service category consistently underperforms.
+**Research flag:** NEEDS RESEARCH when scoped — AMD parameter tuning and urgency classification prompt engineering both benefit from phase-level research against real call data.
 
 ### Phase Ordering Rationale
 
-- **Foundation must precede everything** because Telnyx cannot deliver webhooks without a publicly reachable HTTPS endpoint, and the OpenClaw gateway cannot be tested without device pairing resolved.
-- **Conversation before outbound** because latency, TTS format, and call state model bugs are much easier to diagnose in a simple two-party call than in a three-leg concurrent state machine.
-- **Outbound and transfer together** because they are inseparable: the conference bridge requires an active outbound leg; testing them separately is impossible.
-- **Post-call after core loop** because SMS and logging depend on call outcome data that the core loop produces; the dashboard is read-only and has no blocking dependencies.
-- **The core loop is a single value chain.** A broken link at any point produces zero user value. Do not ship partial phases.
+- Phases 1-5 follow a hard dependency chain derived from the build-order diagram in ARCHITECTURE.md: infrastructure gates voice conversation, which gates provider search, which gates outbound calling, which gates post-call SMS.
+- Phase 1 is unusually heavy on non-code provisioning because four pitfalls have multi-day lead times (10DLC approval: 1-5 days; spam label removal: days to weeks) that cannot be parallelized with code development at the last minute.
+- Phase 4 is the longest and riskiest phase. It should be time-boxed and validated with synthetic test calls (SIP softphone as the "provider") before testing with real local businesses.
+- The TCPA consent step that Phase 5 requires must be designed and implemented in Phase 2 when the conversation flow is built. Note this cross-phase dependency in Phase 2 planning.
+- Phase 6 deliberately defers until Phase 5 because the data schema must be stable before building a UI over it.
+- The core loop (Phases 2-5) must be validated end-to-end before Phase 7 features are designed — product-market fit signals will determine which v1.x enhancements matter most.
 
 ### Research Flags
 
-Phases likely needing deeper research during planning:
-- **Phase 1:** OpenClaw device pre-pairing in Vercel Sandbox is documented in a community gist (not official docs); provisioning script must be validated against current OpenClaw and Vercel Sandbox versions
-- **Phase 3:** Dual-leg conference bridge with fallback cascade and state machine transitions has no official OpenClaw example; Telnyx bridge/conference APIs are well-documented but the orchestration layer is custom
+Phases needing deeper research during planning:
+- **Phase 1:** OpenClaw `paired.json` pre-pairing format and exact sandbox startup sequence — limited official documentation depth; verify against current OpenClaw release before writing the startup script.
+- **Phase 4:** Dual-leg bridge state machine implementation with OpenClaw tool calls — the conference bridge vs. bridge API for "agent drops off, two parties stay" needs confirmation; no official OpenClaw + Telnyx conference example was found during research.
+- **Phase 7 (when scoped):** AMD parameter tuning for small-business voicemail patterns; urgency classification prompt design — require real call data and iterative engineering.
 
 Phases with standard patterns (skip research-phase):
-- **Phase 2:** Streaming STT/TTS patterns, webhook signature verification, and Express async dispatch are well-documented across Telnyx docs and industry sources
-- **Phase 4:** Telnyx SMS API, SQLite with drizzle-orm, and Express-served React dashboard are standard patterns with high-quality official documentation
+- **Phase 2:** Telnyx webhook loop + Express async handling — fully documented in official Telnyx Node.js examples.
+- **Phase 3:** Google Places API (New) integration — official Google SDK and billing model are well-documented.
+- **Phase 5:** Telnyx SMS API + consent UX flow — straightforward.
+- **Phase 6:** Read-only dashboard with Express + SQLite — standard patterns.
+
+---
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | MEDIUM-HIGH | Telnyx, Google Maps, and Node ecosystem choices are HIGH (official docs, npm registry confirmed); OpenClaw internals MEDIUM (official docs exist but limited depth) |
-| Features | MEDIUM-HIGH | Telnyx API capabilities HIGH; industry UX patterns MEDIUM (competitor analysis, multiple sources); competitive gap analysis is well-supported |
-| Architecture | MEDIUM-HIGH | Webhook-command loop, conference bridge, and Vercel Sandbox patterns are HIGH; OpenClaw plugin orchestration internals MEDIUM |
-| Pitfalls | MEDIUM | Core telephony pitfalls well-documented (Telnyx official, SignalWire equivalent); OpenClaw sandbox pairing sourced from community gist (not official docs) |
+| Stack | HIGH | All core technology choices verified against official npm registry, official Telnyx docs, and official Vercel KB. Version compatibility matrix is explicit. OpenClaw internals are MEDIUM due to limited official docs depth beyond plugin API. |
+| Features | MEDIUM-HIGH | Table stakes and P1 features are HIGH (Telnyx API capabilities confirmed). Competitive differentiation analysis is MEDIUM (competitor features from secondary sources). Anti-feature rationale is HIGH (Google Duplex data, legal citations confirmed). |
+| Architecture | MEDIUM-HIGH | Core telephony patterns (webhook-command loop, bridge pattern, session state model) are HIGH (official Telnyx docs). OpenClaw plugin integration is MEDIUM — plugin architecture is documented but deep multi-leg implementation examples are sparse. |
+| Pitfalls | MEDIUM | Telephony pitfalls (bridge sequencing, spam flagging, 10DLC) are HIGH — official Telnyx docs and carrier compliance resources. OpenClaw-specific pitfalls (device pairing in Vercel Sandbox) are MEDIUM — community/emerging sources, not official documentation. |
 
 **Overall confidence:** MEDIUM-HIGH
 
 ### Gaps to Address
 
-- **OpenClaw voice-call plugin system prompt constraints**: The exact configuration knobs for constraining LLM output to plain spoken English are not fully documented; will need experimentation in Phase 2. Mitigation: the TTS sanitization pre-processing step (strip markdown before sending to Telnyx) is a safe fallback regardless.
-- **Conference bridge and agent exit pattern**: How OpenClaw's agent loop behaves after issuing a bridge command (can it still issue TTS? does it auto-exit?) needs validation against actual plugin behavior, not just Telnyx API docs. Mitigation: design the state machine to speak the final message before bridging and treat post-bridge as a terminal state.
-- **Vercel Sandbox URL stability**: The sandbox URL changes on each restart; automating Telnyx webhook URL update via the Telnyx API at startup is documented as needed but no official script example exists. Mitigation: implement startup script that calls Telnyx API to update the phone number's webhook URL on every sandbox boot.
-- **AMD tuning**: Default AMD settings have ~3% misclassification; `premium` mode is recommended but actual performance with local service provider voicemail patterns requires real PSTN call data. Mitigation: start with `premium` + `detect_beep`; log all AMD results against actual outcomes for iterative tuning.
+- **OpenClaw `paired.json` schema for Vercel Sandbox pre-pairing:** The workaround is documented in community sources but not in official OpenClaw docs. Validate the exact schema against the current OpenClaw version before writing Phase 1 startup scripts.
+- **Conference bridge vs. bridge API for "agent exits, parties stay":** ARCHITECTURE.md describes both Telnyx `bridge` and `conference` APIs. The exact mechanism for the agent exiting while both parties remain connected needs confirmation during Phase 4 planning. STACK.md research favors conference bridge for warm transfer, but the exact OpenClaw tool call shape is unverified.
+- **Vercel Sandbox plan limits vs. expected call durations:** The sandbox timeout maximum (45 min Hobby, 5 hours Pro) needs confirmation against the current plan before committing to deployment architecture. A complex provider search with a talkative user can run longer than 45 minutes.
+- **Google Places ToS cache limits and call record data model:** The prohibition on storing Places API results beyond ephemeral session cache affects the schema design — call records must store only derived data (provider name and phone at time of call), not raw Places objects. Validate the exact ToS language before finalizing the data model in Phase 5.
+- **10DLC approval timeline risk:** The 1-5 business day estimate may be optimistic given TCR (The Campaign Registry) backlog fluctuations. Start registration on day one and monitor actively; have a plan for launching without SMS if approval is delayed.
+
+---
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- [Telnyx Call Control API](https://developers.telnyx.com/docs/voice/programmable-voice/voice-api-fundamentals) — webhook flow, call events, command model
-- [Telnyx Bridge Call API](https://developers.telnyx.com/api/call-control/bridge-call) — dual-leg bridge implementation
-- [Telnyx Conference API](https://developers.telnyx.com/api/call-control/create-conference) — conference-based transfer
-- [Telnyx Transfer Call API](https://developers.telnyx.com/api/call-control/transfer-call) — blind vs warm transfer patterns
-- [Deepgram Flux on Telnyx release notes](https://telnyx.com/release-notes/deepgram-flux-voice-ai-release) — STT latency improvements
-- [telnyx npm package](https://www.npmjs.com/package/telnyx) — v6.7.0, Node.js >= 20, TypeScript support
-- [Running OpenClaw in Vercel Sandbox](https://vercel.com/kb/guide/running-openclaw-in-vercel-sandbox) — port 18789, snapshot workflow
-- [Vercel Sandbox Concepts](https://vercel.com/docs/vercel-sandbox/concepts) — ephemerality, timeout, network isolation
-- [Google Places API (New) — Nearby Search](https://developers.google.com/maps/documentation/places/web-service/nearby-search) — v1 API, field mask, billing tiers
-- [@googlemaps/places npm](https://www.npmjs.com/package/@googlemaps/places) — recommended client
-- [Drizzle ORM](https://orm.drizzle.team/) — SQLite support, no native binaries
+- [Telnyx Voice API Fundamentals](https://developers.telnyx.com/docs/voice/programmable-voice/voice-api-fundamentals) — webhook flow, call events, command reference
+- [Telnyx AI Assistants — Dynamic Variables](https://developers.telnyx.com/docs/inference/ai-assistants/dynamic-variables) — five resolution mechanisms, 1-second webhook timeout
+- [Telnyx Warm Transfers release notes](https://telnyx.com/release-notes/warm-transfers-voice-ai) — confirmed warm transfer with conversation context passing
+- [Telnyx Conference API](https://developers.telnyx.com/api/call-control/create-conference) — conference creation from call leg
+- [Telnyx Bridge API](https://developers.telnyx.com/api/call-control/bridge-call) — bridging two call legs
+- [telnyx npm v6.13.0](https://www.npmjs.com/package/telnyx) — TypeScript rewrite; Node >=20 confirmed
+- [@googlemaps/places v2.3.0](https://www.npmjs.com/package/@googlemaps/places) — Places API (New) Node.js client
+- [Google Places API (New) Overview](https://developers.google.com/maps/documentation/places/web-service/overview) — field masks, billing model, searchNearby endpoint
+- [How to build an on-demand voice agent with Vercel Sandbox](https://vercel.com/kb/guide/how-to-build-an-on-demand-voice-agent-with-vercel-sandbox) — Sandbox architecture, ephemeral sessions, 4 vCPU per instance
+- [Vercel WebSocket limitations](https://vercel.com/kb/guide/do-vercel-serverless-functions-support-websocket-connections) — serverless functions do not support persistent WebSockets
+- [OpenClaw Voice-Call Plugin](https://docs.openclaw.ai/plugins/voice-call) — plugin API, tool registration
+- [Telnyx AMD Documentation](https://telnyx.com/resources/answering-machine-detection-explained) — AMD modes, misclassification rates
+- [Telnyx Spam/Scam Likely Handling](https://support.telnyx.com/en/articles/4088988-telnyx-how-to-handle-spam-scam-likely) — number spam flagging prevention
 
 ### Secondary (MEDIUM confidence)
-- [OpenClaw Voice Call Plugin docs](https://docs.openclaw.ai/plugins/voice-call) — STT/TTS config, agent tool actions
-- [ClawdTalk / OpenClaw + Telnyx](https://telnyx.com/resources/openclaw-phone-calls) — integration architecture overview
-- [Voice AI Agent Transfers — Telnyx](https://telnyx.com/resources/voice-AI-agent-transfers) — warm transfer patterns
-- [Bland AI: Warm Transfers](https://www.bland.ai/blogs/warm-transfers) — transfer UX patterns and context briefing
-- [Retell AI: Warm Transfer vs Cold Transfer](https://www.retellai.com/blog/effortless-handoffs-with-retell-ais-warm-transfer-feature) — transfer UX rationale
-- [Sterling Sky: Google AI Calling Study](https://www.sterlingsky.ca/is-googles-ai-calling-your-business/) — 48% provider refusal for pricing; validates live transfer approach
-- [SignalWire: The Double Update](https://signalwire.com/blogs/developers/the-double-update) — concurrent webhook race condition
-- [AssemblyAI: Voice AI Stack for Building Agents](https://www.assemblyai.com/blog/the-voice-ai-stack-for-building-agents) — industry latency and architecture patterns
-- [OpenClaw Plugin Architecture (DeepWiki)](https://deepwiki.com/openclaw/openclaw/9.1-plugin-architecture) — community-generated docs from source
+- [Bland AI: Warm Transfers](https://www.bland.ai/blogs/warm-transfers) — warm transfer UX patterns, hold management, context briefing
+- [Retell AI: Warm Transfer vs Cold Transfer](https://www.retellai.com/blog/effortless-handoffs-with-retell-ais-warm-transfer-feature) — transfer pattern comparison and rationale
+- [Sterling Sky: Is Google's AI Calling Your Business?](https://www.sterlingsky.ca/is-googles-ai-calling-your-business/) — 48% provider refusal rate for pricing; validates live transfer over AI negotiation
+- [Drizzle vs Prisma serverless performance](https://dev.to/jsgurujobs/6-prisma-vs-drizzle-patterns-that-cut-serverless-cold-starts-by-700ms-5dl5) — 400ms vs 1100ms cold starts; corroborated by multiple sources
+- [Workiz: HomeAdvisor vs Thumbtack vs Angi Comparison](https://www.workiz.com/blog/featured/homeadvisor-vs-angieslist-vs-thumbtack-the-complete-comparison/) — competitor feature mapping
+- [Leaping AI: Voice AI Agents for Home Services 2026](https://leapingai.com/blog/implementing-voice-ai-agents-for-home-services-complete-guide-2025) — home services vertical patterns
 
-### Tertiary (LOW confidence / community sources)
-- [OpenClaw Cron Pairing Root Cause (Vercel Sandbox)](https://gist.github.com/johnlindquist/da649125c487260a8f408be778d0b900) — device pairing pre-approval workaround; needs validation against current versions
-- [OpenClaw Voice-Call Plugin Issue #9635](https://github.com/openclaw/openclaw/issues/9635) — TTS markdown bug; may be partially fixed; validate in Phase 2
+### Tertiary (LOW confidence — monitor for changes)
+- OpenClaw device pairing pre-approval workaround for Vercel Sandbox — community-sourced; verify against current OpenClaw release before implementing
+- [Decagon: Proactive Agents with User Memory](https://decagon.ai/blog/spring26-product-launch) — proactive monitoring architecture; v2+ feature complexity estimate
 
 ---
 *Research completed: 2026-03-14*
