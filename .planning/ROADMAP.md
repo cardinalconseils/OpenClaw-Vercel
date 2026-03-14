@@ -33,12 +33,13 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Telnyx webhooks reach the Express server at a public HTTPS URL after sandbox restart without manual URL updates
   4. 10DLC brand and campaign registration has been submitted to TCR and an application reference number exists
   5. The outbound Telnyx number passes Free Caller Registry and CNAM registration checks
-**Plans:** 3/3 plans complete
+**Plans:** 4 plans (3 complete, 1 gap closure)
 
 Plans:
-- [ ] 01-01-PLAN.md — Test infra, Telnyx types/client, device pre-pairing (INFRA-03)
-- [ ] 01-02-PLAN.md — Gateway manager, keep-alive, Express webhook server (INFRA-01, INFRA-02, INFRA-04)
-- [ ] 01-03-PLAN.md — Webhook URL updater, 10DLC registration, startup script (INFRA-02, INFRA-05)
+- [x] 01-01-PLAN.md — Test infra, Telnyx types/client, device pre-pairing (INFRA-03)
+- [x] 01-02-PLAN.md — Gateway manager, keep-alive, Express webhook server (INFRA-01, INFRA-02, INFRA-04)
+- [x] 01-03-PLAN.md — Webhook URL updater, 10DLC registration, startup script (INFRA-02, INFRA-05)
+- [ ] 01-04-PLAN.md — Gap closure: wire server.ts CLI entrypoint, GatewayManager, and keep-alive into runtime (INFRA-01, INFRA-02, INFRA-04)
 
 ### Phase 1.1: OpenClaw Agent Setup (INSERTED)
 
@@ -52,7 +53,7 @@ Plans:
 
 ### Phase 2: Voice Conversation Core
 **Goal**: An inbound call is answered with a greeting, user speech is captured and transcribed, service intent (type and location) is extracted within two turns, clarifying questions are asked when intent is ambiguous, and responses use streaming TTS with filler speech to avoid dead air
-**Depends on**: Phase 1
+**Depends on**: Phase 1.1
 **Requirements**: VOICE-01, VOICE-02, VOICE-03, VOICE-04, VOICE-05
 **Success Criteria** (what must be TRUE):
   1. User calls the number and hears a greeting within 2 seconds of the call connecting
@@ -121,11 +122,12 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7
+Phases execute in numeric order: 1 -> 1.1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Infrastructure Foundation | 3/3 | Complete   | 2026-03-14 |
+| 1. Infrastructure Foundation | 3/4 | Gap closure | 2026-03-14 |
+| 1.1. OpenClaw Agent Setup (INSERTED) | 0/TBD | Not started | - |
 | 2. Voice Conversation Core | 0/TBD | Not started | - |
 | 3. Provider Discovery | 0/TBD | Not started | - |
 | 4. Outbound Provider Calling | 0/TBD | Not started | - |
