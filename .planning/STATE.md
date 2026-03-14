@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Phase 1 context gathered
-last_updated: "2026-03-14T20:53:54.206Z"
+stopped_at: Completed 01-infrastructure-foundation/01-01-PLAN.md
+last_updated: "2026-03-14T21:28:37.461Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
   total_phases: 7
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 3
+  completed_plans: 1
   percent: 0
 ---
 
@@ -50,6 +50,7 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: —
 
 *Updated after each plan completion*
+| Phase 01-infrastructure-foundation P01 | 3 | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -61,6 +62,9 @@ Recent decisions affecting current work:
 - Roadmap: Telnyx conference bridge pattern chosen for live transfer (not blind transfer or SIP REFER) — agent exits while both parties stay connected
 - Roadmap: TCPA verbal consent capture must be designed in Phase 2 conversation flow even though SMS ships in Phase 6 — cannot be retrofitted
 - Roadmap: Phase 1 is unusually heavy on provisioning (10DLC, spam registration) because both have multi-day lead times that block Phase 5 SMS
+- [Phase 01-infrastructure-foundation]: prePairDevice() accepts optional stateDir param for test isolation (avoids ESM module cache invalidation)
+- [Phase 01-infrastructure-foundation]: ws added as explicit production dep (telnyx SDK imports it at load time for speech-to-text even if unused)
+- [Phase 01-infrastructure-foundation]: operator.write and operator.read scopes included in paired.json per OpenClaw issue #23006 (required for tool connections)
 
 ### Pending Todos
 
@@ -74,6 +78,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-14T20:53:54.204Z
-Stopped at: Phase 1 context gathered
-Resume file: .planning/phases/01-infrastructure-foundation/01-CONTEXT.md
+Last session: 2026-03-14T21:28:37.458Z
+Stopped at: Completed 01-infrastructure-foundation/01-01-PLAN.md
+Resume file: None

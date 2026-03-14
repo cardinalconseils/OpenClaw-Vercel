@@ -11,7 +11,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [ ] **INFRA-01**: OpenClaw gateway runs on Vercel Sandbox with Telnyx phone number configured
 - [ ] **INFRA-02**: Telnyx webhook receives inbound calls and routes to OpenClaw voice-call plugin
-- [ ] **INFRA-03**: Device pre-pairing is automated (sandbox pairing bug workaround)
+- [x] **INFRA-03**: Device pre-pairing is automated (sandbox pairing bug workaround)
 - [ ] **INFRA-04**: Sandbox timeout is extended and kept alive during active calls
 - [ ] **INFRA-05**: 10DLC SMS registration is initiated for outbound SMS compliance
 
@@ -108,7 +108,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | INFRA-01 | Phase 1 | Pending |
 | INFRA-02 | Phase 1 | Pending |
-| INFRA-03 | Phase 1 | Pending |
+| INFRA-03 | Phase 1 | Complete |
 | INFRA-04 | Phase 1 | Pending |
 | INFRA-05 | Phase 1 | Pending |
 | VOICE-01 | Phase 2 | Pending |
