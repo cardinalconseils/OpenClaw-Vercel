@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 01-infrastructure-foundation/01-02-PLAN.md
-last_updated: "2026-03-14T21:35:29.469Z"
+stopped_at: "Checkpoint: Task 3 human-verify — Phase 1 infrastructure complete, awaiting user verification"
+last_updated: "2026-03-14T21:40:08.263Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
   total_phases: 7
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 3
-  completed_plans: 2
+  completed_plans: 3
   percent: 0
 ---
 
@@ -52,6 +52,7 @@ Progress: [░░░░░░░░░░] 0%
 *Updated after each plan completion*
 | Phase 01-infrastructure-foundation P01 | 3 | 2 tasks | 10 files |
 | Phase 01-infrastructure-foundation P02 | 5min | 2 tasks | 9 files |
+| Phase 01-infrastructure-foundation P03 | 4min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -69,6 +70,9 @@ Recent decisions affecting current work:
 - [Phase 01-infrastructure-foundation]: Register exit listener before kill() in restart()/stop() to avoid missing synchronous exit event in tests and fast-exit production scenarios
 - [Phase 01-infrastructure-foundation]: Use telnyxClient.webhooks.unwrap() (not constructEvent) — Telnyx SDK v6 API for Ed25519 webhook verification
 - [Phase 01-infrastructure-foundation]: express.raw({ type: 'application/json' }) applied at route level only, not globally, to preserve webhook signature integrity
+- [Phase 01-infrastructure-foundation]: CLI entrypoint detection uses process.argv[1].endsWith() for both .ts and .js — handles npx tsx and compiled execution
+- [Phase 01-infrastructure-foundation]: 10DLC endpoints use direct fetch() calls — Telnyx SDK v6 does not expose /v2/10dlc/* endpoints
+- [Phase 01-infrastructure-foundation]: 10DLC registration excluded from sandbox-start.sh — runs once manually; idempotency relies on TCR returning existing brandId on duplicate EIN
 
 ### Pending Todos
 
@@ -82,6 +86,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-14T21:35:29.467Z
-Stopped at: Completed 01-infrastructure-foundation/01-02-PLAN.md
+Last session: 2026-03-14T21:40:08.261Z
+Stopped at: Checkpoint: Task 3 human-verify — Phase 1 infrastructure complete, awaiting user verification
 Resume file: None
