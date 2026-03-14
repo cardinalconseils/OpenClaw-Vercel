@@ -13,6 +13,7 @@ OpenClaw is built on a hard dependency chain: every phase is a prerequisite for 
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Infrastructure Foundation** - Provision and configure Vercel Sandbox, Telnyx number, device pairing, keep-alive, and 10DLC registration (completed 2026-03-14)
+- [ ] **Phase 1.1: OpenClaw Agent Setup** - Install and configure OpenClaw framework, define agent persona, wire LLM provider, create tool registry, verify agent responds via gateway (INSERTED)
 - [ ] **Phase 2: Voice Conversation Core** - Answer inbound calls, capture user intent from natural speech, maintain clean conversational state
 - [ ] **Phase 3: Provider Discovery** - Search Google Places and ranked provider sources, narrate results to user
 - [ ] **Phase 4: Outbound Provider Calling** - Dial providers sequentially with live user narration, handle voicemail and busy signals, cascade through ranked list
@@ -38,6 +39,16 @@ Plans:
 - [ ] 01-01-PLAN.md — Test infra, Telnyx types/client, device pre-pairing (INFRA-03)
 - [ ] 01-02-PLAN.md — Gateway manager, keep-alive, Express webhook server (INFRA-01, INFRA-02, INFRA-04)
 - [ ] 01-03-PLAN.md — Webhook URL updater, 10DLC registration, startup script (INFRA-02, INFRA-05)
+
+### Phase 1.1: OpenClaw Agent Setup (INSERTED)
+
+**Goal:** Install and configure the OpenClaw agent framework, define agent persona and system prompt, wire LLM provider, create tool registry skeleton, and verify the agent responds to a basic prompt via the gateway
+**Requirements**: TBD
+**Depends on:** Phase 1
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 01.1 to break down)
 
 ### Phase 2: Voice Conversation Core
 **Goal**: An inbound call is answered with a greeting, user speech is captured and transcribed, service intent (type and location) is extracted within two turns, clarifying questions are asked when intent is ambiguous, and responses use streaming TTS with filler speech to avoid dead air

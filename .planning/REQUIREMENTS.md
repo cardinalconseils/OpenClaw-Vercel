@@ -13,7 +13,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **INFRA-02**: Telnyx webhook receives inbound calls and routes to OpenClaw voice-call plugin
 - [x] **INFRA-03**: Device pre-pairing is automated (sandbox pairing bug workaround)
 - [x] **INFRA-04**: Sandbox timeout is extended and kept alive during active calls
-- [ ] **INFRA-05**: 10DLC SMS registration is initiated for outbound SMS compliance
+- [x] **INFRA-05**: 10DLC SMS registration is initiated for outbound SMS compliance
 
 ### Voice Conversation
 
@@ -110,7 +110,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INFRA-02 | Phase 1 | Complete |
 | INFRA-03 | Phase 1 | Complete |
 | INFRA-04 | Phase 1 | Complete |
-| INFRA-05 | Phase 1 | Pending |
+| INFRA-05 | Phase 1 | Complete |
 | VOICE-01 | Phase 2 | Pending |
 | VOICE-02 | Phase 2 | Pending |
 | VOICE-03 | Phase 2 | Pending |
