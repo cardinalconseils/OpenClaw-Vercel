@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 01-infrastructure-foundation/01-01-PLAN.md
-last_updated: "2026-03-14T21:28:37.461Z"
+stopped_at: Completed 01-infrastructure-foundation/01-02-PLAN.md
+last_updated: "2026-03-14T21:35:29.469Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -51,6 +51,7 @@ Progress: [░░░░░░░░░░] 0%
 
 *Updated after each plan completion*
 | Phase 01-infrastructure-foundation P01 | 3 | 2 tasks | 10 files |
+| Phase 01-infrastructure-foundation P02 | 5min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -65,6 +66,9 @@ Recent decisions affecting current work:
 - [Phase 01-infrastructure-foundation]: prePairDevice() accepts optional stateDir param for test isolation (avoids ESM module cache invalidation)
 - [Phase 01-infrastructure-foundation]: ws added as explicit production dep (telnyx SDK imports it at load time for speech-to-text even if unused)
 - [Phase 01-infrastructure-foundation]: operator.write and operator.read scopes included in paired.json per OpenClaw issue #23006 (required for tool connections)
+- [Phase 01-infrastructure-foundation]: Register exit listener before kill() in restart()/stop() to avoid missing synchronous exit event in tests and fast-exit production scenarios
+- [Phase 01-infrastructure-foundation]: Use telnyxClient.webhooks.unwrap() (not constructEvent) — Telnyx SDK v6 API for Ed25519 webhook verification
+- [Phase 01-infrastructure-foundation]: express.raw({ type: 'application/json' }) applied at route level only, not globally, to preserve webhook signature integrity
 
 ### Pending Todos
 
@@ -78,6 +82,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-14T21:28:37.458Z
-Stopped at: Completed 01-infrastructure-foundation/01-01-PLAN.md
+Last session: 2026-03-14T21:35:29.467Z
+Stopped at: Completed 01-infrastructure-foundation/01-02-PLAN.md
 Resume file: None
