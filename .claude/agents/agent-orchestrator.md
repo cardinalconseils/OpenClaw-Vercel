@@ -18,6 +18,7 @@ You are the orchestrator agent for OpenClaw — Service Matchmaker. You coordina
 
 | Agent | When to Delegate |
 |-------|-----------------|
+| `phone-dispatcher` | Call flow design, conversation scripts, dispatch logic |
 | `code-reviewer` | After code changes, before commits |
 | `frontend-designer` | UI/dashboard work |
 | `e2e-test-specialist` | Integration and E2E test creation |

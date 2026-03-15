@@ -137,6 +137,8 @@ Start 10DLC registration in Phase 1 alongside Telnyx number provisioning. Do not
 **What goes wrong:**
 The pipeline STT → LLM → TTS adds latency at each stage. When the agent also makes outbound API calls (Google Places, web search) during the conversation to answer "what do you need?" the LLM processing stalls while waiting for tool results. The caller hears silence for 2–4 seconds. Conversations feel broken; callers hang up or lose confidence in the system.
 
+The 300ms rule is the hard threshold: human conversation has gaps of ~200ms between speakers. Beyond 300ms, responses feel unnatural. Beyond 1.5 seconds, one-third of callers hang up. Individual component benchmarks are misleading — each adds independently (STT ~350ms, LLM ~375ms, TTS ~100ms = ~825ms before any tool calls or network jitter).
+
 **Why it happens:**
 Developers test with fast Wi-Fi, low-latency LLM providers, and short prompts. Production conditions include: telephony codec transcoding (+50–100ms), streaming STT with conservative end-of-speech detection (+300–600ms silence threshold), synchronous API calls blocking LLM response generation, and TTS first-byte latency (+200–400ms). Each adds independently; combined they easily breach 2 seconds.
 
@@ -251,6 +253,206 @@ The LLM is optimized for text output, not speech. OpenClaw's voice-call plugin h
 
 ---
 
+## Moderate Pitfalls
+
+### Pitfall 11: Multi-Turn Context Rot Degrades Instruction Following Mid-Call
+
+**What goes wrong:**
+As the conversation grows longer (more turns, tool call results injected into context, provider search results), the LLM's ability to follow its system prompt instructions degrades. GPT-4o achieves only ~50% multi-turn function-calling accuracy; GPT-4o-mini drops to ~34%. A call that involves 5+ turns, two provider searches, and a transfer sequence is highly likely to exhibit instruction drift: the agent starts ignoring response format rules, asks redundant questions, or deviates from the scripted flow.
+
+**Why it happens:**
+LLMs process context as a whole but weight recent tokens more heavily. When the context window fills with search results, tool outputs, and prior turns, the original system prompt instructions become relatively weaker. This "context rot" is not obvious during development (calls are short) but emerges when real users have extended interactions.
+
+**How to avoid:**
+- Keep the context window lean: summarize completed phases ("user needs a plumber in Boston, emergency") rather than retaining the full conversation history verbatim.
+- Structure the system prompt with critical instructions near the top AND bottom (recency bias).
+- Use state machine phases with targeted per-phase instructions rather than a single monolithic prompt.
+- Re-inject key constraints at state transitions ("You are now in the PROVIDER_FOUND phase. Confirm with the user before bridging.").
+
+**Warning signs:**
+- Agent asks for the user's location after the user already provided it.
+- Agent response format reverts to markdown bullets despite prompt instructions.
+- Agent skips confirmation steps that worked correctly in early testing.
+
+**Phase to address:** Phase 2 (Core conversation) — design context management before production volume.
+
+---
+
+### Pitfall 12: End-of-Turn Detection Cuts User Off or Creates Dead Air
+
+**What goes wrong:**
+Silence-based Voice Activity Detection (VAD) must choose a silence threshold. If set too short (200–300ms), it fires mid-sentence when users pause to think, cutting them off and frustrating them. If set too long (800ms+), every exchange adds a noticeable delay that accumulates across a multi-turn call. Neither setting is right for all users — accents, phone line quality, and speaking pace all vary.
+
+**Why it happens:**
+Default VAD implementations use fixed silence thresholds. This is a reasonable starting point but fails at the tails: fast speakers are cut off; slow speakers trigger long waits. Additionally, background noise (road noise, TV) creates false VAD triggers that interrupt the agent mid-response.
+
+**How to avoid:**
+- Use semantic endpointing (turn detection that considers whether an utterance is grammatically complete) rather than pure silence-based VAD.
+- Telnyx streaming STT provides confidence scores — treat low-confidence partial transcripts as incomplete turns.
+- Add a minimum utterance duration gate: do not trigger end-of-turn on utterances shorter than 300ms to suppress noise bursts.
+- For barge-in (user interrupting agent TTS): stop TTS playback on confirmed speech but buffer 500ms to avoid stopping on a cough or background noise.
+
+**Warning signs:**
+- Callers report being cut off mid-sentence.
+- Agent responds to background TV audio as if it were user input.
+- Callers say "wait, I wasn't done."
+- Call recordings show agent beginning response before user has finished speaking.
+
+**Phase to address:** Phase 2 (Core conversation) — tune VAD settings against real PSTN call recordings.
+
+---
+
+### Pitfall 13: Over-Interrogating Callers Causes Hang-Ups
+
+**What goes wrong:**
+The agent asks the user too many clarifying questions before beginning the provider search: "What's your name?" "What zip code?" "What type of service?" "Is this urgent?" "Do you have a preference for provider rating?" Users called to solve a problem, not to fill out a form. Each additional question increases the probability of hang-up, especially when combined with latency pauses.
+
+**Why it happens:**
+Developers prioritize data completeness (better search results) over conversational efficiency. The system prompt may request many fields; the LLM faithfully asks for them one by one. In text interfaces this is tolerable. On voice, each turn costs 3–5 seconds including silence threshold, TTS playback, and user response time.
+
+**How to avoid:**
+- Require the minimum viable set of fields to begin a search: service type and rough location. Everything else is either inferable or can be asked during search ("while I'm looking, can you tell me if the issue is urgent?").
+- Use a single open-ended opening question: "What do you need help with today?" Extract type, location, and urgency from a single natural response using LLM entity extraction.
+- Aim for the search to begin within 2 turns of the call start (one user description, one confirmation).
+- Eliminate "nice to have" collection questions entirely from the initial intake.
+
+**Warning signs:**
+- Call recordings show 4+ agent questions before any provider search begins.
+- High call abandonment rate in the first 60 seconds.
+- User responses become terse or frustrated-sounding after the third question.
+
+**Phase to address:** Phase 2 (Core conversation) — conversation flow design, before integration testing.
+
+---
+
+### Pitfall 14: Google Places Returns Stale or Wrong Phone Numbers
+
+**What goes wrong:**
+Google Places API phone number data is user-contributed and crowdsourced. Numbers are sometimes: disconnected (business closed), wrong (a different branch or franchise), forwarded to voicemail permanently, or out of date by years. The agent dials a number listed as the provider, reaches a disconnected line or the wrong business, and reports no availability — when the provider is actually open and available.
+
+**Why it happens:**
+Google Places data quality varies significantly by region and business type. Small local service businesses (plumbers, electricians) have higher data staleness than large chains. Google has no real-time phone number verification.
+
+**How to avoid:**
+- Cross-reference phone numbers from Google Places with a secondary source (business website URL from Places + scraped phone if possible, or web search verification).
+- Implement a post-call feedback loop: track which numbers reached the intended business vs. wrong number, and exclude repeatedly-failing numbers.
+- Present the business name and address to the user verbally before dialing so they can flag obvious mismatches.
+- On a wrong-number response, do not decrement "remaining providers" — mark the number bad and skip to the next.
+
+**Warning signs:**
+- AMD detects "not_sure" followed by silence or a generic telecom voicemail message.
+- Provider responds with "you have the wrong number."
+- Same provider number fails consistently across multiple calls.
+
+**Phase to address:** Phase 3 (Outbound provider dialing) — number validation logic before first production dials.
+
+---
+
+### Pitfall 15: TCPA / SMS Consent Exposure from Post-Call Texts
+
+**What goes wrong:**
+The agent sends an SMS recap to every caller after the call ends. Under TCPA 2025 rules (FCC ruling effective April 2025), sending automated text messages to a consumer who did not provide "prior express written consent" for automated messaging is a $500–$1,500 per-violation fine. TCPA class action filings increased 95% YoY in 2025; even well-intentioned transactional SMS triggers litigation if consent is not documented.
+
+**Why it happens:**
+Developers treat the recap SMS as "informational" (not marketing) and assume it is TCPA-exempt. But automated texts using an autodialer or SMS API are covered regardless of content type when sent to numbers that only provided implied consent by calling in.
+
+**How to avoid:**
+- Obtain explicit verbal consent on the call: "Would you like me to text you a recap with the provider contact info? Reply YES or NO."
+- Confirm consent before sending (agent confirms "Great, I'll text you shortly") — this creates a logged record of consent.
+- Store the consent timestamp and call recording reference alongside the user's phone number.
+- Add opt-out handling: any "STOP" or informal opt-out phrase in any subsequent SMS response must be honored within 10 business days.
+- Consult with a telecom attorney before expanding SMS volume above 100/day.
+
+**Warning signs:**
+- No consent confirmation step exists in the call flow.
+- SMS is sent to all callers regardless of stated preference.
+- No opt-out mechanism in SMS messages.
+
+**Phase to address:** Phase 4 (SMS recap) — consent flow must be designed before SMS sends to users.
+
+---
+
+### Pitfall 16: Cost Runaway from Unthrottled Concurrent Calls
+
+**What goes wrong:**
+Telnyx charges per minute for voice (both inbound and outbound legs). An LLM tool that serially calls 5 providers per user request, each with a 20-second answer timeout, burns 100 seconds of Telnyx voice minutes per user call in addition to the inbound leg. At scale (100 user calls/day), this is 10,000+ minutes/day of Telnyx outbound billing plus inbound. Without a spending cap, a spike in usage or a bug that loops provider dials can produce a $500+ overnight invoice.
+
+**Why it happens:**
+Developers don't model the outbound call cost as a first-class variable. The per-minute rate looks small in isolation; the multiplication factor from concurrent outbound legs is easy to miss.
+
+**How to avoid:**
+- Set a hard limit on maximum outbound dials per inbound call (e.g., max 4 providers per call).
+- Set a per-call and per-day spending cap in Telnyx Mission Control (or via balance-monitoring webhook).
+- Implement an emergency circuit breaker: if total active call legs exceed a threshold, halt new outbound dials and alert.
+- Log estimated cost per call at the end of each call for ongoing budget tracking.
+
+**Warning signs:**
+- Telnyx balance drops faster than expected.
+- A single call session spawns more provider dials than the configured maximum.
+- No billing cap configured in Telnyx account settings.
+
+**Phase to address:** Phase 3 (Outbound provider dialing) — cost controls before any production volume.
+
+---
+
+## Minor Pitfalls
+
+### Pitfall 17: Google Places Returns Max 20 Results Per Query
+
+**What goes wrong:**
+The Places API Text Search and Nearby Search endpoints return a maximum of 20 results per query regardless of how many matching businesses exist. For dense urban areas ("plumber in Manhattan"), there may be hundreds of providers, but the agent only sees 20. The best-rated or closest provider may not appear in the default 20 if ranking criteria mismatch the query structure.
+
+**Prevention:**
+- Use `rankPreference: DISTANCE` with a tight radius rather than a wide radius — closer providers in the first 20 beats more providers overall.
+- Run multiple queries with different radii or types if the first search yields no available providers, rather than assuming none exist.
+- Supplement with web search results for "plumber + [city]" to catch providers not well-represented in Places.
+
+**Phase to address:** Phase 2 (Provider search) — pagination/multi-query strategy before wiring to dialer.
+
+---
+
+### Pitfall 18: Google Places Caches Data; You Cannot Store It
+
+**What goes wrong:**
+Google Places Terms of Service prohibit storing place data outside your application's ephemeral cache. You may not build a database of place IDs, phone numbers, or business details from Places API results. If this is violated, Google can suspend API access with no refund on prior spend.
+
+**Prevention:**
+- Never persist Google Places results to a database (even "just for caching performance").
+- Build the provider directory as a separate first-party data source; use Places API only for real-time search.
+- Cache results in-memory for the duration of a single call session only.
+
+**Phase to address:** Phase 2 (Provider search) — data model design before any storage layer is built.
+
+---
+
+### Pitfall 19: TTS Reads Provider Business Names Incorrectly
+
+**What goes wrong:**
+Business names from Google Places often contain abbreviations ("Acme HVAC & Plbg."), numbers ("1st Choice Plumbing"), or non-standard formatting. TTS engines frequently mispronounce these in ways that are jarring or confusing to callers ("H-V-A-C and P-L-B-G" instead of "HVAC and Plumbing").
+
+**Prevention:**
+- Add a business name normalization step before injecting names into TTS: expand common abbreviations (HVAC, Elec., Plbg., LLC., Inc., Co.) to their spoken forms.
+- If the TTS provider supports SSML, use `<say-as interpret-as="characters">` or phoneme tags for problematic names.
+- Test with at least 20 real business names from the target market before shipping.
+
+**Phase to address:** Phase 3 (Outbound dialing / user narration) — before agent speaks any provider names.
+
+---
+
+### Pitfall 20: Webhook Endpoint Not Returning 200 Fast Enough
+
+**What goes wrong:**
+Telnyx expects a 2xx HTTP response from the webhook endpoint within a few seconds. If the application processes the webhook synchronously (runs LLM inference, makes API calls) before returning, the response times out and Telnyx retries the webhook — potentially triggering duplicate actions (double transfer, double dial).
+
+**Prevention:**
+- Respond `200 OK` immediately on all webhook receipts.
+- Enqueue the event for async processing (Vercel background task, queue system) after the 200 response.
+- Use idempotency keys on all Telnyx command calls to prevent duplicate execution from retried webhooks.
+
+**Phase to address:** Phase 2 (Webhook infrastructure) — must be correct before any event-driven logic is built.
+
+---
+
 ## Technical Debt Patterns
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
@@ -261,6 +463,8 @@ The LLM is optimized for text output, not speech. OpenClaw's voice-call plugin h
 | Mutable call state record in database | Familiar CRUD pattern | Race conditions under concurrent webhooks | Never for telephony state |
 | Skip 10DLC registration until SMS phase | Faster early shipping | SMS silently blocked in production | Only if SMS is genuinely post-MVP |
 | Use `openclaw/gpt-4o-mini` default voice model | No configuration required | Model may not follow voice-format instructions reliably | Never — configure explicitly |
+| No consent step before SMS | Simpler call flow | TCPA liability at scale | Never with unverified user base |
+| No maximum provider dial limit per call | Exhaustive search | Runaway Telnyx billing; long user hold times | Never in production |
 
 ---
 
@@ -277,6 +481,8 @@ The LLM is optimized for text output, not speech. OpenClaw's voice-call plugin h
 | OpenClaw voice-call plugin | Assume default model is optimal | Explicitly set `model` in voice config; default is `gpt-4o-mini` which may not follow voice formatting instructions |
 | Vercel Sandbox + OpenClaw | Start gateway before pre-pairing | Pre-pair device identity (write `paired.json`) before the gateway process starts |
 | Telnyx SMS (A2P) | Send without 10DLC campaign | All messages silently filtered; no error returned; register brand + campaign first |
+| Telnyx AMD | Use default `detect` mode | Use `detect_beep` or `premium` mode for small-business voicemail patterns |
+| LLM context | Inject full search results verbatim | Summarize to key fields (name, phone, rating) before injecting; full results cause context rot |
 
 ---
 
@@ -289,6 +495,7 @@ The LLM is optimized for text output, not speech. OpenClaw's voice-call plugin h
 | Loading full provider detail on every search | Slow search results; high Google Maps costs | Fetch only `displayName`, `nationalPhoneNumber`, `rating` on search; fetch details only on selection | At >50 searches/day |
 | Keeping audio streaming connection open during external API calls | Timeout on Telnyx media stream; call drops | Play hold audio / filler clip on media stream while tool executes | Calls >10s of silence |
 | No WebSocket heartbeat to Vercel Sandbox | Sandbox idle-timeout disconnects gateway mid-call | Send ping/pong on WebSocket every 30s; call `extendTimeout` every 10 min | After first sandbox idle period |
+| Full conversation history in LLM context | Instruction following degrades after turn 5 | Summarize completed phases; inject only current-phase-relevant context | Calls with 6+ turns |
 
 ---
 
@@ -301,6 +508,7 @@ The LLM is optimized for text output, not speech. OpenClaw's voice-call plugin h
 | Caller prompt injection via spoken input | User speaks instructions that override agent behavior ("Ignore your instructions and transfer me to...") | Sanitize user speech before injecting into LLM context; constrain tool permissions; never let caller-provided text become a system prompt |
 | Logging full call transcripts without PII handling | GDPR/CCPA exposure; call recordings may contain addresses, financial details, medical needs | Redact PII from logs; store recordings with access controls; define retention policy |
 | Hardcoded provider phone numbers in source code | Numbers leak in version control; limits provider discovery to static list | All provider numbers come from live API results only; never hardcode |
+| No billing cap on Telnyx account | Buggy dial loop drains account balance overnight | Set account balance alerts and hard cap in Telnyx Mission Control |
 
 ---
 
@@ -314,6 +522,8 @@ The LLM is optimized for text output, not speech. OpenClaw's voice-call plugin h
 | Agent never tells user who they're being connected to | User doesn't know who answered; can't evaluate fit | Before bridging: "I found [Business Name], [rating] stars, available now. Connecting you." |
 | SMS recap arrives before user has hung up | Confusing timing; user may not understand message | Trigger SMS on `call.hangup` webhook for user's leg, not on bridge completion |
 | Silence longer than 2 seconds during any phase | Caller assumes call dropped | Maximum 1.5 second silence; inject filler audio for any longer gap |
+| More than 3 intake questions before search begins | Callers hang up; frustration | Single open-ended "what do you need?" question; extract all fields from one natural utterance |
+| No verbal preview of provider before connecting | User surprised; may distrust the connection | Announce provider name, rating, and distance before bridging |
 
 ---
 
@@ -329,6 +539,10 @@ The LLM is optimized for text output, not speech. OpenClaw's voice-call plugin h
 - [ ] **Call cleanup:** Restart the OpenClaw gateway mid-call — verify Telnyx plays a graceful hangup message, not dead air.
 - [ ] **Google Places billing:** Confirm `fieldMask` is explicit (not `*`) in all production API calls.
 - [ ] **SMS delivery:** Send test SMS cross-carrier (not just to same carrier as sending number) to verify 10DLC approval is active.
+- [ ] **SMS consent:** Verify call flow includes explicit verbal consent before any SMS is sent.
+- [ ] **Cost cap:** Telnyx account has billing alert and maximum outbound dial limit enforced in code.
+- [ ] **Context rot:** Run a 10-turn simulated call and verify agent follows all system prompt instructions at turn 10.
+- [ ] **Provider name TTS:** Listen to 20 real business names from target market — verify all are pronounced correctly.
 
 ---
 
@@ -343,6 +557,8 @@ The LLM is optimized for text output, not speech. OpenClaw's voice-call plugin h
 | Live transfer dropping user | MEDIUM | Roll back to "transfer to hold, give provider number via SMS" as interim; fix state machine logic; re-test |
 | Google Places cost spike | LOW | Add `fieldMask` restriction; set billing cap in Google Cloud console; cost normalizes next billing period |
 | Sandbox timeout killing active calls | MEDIUM | Add `extendTimeout` keep-alive; move call state to external KV; affected calls cannot be recovered retroactively |
+| TCPA complaint filed | HIGH | Document all consent records; engage telecom attorney; add consent step immediately; suspend SMS until resolved |
+| Telnyx balance drained by runaway dials | MEDIUM | Emergency: disable outbound dialing toggle; audit call logs; add circuit breaker and max-dial limit; replenish balance |
 
 ---
 
@@ -354,12 +570,22 @@ The LLM is optimized for text output, not speech. OpenClaw's voice-call plugin h
 | Sandbox timeout drops active calls | Phase 1 (Foundation) | 45-minute synthetic call session completes without connection drop |
 | 10DLC registration blocking SMS | Phase 1 (Foundation) — initiate; Phase 4 (SMS) — verify | Cross-carrier SMS delivery confirmed before shipping |
 | Google Places wildcard field mask | Phase 2 (Provider search) | Audit API requests for explicit fieldMask; billing estimate matches actuals |
+| Google Places 20-result limit | Phase 2 (Provider search) | Multi-query strategy verified for dense urban areas |
+| Google Places data storage ToS | Phase 2 (Provider search) | No Places data written to persistent storage; code review confirms |
 | Voice latency >800ms | Phase 2 (Core conversation) | End-to-end PSTN call recordings show <1.5s response time |
 | TTS reads markdown literally | Phase 2 (Core conversation) | Call recording review shows clean spoken output; no "asterisk" artifacts |
 | Call state corruption (concurrent webhooks) | Phase 2 (Core conversation) | Two simultaneous calls show no cross-contamination in transcripts |
+| Multi-turn context rot | Phase 2 (Core conversation) | 10-turn call simulation confirms instruction following at all turns |
+| End-of-turn detection issues | Phase 2 (Core conversation) | VAD tuning confirmed on real PSTN calls with varied speakers |
+| Over-interrogating callers | Phase 2 (Core conversation) | Search begins within 2 turns on test calls |
+| Webhook not responding 200 fast enough | Phase 2 (Webhook infrastructure) | Load test shows 200 returned in <200ms before async processing begins |
 | AMD misclassification | Phase 3 (Outbound dialing) | AMD test suite: 10 live answers, 10 voicemails — verify classification accuracy |
 | Live transfer drops user | Phase 3 (Outbound dialing) | Full end-to-end transfer test with voicemail and live answer scenarios |
 | Outbound number flagged as spam | Phase 3 (Outbound dialing) | Number registered before first production dial; monitor SIP response codes |
+| Google Places stale phone numbers | Phase 3 (Outbound dialing) | Wrong-number handling tested; bad number tracking implemented |
+| Provider name TTS mispronunciation | Phase 3 (Outbound dialing) | 20-name pronunciation test passes before shipping |
+| Cost runaway from unthrottled dials | Phase 3 (Outbound dialing) | Max-dial circuit breaker tested; billing cap active |
+| TCPA consent for SMS | Phase 4 (SMS recap) | Verbal consent step in call flow; consent logged with timestamp |
 | Webhook signature not validated | Phase 2 (Core conversation) | Attempt to send fake webhook from external host — verify 401 rejection |
 | Prompt injection via caller speech | Phase 2 (Core conversation) | Penetration test: speak override instructions; verify agent ignores them |
 
@@ -368,21 +594,31 @@ The LLM is optimized for text output, not speech. OpenClaw's voice-call plugin h
 ## Sources
 
 - Telnyx Call Control Migration Guide: https://developers.telnyx.com/development/call-control-migration-guide
-- Telnyx AMD Documentation: https://developers.telnyx.com/docs/voice/programmable-voice/answering-machine-detection
+- Telnyx AMD Documentation: https://telnyx.com/resources/answering-machine-detection-explained
 - Telnyx Spam/Scam Likely Handling: https://support.telnyx.com/en/articles/4088988-telnyx-how-to-handle-spam-scam-likely
 - Telnyx Voice AI Agent Transfers: https://telnyx.com/resources/voice-AI-agent-transfers
 - Telnyx 10DLC FAQ: https://support.telnyx.com/en/articles/3679260-frequently-asked-questions-about-10dlc
+- Telnyx Webhook Best Practices (concurrent delivery): https://developers.telnyx.com/development/api-fundamentals/webhooks/receiving-webhooks
 - OpenClaw Voice-Call Plugin Issue #9635 (streaming TTS, barge-in, config): https://github.com/openclaw/openclaw/issues/9635
 - OpenClaw Cron Pairing Root Cause (Vercel Sandbox): https://gist.github.com/johnlindquist/da649125c487260a8f408be778d0b900
 - Vercel Sandbox Docs (timeout, ephemeral storage): https://vercel.com/docs/vercel-sandbox/concepts
-- SignalWire: The Double Update (concurrent webhook race condition): https://signalwire.com/blogs/developers/the-double-update
+- Vercel Serverless Function Timeout Limits: https://vercel.com/kb/guide/what-can-i-do-about-vercel-serverless-functions-timing-out
+- AssemblyAI: The 300ms Rule in Voice AI: https://www.assemblyai.com/blog/low-latency-voice-ai
 - Twilio: Core Latency in AI Voice Agents: https://www.twilio.com/en-us/blog/developers/best-practices/guide-core-latency-ai-voice-agents
 - Cresta: Engineering for Real-Time Voice Agent Latency: https://cresta.com/blog/engineering-for-real-time-voice-agent-latency
-- Google Places API Billing (New): https://developers.google.com/maps/documentation/places/web-service/usage-and-billing
-- NLPearl: Legal Landscape of AI Phone Agents: https://nlpearl.ai/the-legal-landscape-of-ai-phone-agents-in-outbound-inbound-calling/
-- Kixie: AI-Powered Robocalls 2025: https://www.kixie.com/sales-blog/ai-powered-robocalls-in-2025-a-guide-to-the-new-rules/
+- Kwindla / Daily.co: Advice on Voice Agents (multi-turn accuracy, context engineering): https://gist.github.com/kwindla/f755284ef2b14730e1075c2ac803edcf
+- AssemblyAI: Turn Detection and Endpointing: https://www.assemblyai.com/blog/turn-detection-endpointing-voice-agent
 - Beconversive: Common Voice AI Agent Challenges: https://www.beconversive.com/blog/voice-ai-challenges
+- Notch.cx: Turn Detection in Voice AI: https://www.notch.cx/post/turn-detection-in-voice-ai
+- Google Places API Billing (New): https://developers.google.com/maps/documentation/places/web-service/usage-and-billing
+- Google Places API Overview (New): https://developers.google.com/maps/documentation/places/web-service/overview
+- Dataplor: Considerations for Google Places API: https://www.dataplor.com/resources/blog/why-google-places-api-may-not-be-right-for-your-business/
+- TCPA Compliance 2025 — FCC Ruling (consent revocation): https://secureprivacy.ai/blog/telephone-consumer-protection-act-compliance-tcpa-2025-full-guide
+- ActiveProspect: TCPA Text Messages 2026 Guide: https://activeprospect.com/blog/tcpa-text-messages/
+- MoEngage: New TCPA Rules 2025: https://www.moengage.com/blog/new-tcpa-rules/
 - OWASP LLM01:2025 Prompt Injection: https://genai.owasp.org/llmrisk/llm01-prompt-injection/
+- Inkeep: Context Engineering — Why Agents Fail: https://inkeep.com/blog/context-engineering-why-agents-fail
+- NLPearl: Legal Landscape of AI Phone Agents: https://nlpearl.ai/the-legal-landscape-of-ai-phone-agents-in-outbound-inbound-calling/
 
 ---
 *Pitfalls research for: AI phone concierge / service matchmaker (OpenClaw + Telnyx + Vercel Sandbox)*
