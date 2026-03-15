@@ -63,7 +63,12 @@ Plans:
   3. User says something ambiguous ("I need help with my house") and the agent asks one focused clarifying question to extract service type
   4. Agent responses feel immediate — no perceptible silence between user speaking and agent responding (streaming TTS)
   5. Agent speaks a brief filler phrase ("Let me look that up for you") when running a search, so the line never goes silent during tool calls
-**Plans**: TBD
+**Plans:** 3 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — Call state, greeting constants, filler phrases with TDD tests (VOICE-01, VOICE-03, VOICE-05)
+- [ ] 02-02-PLAN.md — Murphy prompt bilingual update, intent extractor module (VOICE-02, VOICE-03)
+- [ ] 02-03-PLAN.md — Webhook lifecycle handler, voice config, env setup, human verification (VOICE-01, VOICE-02, VOICE-04, VOICE-05)
 
 ### Phase 3: Provider Discovery
 **Goal**: Given extracted service type and location, the agent searches Google Places, web, and a custom directory for providers, ranks them by ratings/reviews/proximity/urgency, and narrates a transparent verbal summary to the user before proceeding
@@ -130,7 +135,7 @@ Phases execute in numeric order: 1 -> 1.1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 |-------|----------------|--------|-----------|
 | 1. Infrastructure Foundation | 3/4 | Gap closure | 2026-03-14 |
 | 1.1. OpenClaw Agent Setup (INSERTED) | 2/3 | In Progress|  |
-| 2. Voice Conversation Core | 0/TBD | Not started | - |
+| 2. Voice Conversation Core | 0/3 | Planned | - |
 | 3. Provider Discovery | 0/TBD | Not started | - |
 | 4. Outbound Provider Calling | 0/TBD | Not started | - |
 | 5. Live Call Transfer | 0/TBD | Not started | - |
