@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import express from 'express';
 import { telnyxWebhookVerifier } from '../lib/voice/webhook-verify.js';
+import { chat } from '../lib/ai/orchestrator.js';
 
 /**
  * Express router for Telnyx webhook events.
@@ -24,13 +25,27 @@ webhookRouter.post(
     // Acknowledge receipt immediately — Telnyx requires response in < 2s
     res.status(200).json({ received: true });
 
-    // Async processing (stubbed for Phase 1 — real handlers added in Phase 2+)
+    // Async processing — ACK returned above; dispatch to orchestrator below
     setImmediate(() => {
       try {
         const event = req.telnyxEvent;
         const eventType = event?.data?.event_type ?? 'unknown';
         console.log(`[webhooks] Received event: ${eventType}`);
-        // Future: dispatch to call state machine based on eventType
+
+        if (eventType === 'call.initiated') {
+          const from = event?.data?.payload?.from ?? 'unknown';
+          console.log(`[webhooks] Processing call.initiated from ${from}`);
+          chat(
+            [{ role: 'user', content: `Incoming call from ${from}. Greet the caller.` }],
+            'greeting'
+          )
+            .then((response) => {
+              console.log(`[webhooks] Orchestrator response: ${response}`);
+            })
+            .catch((err) => {
+              console.error('[webhooks] Orchestrator error:', err);
+            });
+        }
       } catch (err) {
         console.error('[webhooks] Error processing event async:', err);
       }
