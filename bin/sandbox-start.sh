@@ -4,6 +4,10 @@ set -euo pipefail
 echo "[startup] Phase 1: Pre-pairing OpenClaw device..."
 npx tsx src/startup/pair-device.ts
 
+# Phase 1.1: Write OpenClaw config and Murphy persona before gateway start
+echo "[startup] Phase 1.5: Writing OpenClaw config and Murphy persona..."
+bash bin/write-openclaw-config.sh
+
 echo "[startup] Phase 2: Starting server.ts (Express + GatewayManager + keep-alive)..."
 npx tsx src/server.ts &
 SERVER_PID=$!
