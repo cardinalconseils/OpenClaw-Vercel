@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Not planned yet
-stopped_at: "Checkpoint: Task 3 human-verify for 01.1-03 — all tests pass, awaiting human config verification"
-last_updated: "2026-03-15T12:58:44.095Z"
+stopped_at: Completed 01.1-03-PLAN.md — Phase 1.1 OpenClaw Agent Setup fully complete
+last_updated: "2026-03-15T13:04:01.300Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
   total_phases: 8
@@ -58,6 +58,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01.1-openclaw-agent-setup P02 | 5min | 1 tasks | 5 files |
 | Phase 01.1-openclaw-agent-setup P01 | 147s | 2 tasks | 10 files |
 | Phase 01.1-openclaw-agent-setup P03 | 3min | 2 tasks | 6 files |
+| Phase 01.1-openclaw-agent-setup P03 | 10min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -92,6 +93,7 @@ Recent decisions affecting current work:
 - [Phase 01.1-openclaw-agent-setup]: writeOpenclawConfig/writeWorkspaceFiles accept optional configDir/workspaceDir for test isolation (no real ~/.openclaw writes in test suite)
 - [Phase 01.1-openclaw-agent-setup]: SOUL.md content derived from buildMurphySystemPrompt() — single source of truth for Murphy persona
 - [Phase 01.1-openclaw-agent-setup]: call.initiated is the only event type triggering orchestrator in Phase 1.1 — other events log only
+- [Phase 01.1-openclaw-agent-setup]: Integration test mocks orchestrator via vi.mock — verifies invocation not LLM output
 
 ### Pending Todos
 
@@ -109,6 +111,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-15T12:58:37.642Z
-Stopped at: Checkpoint: Task 3 human-verify for 01.1-03 — all tests pass, awaiting human config verification
+Last session: 2026-03-15T13:04:01.298Z
+Stopped at: Completed 01.1-03-PLAN.md — Phase 1.1 OpenClaw Agent Setup fully complete
 Resume file: None
