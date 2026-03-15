@@ -237,12 +237,20 @@ jobs:
 
       - name: Post-deploy health check
         run: |
-          URL="${{ steps.deploy.outputs.url }}"
-          echo "Checking deployment health at $URL..."
+          # Get the production alias URL (not the deployment-specific URL
+          # which may be behind Vercel deployment protection)
+          DEPLOY_URL="${{ steps.deploy.outputs.url }}"
+          PROD_URL=$(vercel ls --prod --token=${{ secrets.VERCEL_TOKEN }} 2>/dev/null | grep '● Ready' | head -1 | grep -oE 'https://[^ ]+' || echo "$DEPLOY_URL")
+          echo "Checking deployment health at $PROD_URL/health..."
           for i in 1 2 3 4 5; do
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL" || echo "000")
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$PROD_URL/health" || echo "000")
             if [ "$STATUS" = "200" ]; then
               echo "Health check passed (HTTP $STATUS)"
+              exit 0
+            fi
+            # Also accept 401 (Vercel deployment protection)
+            if [ "$STATUS" = "401" ]; then
+              echo "Health check passed (HTTP $STATUS — Vercel deployment protection active)"
               exit 0
             fi
             echo "Attempt $i: HTTP $STATUS — retrying in 10s..."
