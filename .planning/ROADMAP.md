@@ -43,13 +43,15 @@ Plans:
 
 ### Phase 1.1: OpenClaw Agent Setup (INSERTED)
 
-**Goal:** Install and configure the OpenClaw agent framework, define agent persona and system prompt, wire LLM provider, create tool registry skeleton, and verify the agent responds to a basic prompt via the gateway
-**Requirements**: TBD
+**Goal:** Install and configure the OpenClaw agent framework, define agent persona (Murphy) and system prompt, wire LLM providers (OpenRouter + Anthropic tiered), create tool registry skeleton, and verify the agent responds to a basic prompt via the gateway and to a simulated webhook event
+**Requirements**: AGENT-01, AGENT-02, AGENT-03, AGENT-04, AGENT-05
 **Depends on:** Phase 1
-**Plans:** 0 plans
+**Plans:** 3 plans
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 01.1 to break down)
+- [ ] 01.1-01-PLAN.md — LLM clients (OpenRouter + Anthropic), Murphy system prompt, tiered orchestrator (AGENT-01, AGENT-02, AGENT-03)
+- [ ] 01.1-02-PLAN.md — Tool registry skeleton with 4 stub handlers (AGENT-04)
+- [ ] 01.1-03-PLAN.md — OpenClaw config generator, workspace persona files, webhook integration test, human verification (AGENT-05)
 
 ### Phase 2: Voice Conversation Core
 **Goal**: An inbound call is answered with a greeting, user speech is captured and transcribed, service intent (type and location) is extracted within two turns, clarifying questions are asked when intent is ambiguous, and responses use streaming TTS with filler speech to avoid dead air
@@ -127,7 +129,7 @@ Phases execute in numeric order: 1 -> 1.1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Infrastructure Foundation | 3/4 | Gap closure | 2026-03-14 |
-| 1.1. OpenClaw Agent Setup (INSERTED) | 0/TBD | Not started | - |
+| 1.1. OpenClaw Agent Setup (INSERTED) | 0/3 | Planned | - |
 | 2. Voice Conversation Core | 0/TBD | Not started | - |
 | 3. Provider Discovery | 0/TBD | Not started | - |
 | 4. Outbound Provider Calling | 0/TBD | Not started | - |
