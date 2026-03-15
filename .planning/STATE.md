@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-stopped_at: Completed 01-infrastructure-foundation 01-03-PLAN.md — Phase 1 infrastructure foundation complete
-last_updated: "2026-03-14T21:43:56.363Z"
+status: Not planned yet
+stopped_at: Completed 01-infrastructure-foundation 01-04-PLAN.md — runtime entrypoint wiring complete
+last_updated: "2026-03-15T02:26:18.345Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
   total_phases: 8
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 4
+  completed_plans: 4
   percent: 0
 ---
 
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-14)
 
 **Core value:** One phone call replaces five — user describes what they need, agent finds a provider, calls them, and patches the user through live
-**Current focus:** Phase 1 — Infrastructure Foundation
+**Current focus:** Phase 1.1 — OpenClaw Agent Setup
 
 ## Current Position
 
-Phase: 1 of 7 (Infrastructure Foundation)
+Phase: 1.1 of 8 (OpenClaw Agent Setup)
 Plan: 0 of TBD in current phase
-Status: Ready to plan
+Status: Not planned yet
 Last activity: 2026-03-14 — Roadmap created
 
 Progress: [░░░░░░░░░░] 0%
@@ -54,6 +54,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01-infrastructure-foundation P02 | 5min | 2 tasks | 9 files |
 | Phase 01-infrastructure-foundation P03 | 4min | 2 tasks | 5 files |
 | Phase 01-infrastructure-foundation P03 | 4min | 3 tasks | 5 files |
+| Phase 01-infrastructure-foundation P04 | 53s | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -77,10 +78,16 @@ Recent decisions affecting current work:
 - [Phase 01-infrastructure-foundation]: CLI entrypoint detection uses process.argv[1].endsWith() for both .ts and .js — handles npx tsx and compiled execution
 - [Phase 01-infrastructure-foundation]: 10DLC endpoints use direct fetch() calls — Telnyx SDK v6 does not expose /v2/10dlc/* endpoints
 - [Phase 01-infrastructure-foundation]: 10DLC registration excluded from sandbox-start.sh — runs once manually; idempotency relies on TCR returning existing brandId on duplicate EIN
+- [Phase 01-infrastructure-foundation]: Gateway health poll in server.ts uses catch-and-continue to handle transient network errors before gateway is up
+- [Phase 01-infrastructure-foundation]: sandbox-start.sh polls Express /health for 45s to account for server.ts 30s gateway wait before binding Express
 
 ### Pending Todos
 
 None yet.
+
+### Roadmap Evolution
+
+- Phase 1.1 inserted after Phase 1: OpenClaw Agent Setup — install/configure OpenClaw framework, agent persona, LLM wiring, tool registry (URGENT)
 
 ### Blockers/Concerns
 
@@ -90,6 +97,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-14T21:43:56.361Z
-Stopped at: Completed 01-infrastructure-foundation 01-03-PLAN.md — Phase 1 infrastructure foundation complete
+Last session: 2026-03-15T02:26:18.343Z
+Stopped at: Completed 01-infrastructure-foundation 01-04-PLAN.md — runtime entrypoint wiring complete
 Resume file: None
