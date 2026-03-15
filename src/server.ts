@@ -15,6 +15,18 @@ export const app = express();
 
 // --- Routes ---
 
+/** Root endpoint — basic service info */
+app.get('/', (_req, res) => {
+  res.status(200).json({
+    service: 'OpenClaw Service Matchmaker',
+    status: 'ok',
+    endpoints: {
+      health: '/health',
+      webhooks: '/webhooks/telnyx',
+    },
+  });
+});
+
 /** Health endpoint — used by keep-alive and webhook URL self-test */
 app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok' });
