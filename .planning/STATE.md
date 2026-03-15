@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Not planned yet
-stopped_at: "Completed 01.1-01-PLAN.md — AI layer: LLM clients, orchestrator, Murphy persona"
-last_updated: "2026-03-15T12:54:37.668Z"
+stopped_at: "Checkpoint: Task 3 human-verify for 01.1-03 — all tests pass, awaiting human config verification"
+last_updated: "2026-03-15T12:58:44.095Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
   total_phases: 8
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 7
-  completed_plans: 6
+  completed_plans: 7
   percent: 0
 ---
 
@@ -57,6 +57,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01-infrastructure-foundation P04 | 53s | 2 tasks | 2 files |
 | Phase 01.1-openclaw-agent-setup P02 | 5min | 1 tasks | 5 files |
 | Phase 01.1-openclaw-agent-setup P01 | 147s | 2 tasks | 10 files |
+| Phase 01.1-openclaw-agent-setup P03 | 3min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -88,6 +89,9 @@ Recent decisions affecting current work:
 - [Phase 01.1-openclaw-agent-setup]: OpenRouter accessed via OpenAI SDK (OpenAI-compatible API) — avoids extra SDK dependency
 - [Phase 01.1-openclaw-agent-setup]: Unknown task type routes to Anthropic (safe fallback) — correctness over cost for unexpected inputs
 - [Phase 01.1-openclaw-agent-setup]: applyVoiceModifiers() is a pure function wrapping the base prompt — composable, testable in isolation
+- [Phase 01.1-openclaw-agent-setup]: writeOpenclawConfig/writeWorkspaceFiles accept optional configDir/workspaceDir for test isolation (no real ~/.openclaw writes in test suite)
+- [Phase 01.1-openclaw-agent-setup]: SOUL.md content derived from buildMurphySystemPrompt() — single source of truth for Murphy persona
+- [Phase 01.1-openclaw-agent-setup]: call.initiated is the only event type triggering orchestrator in Phase 1.1 — other events log only
 
 ### Pending Todos
 
@@ -105,6 +109,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-15T12:54:37.666Z
-Stopped at: Completed 01.1-01-PLAN.md — AI layer: LLM clients, orchestrator, Murphy persona
+Last session: 2026-03-15T12:58:37.642Z
+Stopped at: Checkpoint: Task 3 human-verify for 01.1-03 — all tests pass, awaiting human config verification
 Resume file: None
