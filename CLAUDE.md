@@ -98,6 +98,12 @@ For small changes that don't need a full phase:
 | `/review-dir` | Full review of a directory |
 | `/review-recent` | Review recently modified files |
 
+### CI/CD & Deployment Commands
+
+| Command | Description |
+|---------|-------------|
+| `/deploy` | Full CI/CD pipeline — commit, PR, security review, deploy to Vercel |
+
 ### Other Commands
 
 | Command | Description |
@@ -115,11 +121,13 @@ Specialized agents in `.claude/agents/`:
 | Agent | Purpose |
 |-------|---------|
 | `agent-orchestrator` | Coordinates tasks, delegates to agents |
+| `phone-dispatcher` | Call flow design, conversation scripts, dispatch logic |
 | `code-reviewer` | Security and quality review |
 | `frontend-designer` | UI design (Dieter Rams principles) |
 | `e2e-test-specialist` | End-to-end test coverage |
 | `uat-specialist` | User acceptance test scenarios |
 | `documentation-specialist` | Documentation maintenance |
+| `cicd-deployment` | CI/CD pipeline, security gates, Vercel deployment |
 
 ---
 
@@ -129,11 +137,14 @@ Domain expertise in `.claude/skills/`:
 
 | Skill | Purpose |
 |-------|---------|
+| `discussion-builder` | Phone conversation flows and dialogue scripts |
+| `dispatch-process` | Provider dispatching logic and routing strategies |
 | `expert-decide` | Autonomous decision framework |
 | `code-quality` | Review workflows (full, security, recent) |
 | `ideas` | Capture and prioritize project ideas |
 | `team-orchestration` | Multi-agent coordination |
 | `learning` | Codebase deep dives and concept learning |
+| `cicd-deployment` | CI/CD pipeline orchestration and deployment gates |
 
 ---
 

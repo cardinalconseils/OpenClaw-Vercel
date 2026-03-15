@@ -1,0 +1,233 @@
+name: PR Security & Quality Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+  security-events: write
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ── SAST: Static Application Security Testing ─────────────────────
+  sast:
+    name: Static Security Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get changed files
+        id: changed
+        run: |
+          FILES=$(git diff --name-only origin/main...HEAD -- '*.ts' '*.js' '*.json' | tr '\n' ' ')
+          echo "files=$FILES" >> "$GITHUB_OUTPUT"
+          echo "Changed files: $FILES"
+
+      - name: Check for dangerous patterns
+        run: |
+          echo "Running SAST on changed files..."
+          CRITICAL=0
+          WARNING=0
+
+          # --- Critical: Immediate blockers ---
+
+          # Command injection via child_process
+          if grep -rn "exec\s*(" --include="*.ts" --include="*.js" src/ 2>/dev/null | grep -v "node_modules"; then
+            echo "::error::Potential command injection: exec() found in source"
+            CRITICAL=$((CRITICAL + 1))
+          fi
+
+          # SQL injection (string concatenation in queries)
+          if grep -rn "query\s*(\s*['\`].*\$\{" --include="*.ts" src/ 2>/dev/null; then
+            echo "::error::Potential SQL injection: string interpolation in query"
+            CRITICAL=$((CRITICAL + 1))
+          fi
+
+          # Eval usage
+          if grep -rn "\beval\s*(" --include="*.ts" --include="*.js" src/ 2>/dev/null; then
+            echo "::error::eval() usage detected — security risk"
+            CRITICAL=$((CRITICAL + 1))
+          fi
+
+          # Unsafe deserialization
+          if grep -rn "JSON\.parse.*req\." --include="*.ts" src/ 2>/dev/null | grep -v "try"; then
+            echo "::warning::Unprotected JSON.parse on request data"
+            WARNING=$((WARNING + 1))
+          fi
+
+          # --- Warning: Should investigate ---
+
+          # Console.log in production code (may leak data)
+          CONSOLE_COUNT=$(grep -rn "console\.\(log\|debug\)" --include="*.ts" src/ 2>/dev/null | grep -v "test" | wc -l || echo "0")
+          if [ "$CONSOLE_COUNT" -gt 0 ]; then
+            echo "::warning::$CONSOLE_COUNT console.log/debug calls in source (may leak sensitive data)"
+            WARNING=$((WARNING + 1))
+          fi
+
+          # --- Report ---
+          echo ""
+          echo "=== SAST Report ==="
+          echo "Critical issues: $CRITICAL"
+          echo "Warnings: $WARNING"
+
+          if [ $CRITICAL -gt 0 ]; then
+            echo "::error::SAST failed with $CRITICAL critical issues"
+            exit 1
+          fi
+
+  # ── Dependency Vulnerability Scan ──────────────────────────────────
+  dependency-scan:
+    name: Dependency Vulnerability Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit
+        id: audit
+        run: |
+          npm audit --json > audit-report.json 2>&1 || true
+          CRITICAL=$(jq '.metadata.vulnerabilities.critical // 0' audit-report.json)
+          HIGH=$(jq '.metadata.vulnerabilities.high // 0' audit-report.json)
+          MODERATE=$(jq '.metadata.vulnerabilities.moderate // 0' audit-report.json)
+          echo "critical=$CRITICAL" >> "$GITHUB_OUTPUT"
+          echo "high=$HIGH" >> "$GITHUB_OUTPUT"
+          echo "moderate=$MODERATE" >> "$GITHUB_OUTPUT"
+          echo "Vulnerabilities — Critical: $CRITICAL, High: $HIGH, Moderate: $MODERATE"
+          if [ "$CRITICAL" -gt 0 ] || [ "$HIGH" -gt 0 ]; then
+            echo "::error::Critical/high vulnerabilities found"
+            exit 1
+          fi
+
+      - name: Comment audit results on PR
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const critical = '${{ steps.audit.outputs.critical }}';
+            const high = '${{ steps.audit.outputs.high }}';
+            const moderate = '${{ steps.audit.outputs.moderate }}';
+            const status = (parseInt(critical) + parseInt(high)) > 0 ? ':x: BLOCKED' : ':white_check_mark: PASSED';
+            const body = `## Dependency Audit ${status}\n\n` +
+              `| Severity | Count |\n|----------|-------|\n` +
+              `| Critical | ${critical} |\n` +
+              `| High | ${high} |\n` +
+              `| Moderate | ${moderate} |\n`;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body
+            });
+
+  # ── Webhook Security Validation ────────────────────────────────────
+  webhook-security:
+    name: Webhook Security Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify Telnyx webhook signature validation
+        run: |
+          echo "Checking webhook handlers for signature verification..."
+          WEBHOOK_FILES=$(find src/ -name "*.ts" -exec grep -l "webhook\|Webhook" {} \; 2>/dev/null || true)
+
+          if [ -z "$WEBHOOK_FILES" ]; then
+            echo "No webhook handlers found — skipping"
+            exit 0
+          fi
+
+          UNVERIFIED=0
+          for file in $WEBHOOK_FILES; do
+            # Check if file has signature verification
+            if ! grep -q "verify\|signature\|Signature\|HMAC\|hmac" "$file" 2>/dev/null; then
+              echo "::warning::$file handles webhooks but may not verify signatures"
+              UNVERIFIED=$((UNVERIFIED + 1))
+            fi
+          done
+
+          if [ $UNVERIFIED -gt 0 ]; then
+            echo "::warning::$UNVERIFIED webhook handler(s) may lack signature verification"
+          else
+            echo "All webhook handlers appear to verify signatures"
+          fi
+
+  # ── Input Validation Check ─────────────────────────────────────────
+  input-validation:
+    name: Input Validation Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check Zod schema coverage
+        run: |
+          echo "Checking input validation coverage..."
+
+          # Find API route handlers
+          API_FILES=$(find src/api/ -name "*.ts" 2>/dev/null || true)
+
+          if [ -z "$API_FILES" ]; then
+            echo "No API files found — skipping"
+            exit 0
+          fi
+
+          UNVALIDATED=0
+          for file in $API_FILES; do
+            # Check if handlers use Zod or similar validation
+            if grep -q "req\.body\|req\.query\|req\.params" "$file" 2>/dev/null; then
+              if ! grep -q "z\.\|zod\|Zod\|schema\|Schema\|validate\|parse" "$file" 2>/dev/null; then
+                echo "::warning::$file accesses request data but may lack Zod validation"
+                UNVALIDATED=$((UNVALIDATED + 1))
+              fi
+            fi
+          done
+
+          echo "Input validation check complete. Unvalidated handlers: $UNVALIDATED"
+
+  # ── Final PR Status Report ─────────────────────────────────────────
+  pr-report:
+    name: PR Review Summary
+    needs: [sast, dependency-scan, webhook-security, input-validation]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate summary
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const sast = '${{ needs.sast.result }}';
+            const deps = '${{ needs.dependency-scan.result }}';
+            const webhook = '${{ needs.webhook-security.result }}';
+            const input = '${{ needs.input-validation.result }}';
+
+            const icon = (r) => r === 'success' ? ':white_check_mark:' : r === 'failure' ? ':x:' : ':warning:';
+            const allPassed = [sast, deps, webhook, input].every(r => r === 'success');
+
+            const body = `## PR Security & Quality Review ${allPassed ? ':shield: All Checks Passed' : ':rotating_light: Issues Found'}\n\n` +
+              `| Check | Status |\n|-------|--------|\n` +
+              `| SAST (Static Analysis) | ${icon(sast)} ${sast} |\n` +
+              `| Dependency Scan | ${icon(deps)} ${deps} |\n` +
+              `| Webhook Security | ${icon(webhook)} ${webhook} |\n` +
+              `| Input Validation | ${icon(input)} ${input} |\n\n` +
+              (allPassed ? '> Ready to merge.' : '> Please address the issues above before merging.');
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body
+            });
