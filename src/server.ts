@@ -12,6 +12,7 @@ import { startKeepAlive, stopKeepAlive } from './startup/keepalive.js';
  * Raw body parsing is applied at the route level in webhooks.ts.
  */
 export const app = express();
+export default app;
 
 // --- Routes ---
 
