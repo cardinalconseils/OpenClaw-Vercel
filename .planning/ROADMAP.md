@@ -46,7 +46,7 @@ Plans:
 **Goal:** Install and configure the OpenClaw agent framework, define agent persona (Murphy) and system prompt, wire LLM providers (OpenRouter + Anthropic tiered), create tool registry skeleton, and verify the agent responds to a basic prompt via the gateway and to a simulated webhook event
 **Requirements**: AGENT-01, AGENT-02, AGENT-03, AGENT-04, AGENT-05
 **Depends on:** Phase 1
-**Plans:** 1/3 plans executed
+**Plans:** 2/3 plans executed
 
 Plans:
 - [ ] 01.1-01-PLAN.md — LLM clients (OpenRouter + Anthropic), Murphy system prompt, tiered orchestrator (AGENT-01, AGENT-02, AGENT-03)
@@ -129,7 +129,7 @@ Phases execute in numeric order: 1 -> 1.1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Infrastructure Foundation | 3/4 | Gap closure | 2026-03-14 |
-| 1.1. OpenClaw Agent Setup (INSERTED) | 1/3 | In Progress|  |
+| 1.1. OpenClaw Agent Setup (INSERTED) | 2/3 | In Progress|  |
 | 2. Voice Conversation Core | 0/TBD | Not started | - |
 | 3. Provider Discovery | 0/TBD | Not started | - |
 | 4. Outbound Provider Calling | 0/TBD | Not started | - |

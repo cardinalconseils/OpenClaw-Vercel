@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Not planned yet
-stopped_at: Completed 01.1-02-PLAN.md
-last_updated: "2026-03-15T12:52:48.723Z"
+stopped_at: "Completed 01.1-01-PLAN.md — AI layer: LLM clients, orchestrator, Murphy persona"
+last_updated: "2026-03-15T12:54:37.668Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
   total_phases: 8
   completed_phases: 1
   total_plans: 7
-  completed_plans: 5
+  completed_plans: 6
   percent: 0
 ---
 
@@ -56,6 +56,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01-infrastructure-foundation P03 | 4min | 3 tasks | 5 files |
 | Phase 01-infrastructure-foundation P04 | 53s | 2 tasks | 2 files |
 | Phase 01.1-openclaw-agent-setup P02 | 5min | 1 tasks | 5 files |
+| Phase 01.1-openclaw-agent-setup P01 | 147s | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -84,6 +85,9 @@ Recent decisions affecting current work:
 - [Phase 01.1-openclaw-agent-setup]: Static TOOLS array chosen — tools known at build time, no dynamic registry needed
 - [Phase 01.1-openclaw-agent-setup]: switch/case dispatch in executeTool() — exhaustive, type-safe, no map indirection
 - [Phase 01.1-openclaw-agent-setup]: Stub handlers log [tools:component] STUB prefix to distinguish from real calls in integration testing
+- [Phase 01.1-openclaw-agent-setup]: OpenRouter accessed via OpenAI SDK (OpenAI-compatible API) — avoids extra SDK dependency
+- [Phase 01.1-openclaw-agent-setup]: Unknown task type routes to Anthropic (safe fallback) — correctness over cost for unexpected inputs
+- [Phase 01.1-openclaw-agent-setup]: applyVoiceModifiers() is a pure function wrapping the base prompt — composable, testable in isolation
 
 ### Pending Todos
 
@@ -101,6 +105,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-15T12:52:48.722Z
-Stopped at: Completed 01.1-02-PLAN.md
+Last session: 2026-03-15T12:54:37.666Z
+Stopped at: Completed 01.1-01-PLAN.md — AI layer: LLM clients, orchestrator, Murphy persona
 Resume file: None
