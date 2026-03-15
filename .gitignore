@@ -1,36 +1,66 @@
 # Dependencies
 node_modules/
+package-lock.json.bak
 
-# Environment
+# ── Environment / Secrets (NEVER commit) ─────────────────────────
 .env
-.env.local
-.env.production
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+*.p12
+*.pfx
+credentials.json
+service-account*.json
+**/secrets/
+**/private/
 
-# Build
+# ── Build Output ─────────────────────────────────────────────────
 dist/
 build/
 .next/
-.vercel/
+out/
+*.tsbuildinfo
 
-# IDE
+# ── Vercel ───────────────────────────────────────────────────────
+.vercel/
+.vercel
+
+# ── IDE ──────────────────────────────────────────────────────────
 .vscode/
 .idea/
 *.swp
 *.swo
+*.sublime-project
+*.sublime-workspace
 
-# OS
+# ── OS ───────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
+Desktop.ini
 
-# Claude Code
+# ── Claude Code ──────────────────────────────────────────────────
 .claude/temp/
 
-# Logs
+# ── Logs ─────────────────────────────────────────────────────────
 *.log
 logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Test coverage
+# ── Test / Coverage ──────────────────────────────────────────────
 coverage/
+.nyc_output/
+*.lcov
 
-# Supabase
+# ── Supabase ─────────────────────────────────────────────────────
 supabase/.temp/
+
+# ── Misc ─────────────────────────────────────────────────────────
+*.tgz
+*.gz
+.cache/
+tmp/
+temp/
