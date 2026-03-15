@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 vi.mock('../../src/lib/voice/telnyx-client.js', () => ({
   telnyxClient: {
     callControlApplications: {
+      retrieve: vi.fn(),
       update: vi.fn(),
     },
   },
@@ -12,6 +13,7 @@ vi.mock('../../src/lib/voice/telnyx-client.js', () => ({
 import { telnyxClient } from '../../src/lib/voice/telnyx-client.js';
 import { updateWebhookUrl } from '../../src/startup/webhook-url-updater.js';
 
+const mockRetrieve = vi.mocked(telnyxClient.callControlApplications.retrieve as any);
 const mockUpdate = vi.mocked(telnyxClient.callControlApplications.update);
 
 // Mock global fetch
@@ -26,7 +28,8 @@ describe('updateWebhookUrl', () => {
     vi.clearAllMocks();
     process.env.TELNYX_CONNECTION_ID = CONNECTION_ID;
 
-    // Default: successful Telnyx API call
+    // Default: successful Telnyx API calls
+    mockRetrieve.mockResolvedValue({ data: { application_name: 'test-app' } });
     mockUpdate.mockResolvedValue({} as any);
 
     // Default: healthy self-test response
@@ -42,7 +45,7 @@ describe('updateWebhookUrl', () => {
 
     expect(mockUpdate).toHaveBeenCalledWith(
       CONNECTION_ID,
-      { webhook_event_url: `${SANDBOX_URL}/webhooks/telnyx` }
+      { application_name: 'test-app', webhook_event_url: `${SANDBOX_URL}/webhooks/telnyx` }
     );
   });
 
@@ -68,7 +71,7 @@ describe('updateWebhookUrl', () => {
 
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.any(String),
-      { webhook_event_url: 'https://custom.sandbox.test.io/webhooks/telnyx' }
+      { application_name: 'test-app', webhook_event_url: 'https://custom.sandbox.test.io/webhooks/telnyx' }
     );
   });
 });

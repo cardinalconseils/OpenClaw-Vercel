@@ -33,7 +33,10 @@ export async function updateWebhookUrl(sandboxUrl?: string): Promise<void> {
   const webhookUrl = `${resolvedUrl}/webhooks/telnyx`;
 
   // Update the Telnyx Call Control Application webhook URL
+  const app = await telnyxClient.callControlApplications.retrieve(connectionId);
+  const appName = app.data?.application_name ?? 'openclaw';
   await telnyxClient.callControlApplications.update(connectionId, {
+    application_name: appName,
     webhook_event_url: webhookUrl,
   });
 

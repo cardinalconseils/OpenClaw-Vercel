@@ -14,4 +14,4 @@ if (!apiKey) {
  * Import this module anywhere that needs to interact with the Telnyx API
  * or verify webhook signatures.
  */
-export const telnyxClient = new Telnyx(apiKey);
+export const telnyxClient = new Telnyx({ apiKey });

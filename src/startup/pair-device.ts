@@ -1,6 +1,5 @@
 import { generateKeyPairSync, createHash } from 'node:crypto';
 import { writeFileSync, readFileSync, mkdirSync, existsSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 const DEFAULT_STATE_DIR = path.join(
@@ -77,7 +76,12 @@ export function prePairDevice(stateDir?: string): { deviceId: string; publicKey:
 }
 
 // CLI entrypoint — allows running as: npx tsx src/startup/pair-device.ts
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+const isDirectExecution =
+  process.argv[1] &&
+  (process.argv[1].endsWith('pair-device.ts') ||
+    process.argv[1].endsWith('pair-device.js'));
+
+if (isDirectExecution) {
   const result = prePairDevice();
   console.log(`[pair-device] Paired device ${result.deviceId}`);
   console.log(`[pair-device] Public key: ${result.publicKey}`);
