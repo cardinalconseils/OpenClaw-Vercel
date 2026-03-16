@@ -137,7 +137,7 @@ Plans:
   3. Mission progress is visible in the ClawdTalk portal in real-time (events scheduled, in-progress, completed)
   4. After mission completes, user receives a summary with all captured results and conversation insights
   5. Agent handles batch operations with rate limiting — no more than N concurrent calls or SMS per minute
-**Plans:** 4 plans
+**Plans:** 1/4 plans executed
 
 Plans:
 - [ ] 08-01-PLAN.md — Mission types, Supabase client, rate limiter, DB repository, migration SQL (MISSION-06)
@@ -160,4 +160,4 @@ Phases execute in numeric order: 1 -> 1.1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 | 5. Live Call Transfer | 0/TBD | Not started | - |
 | 6. Post-Call SMS | 0/TBD | Not started | - |
 | 7. Web Dashboard | 0/TBD | Not started | - |
-| 8. Telnyx Missions | 0/4 | Planned | - |
+| 8. Telnyx Missions | 1/4 | In Progress|  |

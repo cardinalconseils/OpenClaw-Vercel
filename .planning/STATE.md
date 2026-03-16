@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Not planned yet
-stopped_at: Phase 2 context gathered
-last_updated: "2026-03-15T23:39:34.802Z"
+stopped_at: Completed 08-telnyx-missions-01-PLAN.md
+last_updated: "2026-03-16T00:26:35.465Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
-  total_phases: 8
+  total_phases: 9
   completed_phases: 2
-  total_plans: 7
-  completed_plans: 7
+  total_plans: 14
+  completed_plans: 8
   percent: 0
 ---
 
@@ -59,6 +59,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01.1-openclaw-agent-setup P01 | 147s | 2 tasks | 10 files |
 | Phase 01.1-openclaw-agent-setup P03 | 3min | 2 tasks | 6 files |
 | Phase 01.1-openclaw-agent-setup P03 | 10min | 3 tasks | 6 files |
+| Phase 08-telnyx-missions P01 | 193s | 2 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -94,6 +95,9 @@ Recent decisions affecting current work:
 - [Phase 01.1-openclaw-agent-setup]: SOUL.md content derived from buildMurphySystemPrompt() — single source of truth for Murphy persona
 - [Phase 01.1-openclaw-agent-setup]: call.initiated is the only event type triggering orchestrator in Phase 1.1 — other events log only
 - [Phase 01.1-openclaw-agent-setup]: Integration test mocks orchestrator via vi.mock — verifies invocation not LLM output
+- [Phase 08-telnyx-missions]: vitest.config.ts extended to include src/**/*.test.ts for co-located test files
+- [Phase 08-telnyx-missions]: Supabase client follows lazy-singleton pattern with resetSupabaseClient() for test isolation
+- [Phase 08-telnyx-missions]: TokenBucketRateLimiter singletons exported as smsLimiter (1/sec) and callLimiter (1/5sec)
 
 ### Pending Todos
 
@@ -111,6 +115,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-15T23:39:34.799Z
-Stopped at: Phase 2 context gathered
-Resume file: .planning/phases/02-voice-conversation-core/02-CONTEXT.md
+Last session: 2026-03-16T00:26:35.461Z
+Stopped at: Completed 08-telnyx-missions-01-PLAN.md
+Resume file: None

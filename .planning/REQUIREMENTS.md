@@ -62,6 +62,15 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **DASH-02**: Dashboard shows past searches, providers contacted, and outcomes
 - [ ] **DASH-03**: Dashboard is a simple web page served from the Vercel Sandbox
 
+### Telnyx Missions
+
+- [ ] **MISSION-01**: User can create missions via voice, SMS, or any connected chat channel by describing what they need
+- [ ] **MISSION-02**: Agent plans the mission with clear steps and creates a dedicated AI assistant for execution
+- [ ] **MISSION-03**: Agent schedules and executes mission events automatically (batch calls, SMS campaigns)
+- [ ] **MISSION-04**: Mission progress is trackable in real-time via the ClawdTalk portal
+- [ ] **MISSION-05**: Agent captures results and conversation insights from each mission event automatically
+- [x] **MISSION-06**: Agent handles batch operations with automatic scheduling and throttling (rate limiting)
+
 ## v2 Requirements
 
 Deferred to future release. Tracked but not in current roadmap.
@@ -140,10 +149,16 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DASH-01 | Phase 7 | Pending |
 | DASH-02 | Phase 7 | Pending |
 | DASH-03 | Phase 7 | Pending |
+| MISSION-01 | Phase 8 | Pending |
+| MISSION-02 | Phase 8 | Pending |
+| MISSION-03 | Phase 8 | Pending |
+| MISSION-04 | Phase 8 | Pending |
+| MISSION-05 | Phase 8 | Pending |
+| MISSION-06 | Phase 8 | Complete |
 
 **Coverage:**
-- v1 requirements: 34 total
-- Mapped to phases: 34
+- v1 requirements: 40 total
+- Mapped to phases: 40
 - Unmapped: 0
 
 ---
