@@ -74,4 +74,39 @@ describe('buildMurphySystemPrompt', () => {
     const prompt = buildMurphySystemPrompt();
     expect(prompt).toContain('FOLLOW-UP');
   });
+
+  // New tests for Phase 02-02
+
+  it('contains ONE clarifying question rule (not 2-turn)', () => {
+    const prompt = buildMurphySystemPrompt();
+    expect(prompt).toContain('ONE clarifying question');
+    expect(prompt).not.toContain('2-turn clarification');
+  });
+
+  it('contains Language Rules section', () => {
+    const prompt = buildMurphySystemPrompt();
+    expect(prompt).toContain('## Language Rules');
+  });
+
+  it('contains French response instruction', () => {
+    const prompt = buildMurphySystemPrompt();
+    expect(prompt).toContain('French');
+  });
+
+  it('asks for service need in greeting, not caller name', () => {
+    const prompt = buildMurphySystemPrompt();
+    expect(prompt).toContain('What service');
+    expect(prompt).not.toContain('Who am I speaking with');
+  });
+
+  it('contains 10-minute call timeout rule', () => {
+    const prompt = buildMurphySystemPrompt();
+    expect(prompt).toContain('10 minutes');
+  });
+
+  it('accepts language in MurphyContext', () => {
+    const prompt = buildMurphySystemPrompt({ language: 'fr' });
+    expect(typeof prompt).toBe('string');
+    expect(prompt.length).toBeGreaterThan(0);
+  });
 });
