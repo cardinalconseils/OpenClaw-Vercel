@@ -41,7 +41,39 @@ vi.mock('../../src/lib/ai/orchestrator.js', () => ({
 // Mock filler
 vi.mock('../../src/lib/voice/filler.js', () => ({
   startFillerLoop: vi.fn().mockReturnValue({ stop: vi.fn() }),
+  stopFillerLoop: vi.fn(),
   getFillerPhrase: vi.fn().mockReturnValue('Let me look that up for you.'),
+}));
+
+// Mock searchProviders — prevents real Google Places + OpenRouter calls in webhook tests
+vi.mock('../../src/lib/tools/handlers/search.js', () => ({
+  searchProviders: vi.fn().mockResolvedValue({
+    providers: [
+      {
+        name: 'Test Plumber',
+        phone: '+15125550001',
+        rating: 4.5,
+        reviewCount: 100,
+        address: '1 Main St',
+        distanceKm: 2.1,
+        distanceLabel: '2.1 km',
+        isOpenNow: true,
+        openingHoursText: undefined,
+        placeId: 'place-1',
+        source: 'google_places',
+      },
+    ],
+    source: 'google_places',
+    count: 1,
+  }),
+}));
+
+// Mock narration — deterministic strings without importing the real module
+vi.mock('../../src/lib/voice/narration.js', () => ({
+  buildResultNarration: vi.fn().mockReturnValue('I found 1 plumber providers near Austin.'),
+  buildNoResultsNarration: vi.fn().mockReturnValue("I couldn't find any providers."),
+  buildSearchingFiller: vi.fn().mockReturnValue('Searching for plumber providers near Austin now.'),
+  buildNextProviderNarration: vi.fn().mockReturnValue('Next up is Test Plumber.'),
 }));
 
 import { telnyxClient, getTelnyxClient } from '../../src/lib/voice/telnyx-client.js';
@@ -765,11 +797,13 @@ describe('POST /webhooks/telnyx', () => {
     expect(vi.mocked(startFillerLoop)).toHaveBeenCalled();
   });
 
-  it('Test 23: call.hangup stops active filler loop', async () => {
-    const mockStop = vi.fn();
-    vi.mocked(startFillerLoop).mockReturnValueOnce({ stop: mockStop });
+  it('Test 23: consent handler stops filler loop via stopFillerLoop after search completes', async () => {
+    // The filler loop is now stopped by the consent handler after searchProviders resolves,
+    // not by the hangup handler. This test verifies that stopFillerLoop is called.
+    const { stopFillerLoop } = await import('../../src/lib/voice/filler.js');
+    const mockStopFillerLoop = vi.mocked(stopFillerLoop);
+    mockStopFillerLoop.mockClear();
 
-    // First — trigger consent to start the filler loop
     vi.mocked(getCall).mockReturnValue({
       callControlId: 'cc-123',
       callerPhone: '+15550001111',
@@ -791,29 +825,10 @@ describe('POST /webhooks/telnyx', () => {
     });
     mockUnwrap.mockResolvedValueOnce(JSON.parse(consentBody) as any);
     await postWebhook(consentBody);
-    await new Promise((r) => setTimeout(r, 50));
+    // Give async searchProviders mock time to resolve and call stopFillerLoop
+    await new Promise((r) => setTimeout(r, 100));
 
-    // Now simulate hangup
-    vi.mocked(getCall).mockReturnValue({
-      callControlId: 'cc-123',
-      callerPhone: '+15550001111',
-      language: 'en',
-      stage: 'searching',
-      intent: {},
-      clarificationTurns: 0,
-      startedAt: new Date(),
-      callerName: 'John',
-      smsConsent: true,
-      consentTimestamp: new Date().toISOString(),
-      consentMethod: 'verbal',
-      silenceNudgeTimer: undefined,
-      silenceNudgeCount: 0,
-    });
-    mockUnwrap.mockResolvedValueOnce(JSON.parse(makePayload('call.hangup')) as any);
-    await postWebhook(makePayload('call.hangup'));
-    await new Promise((r) => setTimeout(r, 50));
-
-    expect(mockStop).toHaveBeenCalled();
+    expect(mockStopFillerLoop).toHaveBeenCalled();
   });
 
   it('Test 24: call.transcription with complete intent advances to searching (backward compat)', async () => {
