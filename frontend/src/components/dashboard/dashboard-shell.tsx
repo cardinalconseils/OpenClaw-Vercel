@@ -132,14 +132,16 @@ export function DashboardShell({ children, user }: DashboardShellProps) {
         {/* Mobile header */}
         <header className="flex h-16 items-center border-b border-border px-4 lg:hidden">
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-            <SheetTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label="Open navigation menu"
-              >
-                <Menu className="h-5 w-5" />
-              </Button>
+            <SheetTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Open navigation menu"
+                />
+              }
+            >
+              <Menu className="h-5 w-5" />
             </SheetTrigger>
             <SheetContent side="left" className="p-0 w-64" showCloseButton={false}>
               <SidebarContent
