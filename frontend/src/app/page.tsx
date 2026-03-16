@@ -1,7 +1,19 @@
+import { NavBar } from '@/components/landing/navbar'
+import { HeroSection } from '@/components/landing/hero-section'
+import { FeaturesSection } from '@/components/landing/features-section'
+import { SocialProofSection } from '@/components/landing/social-proof-section'
+import { Footer } from '@/components/landing/footer'
+
 export default function LandingPage() {
   return (
-    <main className="min-h-screen bg-background text-foreground flex items-center justify-center">
-      <h1 className="text-4xl font-bold">Murphy</h1>
-    </main>
+    <>
+      <NavBar />
+      <main className="min-h-screen bg-background">
+        <HeroSection />
+        <FeaturesSection />
+        <SocialProofSection />
+      </main>
+      <Footer />
+    </>
   )
 }
