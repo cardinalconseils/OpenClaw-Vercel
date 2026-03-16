@@ -168,7 +168,14 @@ Plans:
   5. Settings page allows users to update profile, notification preferences, and manage their account
   6. The frontend and Express backend coexist on the same Vercel deployment without routing conflicts
   7. All pages are responsive and performant (Lighthouse score > 90)
-**Plans**: TBD
+**Plans:** 5 plans
+
+Plans:
+- [ ] 09-01-PLAN.md — Next.js scaffold, shadcn/ui + Tailwind v4 design system, vercel.json route splitting (WEB-06, WEB-07)
+- [ ] 09-02-PLAN.md — Landing page: hero, features, social proof, navbar, footer (WEB-01, WEB-07)
+- [ ] 09-03-PLAN.md — Supabase Auth: SSR clients, middleware, login/signup, OAuth callback (WEB-02)
+- [ ] 09-04-PLAN.md — Dashboard: call history, missions realtime, analytics charts (WEB-03, WEB-04)
+- [ ] 09-05-PLAN.md — Settings: profile form, notification prefs, account management (WEB-05)
 
 ## Progress
 
@@ -186,4 +193,4 @@ Phases execute in numeric order: 1 -> 1.1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 
 | 6. Post-Call SMS | 0/TBD | Not started | - |
 | 7. Web Dashboard | 0/TBD | Not started | - |
 | 8. Telnyx Missions | 4/5 | Gap closure |  |
-| 9. Frontend Website | 0/TBD | Not started | - |
+| 9. Frontend Website | 0/5 | Planned | - |
