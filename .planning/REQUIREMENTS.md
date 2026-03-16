@@ -64,8 +64,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Telnyx Missions
 
-- [ ] **MISSION-01**: User can create missions via voice, SMS, or any connected chat channel by describing what they need
-- [ ] **MISSION-02**: Agent plans the mission with clear steps and creates a dedicated AI assistant for execution
+- [x] **MISSION-01**: User can create missions via voice, SMS, or any connected chat channel by describing what they need
+- [x] **MISSION-02**: Agent plans the mission with clear steps and creates a dedicated AI assistant for execution
 - [ ] **MISSION-03**: Agent schedules and executes mission events automatically (batch calls, SMS campaigns)
 - [ ] **MISSION-04**: Mission progress is trackable in real-time via the ClawdTalk portal
 - [ ] **MISSION-05**: Agent captures results and conversation insights from each mission event automatically
@@ -149,8 +149,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DASH-01 | Phase 7 | Pending |
 | DASH-02 | Phase 7 | Pending |
 | DASH-03 | Phase 7 | Pending |
-| MISSION-01 | Phase 8 | Pending |
-| MISSION-02 | Phase 8 | Pending |
+| MISSION-01 | Phase 8 | Complete |
+| MISSION-02 | Phase 8 | Complete |
 | MISSION-03 | Phase 8 | Pending |
 | MISSION-04 | Phase 8 | Pending |
 | MISSION-05 | Phase 8 | Pending |
