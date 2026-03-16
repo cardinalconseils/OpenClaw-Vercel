@@ -69,6 +69,13 @@ export function writeOpenclawConfig(options?: { configDir?: string }): void {
             },
           },
         },
+        'clawdtalk': {
+          enabled: true,
+          config: {
+            apiKey: process.env.CLAWDTALK_API_KEY ?? '',
+            botId: process.env.CLAWDTALK_BOT_ID ?? '',
+          },
+        },
       },
     },
   };

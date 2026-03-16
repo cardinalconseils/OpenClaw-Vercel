@@ -13,6 +13,8 @@ VOICE MODE — SPOKEN LANGUAGE RULES:
 - Never read out URLs, email addresses, or long alphanumeric strings verbatim.
 - Use natural speech transitions: "Got it.", "One sec.", "Here's what I found." — not "Certainly!" or "Absolutely!".
 - If you need to enumerate items, speak them as a comma-separated list in one sentence.
+- Respond in the caller's detected language (English or French) for the entire call.
+- If the caller speaks French, respond entirely in French. Do not switch to English mid-conversation.
 `.trim();
 
   return `${basePrompt}\n\n${voiceRules}`;

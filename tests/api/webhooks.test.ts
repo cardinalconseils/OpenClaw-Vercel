@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest';
 import request from 'supertest';
 import express from 'express';
 
@@ -9,12 +9,63 @@ vi.mock('../../src/lib/voice/telnyx-client.js', () => ({
       unwrap: vi.fn(),
     },
   },
+  getTelnyxClient: vi.fn(),
 }));
 
-import { telnyxClient } from '../../src/lib/voice/telnyx-client.js';
+// Mock call-state
+vi.mock('../../src/lib/voice/call-state.js', () => ({
+  initCall: vi.fn(),
+  getCall: vi.fn(),
+  updateCall: vi.fn(),
+  endCall: vi.fn(),
+  detectLanguage: vi.fn().mockReturnValue('en'),
+  shouldAdvancePastClarification: vi.fn().mockReturnValue(false),
+}));
+
+// Mock intent-extractor
+vi.mock('../../src/lib/ai/intent-extractor.js', () => ({
+  extractIntent: vi.fn().mockReturnValue({
+    serviceType: undefined,
+    location: undefined,
+    urgency: 'normal',
+    isComplete: false,
+  }),
+  isIntentComplete: vi.fn().mockReturnValue(false),
+  getDisambiguationPrompt: vi.fn().mockReturnValue('What kind of help do you need?'),
+}));
+
+// Mock orchestrator
+vi.mock('../../src/lib/ai/orchestrator.js', () => ({
+  chat: vi.fn().mockResolvedValue('ok'),
+}));
+
+import { telnyxClient, getTelnyxClient } from '../../src/lib/voice/telnyx-client.js';
+import {
+  initCall,
+  getCall,
+  updateCall,
+  endCall,
+  detectLanguage,
+  shouldAdvancePastClarification,
+} from '../../src/lib/voice/call-state.js';
+import {
+  extractIntent,
+  isIntentComplete,
+  getDisambiguationPrompt,
+} from '../../src/lib/ai/intent-extractor.js';
+import { GREETING } from '../../src/lib/voice/greeting.js';
+import { ELEVENLABS_VOICE_STRING, SESSION_PERSIST_MS } from '../../src/lib/voice/voice-config.js';
 import { app } from '../../src/server.js';
 
 const mockUnwrap = vi.mocked(telnyxClient.webhooks.unwrap);
+const mockGetTelnyxClient = vi.mocked(getTelnyxClient);
+
+// Shared mock calls object — mirrors Telnyx SDK v6: calls.actions.answer / calls.actions.speak
+const mockActions = {
+  answer: vi.fn().mockResolvedValue({}),
+  speak: vi.fn().mockResolvedValue({}),
+};
+const mockCalls = { actions: mockActions };
 
 const VALID_PAYLOAD = JSON.stringify({
   data: {
@@ -32,6 +83,31 @@ const VALID_PAYLOAD = JSON.stringify({
   },
 });
 
+function makePayload(eventType: string, payloadOverrides: Record<string, unknown> = {}) {
+  return JSON.stringify({
+    data: {
+      event_type: eventType,
+      id: 'test-event-id',
+      payload: {
+        call_control_id: 'cc-123',
+        call_leg_id: 'leg-456',
+        from: '+15550001111',
+        to: '+15550002222',
+        ...payloadOverrides,
+      },
+    },
+  });
+}
+
+async function postWebhook(body: string) {
+  return request(app)
+    .post('/webhooks/telnyx')
+    .set('Content-Type', 'application/json')
+    .set('telnyx-signature-ed25519', 'valid-sig')
+    .set('telnyx-timestamp', '1234567890')
+    .send(body);
+}
+
 describe('POST /webhooks/telnyx', () => {
   beforeAll(() => {
     // Set a dummy public key so the server doesn't crash on startup
@@ -39,9 +115,29 @@ describe('POST /webhooks/telnyx', () => {
     process.env.TELNYX_PUBLIC_KEY = 'test-public-key';
   });
 
+  beforeEach(() => {
+    // Reset all mocks before each test
+    vi.clearAllMocks();
+    mockGetTelnyxClient.mockReturnValue({ calls: mockCalls } as any);
+    mockActions.answer.mockResolvedValue({});
+    mockActions.speak.mockResolvedValue({});
+    vi.mocked(detectLanguage).mockReturnValue('en');
+    vi.mocked(shouldAdvancePastClarification).mockReturnValue(false);
+    vi.mocked(extractIntent).mockReturnValue({
+      serviceType: undefined,
+      location: undefined,
+      urgency: 'normal',
+      isComplete: false,
+    });
+    vi.mocked(isIntentComplete).mockReturnValue(false);
+    vi.mocked(getDisambiguationPrompt).mockReturnValue('What kind of help do you need?');
+  });
+
   afterAll(() => {
     vi.restoreAllMocks();
   });
+
+  // ---- Original tests ----
 
   it('Test 1: POST /webhooks/telnyx with valid signature returns 200', async () => {
     mockUnwrap.mockResolvedValueOnce({ data: { event_type: 'call.initiated' } } as any);
@@ -129,5 +225,257 @@ describe('POST /webhooks/telnyx', () => {
 
     const calledWith = mockUnwrap.mock.calls[0][0] as unknown;
     expect(typeof calledWith).toBe('string');
+  });
+
+  // ---- New lifecycle tests ----
+
+  it('Test 7: call.initiated event triggers calls.answer', async () => {
+    const body = makePayload('call.initiated');
+    mockUnwrap.mockResolvedValueOnce(JSON.parse(body) as any);
+
+    await postWebhook(body);
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(mockActions.answer).toHaveBeenCalledWith('cc-123', expect.any(Object));
+  });
+
+  it('Test 8: call.answered event calls initCall and speaks greeting', async () => {
+    const body = makePayload('call.answered');
+    mockUnwrap.mockResolvedValueOnce(JSON.parse(body) as any);
+
+    await postWebhook(body);
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(vi.mocked(initCall)).toHaveBeenCalledWith('cc-123', '+15550001111');
+    expect(mockActions.speak).toHaveBeenCalledWith(
+      'cc-123',
+      expect.objectContaining({
+        payload: GREETING.en,
+        voice: ELEVENLABS_VOICE_STRING,
+      })
+    );
+  });
+
+  it('Test 9: call.transcription with complete intent advances to searching', async () => {
+    vi.mocked(getCall).mockReturnValue({
+      callControlId: 'cc-123',
+      callerPhone: '+15550001111',
+      language: 'en',
+      stage: 'intake',
+      intent: {},
+      clarificationTurns: 0,
+      startedAt: new Date(),
+    });
+    vi.mocked(extractIntent).mockReturnValue({
+      serviceType: 'plumber',
+      location: 'Austin',
+      urgency: 'normal',
+      isComplete: true,
+    });
+    vi.mocked(isIntentComplete).mockReturnValue(true);
+
+    const body = makePayload('call.transcription', {
+      transcription_data: {
+        transcript: 'I need a plumber in Austin',
+        words: [{ word: 'plumber', language: 'en' }],
+      },
+    });
+    mockUnwrap.mockResolvedValueOnce(JSON.parse(body) as any);
+
+    await postWebhook(body);
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(vi.mocked(updateCall)).toHaveBeenCalledWith(
+      'cc-123',
+      expect.objectContaining({ stage: 'searching' })
+    );
+    expect(mockActions.speak).toHaveBeenCalled();
+  });
+
+  it('Test 10: call.transcription with incomplete intent and 0 clarifications asks disambiguation', async () => {
+    vi.mocked(getCall).mockReturnValue({
+      callControlId: 'cc-123',
+      callerPhone: '+15550001111',
+      language: 'en',
+      stage: 'intake',
+      intent: {},
+      clarificationTurns: 0,
+      startedAt: new Date(),
+    });
+    vi.mocked(extractIntent).mockReturnValue({
+      serviceType: undefined,
+      location: undefined,
+      urgency: 'normal',
+      isComplete: false,
+    });
+    vi.mocked(isIntentComplete).mockReturnValue(false);
+    vi.mocked(shouldAdvancePastClarification).mockReturnValue(false);
+    vi.mocked(getDisambiguationPrompt).mockReturnValue('What kind of help do you need?');
+
+    const body = makePayload('call.transcription', {
+      transcription_data: {
+        transcript: 'I need help',
+        words: [{ word: 'help', language: 'en' }],
+      },
+    });
+    mockUnwrap.mockResolvedValueOnce(JSON.parse(body) as any);
+
+    await postWebhook(body);
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(mockActions.speak).toHaveBeenCalledWith(
+      'cc-123',
+      expect.objectContaining({ payload: 'What kind of help do you need?' })
+    );
+    expect(vi.mocked(updateCall)).toHaveBeenCalledWith(
+      'cc-123',
+      expect.objectContaining({ clarificationTurns: 1 })
+    );
+  });
+
+  it('Test 11: call.transcription with incomplete intent and 1 clarification forces advance', async () => {
+    vi.mocked(getCall).mockReturnValue({
+      callControlId: 'cc-123',
+      callerPhone: '+15550001111',
+      language: 'en',
+      stage: 'intake',
+      intent: {},
+      clarificationTurns: 1,
+      startedAt: new Date(),
+    });
+    vi.mocked(extractIntent).mockReturnValue({
+      serviceType: undefined,
+      location: undefined,
+      urgency: 'normal',
+      isComplete: false,
+    });
+    vi.mocked(isIntentComplete).mockReturnValue(false);
+    vi.mocked(shouldAdvancePastClarification).mockReturnValue(true);
+
+    const body = makePayload('call.transcription', {
+      transcription_data: {
+        transcript: 'I still need something',
+        words: [{ word: 'still', language: 'en' }],
+      },
+    });
+    mockUnwrap.mockResolvedValueOnce(JSON.parse(body) as any);
+
+    await postWebhook(body);
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(vi.mocked(updateCall)).toHaveBeenCalledWith(
+      'cc-123',
+      expect.objectContaining({ stage: 'searching' })
+    );
+  });
+
+  it('Test 12: call.transcription calls detectLanguage on first utterance', async () => {
+    vi.mocked(getCall).mockReturnValue({
+      callControlId: 'cc-123',
+      callerPhone: '+15550001111',
+      language: 'en',
+      stage: 'intake',
+      intent: {},
+      clarificationTurns: 0,
+      startedAt: new Date(),
+    });
+    vi.mocked(detectLanguage).mockReturnValue('fr');
+    vi.mocked(extractIntent).mockReturnValue({
+      serviceType: undefined,
+      location: undefined,
+      urgency: 'normal',
+      isComplete: false,
+    });
+    vi.mocked(isIntentComplete).mockReturnValue(false);
+    vi.mocked(shouldAdvancePastClarification).mockReturnValue(false);
+
+    const words = [{ word: 'bonjour', language: 'fr' }];
+    const body = makePayload('call.transcription', {
+      transcription_data: {
+        transcript: 'Bonjour',
+        words,
+      },
+    });
+    mockUnwrap.mockResolvedValueOnce(JSON.parse(body) as any);
+
+    await postWebhook(body);
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(vi.mocked(detectLanguage)).toHaveBeenCalledWith(words);
+    expect(vi.mocked(updateCall)).toHaveBeenCalledWith(
+      'cc-123',
+      expect.objectContaining({ language: 'fr' })
+    );
+  });
+
+  it('Test 13: call.hangup with incomplete call delays endCall', async () => {
+    vi.mocked(getCall).mockReturnValue({
+      callControlId: 'cc-123',
+      callerPhone: '+15550001111',
+      language: 'en',
+      stage: 'intake',
+      intent: {},
+      clarificationTurns: 0,
+      startedAt: new Date(),
+    });
+
+    // Capture the setTimeout callback so we can invoke it manually
+    let capturedCallback: (() => void) | undefined;
+    let capturedDelay: number | undefined;
+    const originalSetTimeout = global.setTimeout;
+    const setTimeoutSpy = vi
+      .spyOn(global, 'setTimeout')
+      .mockImplementationOnce((fn: (...args: unknown[]) => void, delay?: number) => {
+        capturedCallback = fn as () => void;
+        capturedDelay = delay;
+        return 0 as unknown as ReturnType<typeof setTimeout>;
+      });
+
+    const body = makePayload('call.hangup');
+    mockUnwrap.mockResolvedValueOnce(JSON.parse(body) as any);
+
+    await postWebhook(body);
+    // Give setImmediate time to fire — use original setTimeout to avoid spy interference
+    await new Promise<void>((r) => originalSetTimeout(r, 50));
+
+    setTimeoutSpy.mockRestore();
+
+    // endCall should NOT be called immediately
+    expect(vi.mocked(endCall)).not.toHaveBeenCalled();
+    // Delay should be SESSION_PERSIST_MS
+    expect(capturedDelay).toBe(SESSION_PERSIST_MS);
+    // Invoke the captured callback to simulate timer firing
+    capturedCallback?.();
+    expect(vi.mocked(endCall)).toHaveBeenCalledWith('cc-123');
+  });
+
+  it('Test 14: call.hangup with completed call calls endCall immediately', async () => {
+    vi.mocked(getCall).mockReturnValue({
+      callControlId: 'cc-123',
+      callerPhone: '+15550001111',
+      language: 'en',
+      stage: 'complete',
+      intent: {},
+      clarificationTurns: 0,
+      startedAt: new Date(),
+    });
+
+    const body = makePayload('call.hangup');
+    mockUnwrap.mockResolvedValueOnce(JSON.parse(body) as any);
+
+    await postWebhook(body);
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(vi.mocked(endCall)).toHaveBeenCalledWith('cc-123');
+  });
+
+  it('Test 15: unknown event type does not throw', async () => {
+    const body = makePayload('call.recording');
+    mockUnwrap.mockResolvedValueOnce(JSON.parse(body) as any);
+
+    const res = await postWebhook(body);
+    expect(res.status).toBe(200);
+    // No assertion about throws — just confirming 200 and no crash
+    await new Promise((r) => setTimeout(r, 50));
   });
 });

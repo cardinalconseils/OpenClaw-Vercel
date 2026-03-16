@@ -17,11 +17,11 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Voice Conversation
 
-- [ ] **VOICE-01**: User calls Telnyx number and agent answers with a greeting
-- [ ] **VOICE-02**: Agent captures user intent from natural speech (service type, location, urgency)
-- [ ] **VOICE-03**: Agent asks smart clarifying questions when intent is ambiguous
-- [ ] **VOICE-04**: Agent responds with sub-second perceived latency (streaming TTS)
-- [ ] **VOICE-05**: Agent uses filler speech during tool calls to avoid dead air
+- [x] **VOICE-01**: User calls Telnyx number and agent answers with a greeting
+- [x] **VOICE-02**: Agent captures user intent from natural speech (service type, location, urgency)
+- [x] **VOICE-03**: Agent asks smart clarifying questions when intent is ambiguous
+- [x] **VOICE-04**: Agent responds with sub-second perceived latency (streaming TTS)
+- [x] **VOICE-05**: Agent uses filler speech during tool calls to avoid dead air
 
 ### Provider Search
 
@@ -61,6 +61,15 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **DASH-01**: User can view call history by entering their phone number
 - [ ] **DASH-02**: Dashboard shows past searches, providers contacted, and outcomes
 - [ ] **DASH-03**: Dashboard is a simple web page served from the Vercel Sandbox
+
+### Telnyx Missions
+
+- [x] **MISSION-01**: User can create missions via voice, SMS, or any connected chat channel by describing what they need
+- [x] **MISSION-02**: Agent plans the mission with clear steps and creates a dedicated AI assistant for execution
+- [x] **MISSION-03**: Agent schedules and executes mission events automatically (batch calls, SMS campaigns)
+- [x] **MISSION-04**: Mission progress is trackable in real-time via the ClawdTalk portal
+- [x] **MISSION-05**: Agent captures results and conversation insights from each mission event automatically
+- [x] **MISSION-06**: Agent handles batch operations with automatic scheduling and throttling (rate limiting)
 
 ## v2 Requirements
 
@@ -111,11 +120,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INFRA-03 | Phase 1 | Complete |
 | INFRA-04 | Phase 1 | Complete |
 | INFRA-05 | Phase 1 | Complete |
-| VOICE-01 | Phase 2 | Pending |
-| VOICE-02 | Phase 2 | Pending |
-| VOICE-03 | Phase 2 | Pending |
-| VOICE-04 | Phase 2 | Pending |
-| VOICE-05 | Phase 2 | Pending |
+| VOICE-01 | Phase 2 | Complete |
+| VOICE-02 | Phase 2 | Complete |
+| VOICE-03 | Phase 2 | Complete |
+| VOICE-04 | Phase 2 | Complete |
+| VOICE-05 | Phase 2 | Complete |
 | SRCH-01 | Phase 3 | Pending |
 | SRCH-02 | Phase 3 | Pending |
 | SRCH-03 | Phase 3 | Pending |
@@ -140,10 +149,16 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DASH-01 | Phase 7 | Pending |
 | DASH-02 | Phase 7 | Pending |
 | DASH-03 | Phase 7 | Pending |
+| MISSION-01 | Phase 8 | Complete |
+| MISSION-02 | Phase 8 | Complete |
+| MISSION-03 | Phase 8 | Complete |
+| MISSION-04 | Phase 8 | Complete |
+| MISSION-05 | Phase 8 | Complete |
+| MISSION-06 | Phase 8 | Complete |
 
 **Coverage:**
-- v1 requirements: 34 total
-- Mapped to phases: 34
+- v1 requirements: 40 total
+- Mapped to phases: 40
 - Unmapped: 0
 
 ---

@@ -31,17 +31,24 @@ export async function telnyxWebhookVerifier(
   next: NextFunction
 ): Promise<void> {
   const rawBody = req.body instanceof Buffer ? req.body.toString('utf8') : String(req.body ?? '');
-  const publicKey = process.env.TELNYX_PUBLIC_KEY ?? '';
+  const publicKey = process.env.TELNYX_PUBLIC_KEY;
+
+  if (!publicKey) {
+    console.error('[webhooks] CRITICAL: TELNYX_PUBLIC_KEY is not set — rejecting all webhooks');
+    res.status(500).json({ error: 'Webhook verification not configured' });
+    return;
+  }
 
   try {
     const event = await telnyxClient.webhooks.unwrap(rawBody, {
       headers: req.headers as Record<string, string>,
-      key: publicKey || undefined,
+      key: publicKey,
     });
 
     req.telnyxEvent = event as unknown as TelnyxWebhookEvent;
     next();
-  } catch (_err) {
+  } catch (err) {
+    console.error('[webhooks] Webhook verification failed:', err instanceof Error ? err.message : String(err));
     res.status(403).json({ error: 'Invalid webhook signature' });
   }
 }

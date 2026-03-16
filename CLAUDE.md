@@ -104,6 +104,12 @@ For small changes that don't need a full phase:
 |---------|-------------|
 | `/deploy` | Full CI/CD pipeline — commit, PR, security review, deploy to Vercel |
 
+### Browser Automation Commands
+
+| Command | Description |
+|---------|-------------|
+| `/browse` | Browser automation — open websites, fill forms, configure portals |
+
 ### Other Commands
 
 | Command | Description |
@@ -128,6 +134,7 @@ Specialized agents in `.claude/agents/`:
 | `uat-specialist` | User acceptance test scenarios |
 | `documentation-specialist` | Documentation maintenance |
 | `cicd-deployment` | CI/CD pipeline, security gates, Vercel deployment |
+| `browser-automation` | Browser automation, portal configuration, visual testing |
 
 ---
 
@@ -145,6 +152,7 @@ Domain expertise in `.claude/skills/`:
 | `team-orchestration` | Multi-agent coordination |
 | `learning` | Codebase deep dives and concept learning |
 | `cicd-deployment` | CI/CD pipeline orchestration and deployment gates |
+| `agent-browser` | Browser automation CLI for navigating sites, filling forms, extracting data |
 
 ---
 

@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Not planned yet
-stopped_at: Completed 01.1-03-PLAN.md — Phase 1.1 OpenClaw Agent Setup fully complete
-last_updated: "2026-03-15T13:10:33.030Z"
+stopped_at: Phase 2 context updated with voice conversation decisions
+last_updated: "2026-03-16T02:02:37.036Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
-  total_phases: 8
-  completed_phases: 2
-  total_plans: 7
-  completed_plans: 7
+  total_phases: 9
+  completed_phases: 4
+  total_plans: 15
+  completed_plans: 15
   percent: 0
 ---
 
@@ -59,6 +59,15 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01.1-openclaw-agent-setup P01 | 147s | 2 tasks | 10 files |
 | Phase 01.1-openclaw-agent-setup P03 | 3min | 2 tasks | 6 files |
 | Phase 01.1-openclaw-agent-setup P03 | 10min | 3 tasks | 6 files |
+| Phase 08-telnyx-missions P01 | 193s | 2 tasks | 11 files |
+| Phase 08-telnyx-missions PP02 | 167s | 2 tasks | 4 files |
+| Phase 08-telnyx-missions P03 | 293s | 2 tasks | 8 files |
+| Phase 02-voice-conversation-core P02 | 141s | 2 tasks | 5 files |
+| Phase 02-voice-conversation-core P01 | 2min | 1 tasks | 6 files |
+| Phase 08-telnyx-missions PP04 | 3min | 2 tasks | 4 files |
+| Phase 02-voice-conversation-core P03 | 308s | 2 tasks | 5 files |
+| Phase 02-voice-conversation-core PP03 | 308s | 3 tasks | 5 files |
+| Phase 08-telnyx-missions P05 | 3min | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -94,6 +103,25 @@ Recent decisions affecting current work:
 - [Phase 01.1-openclaw-agent-setup]: SOUL.md content derived from buildMurphySystemPrompt() — single source of truth for Murphy persona
 - [Phase 01.1-openclaw-agent-setup]: call.initiated is the only event type triggering orchestrator in Phase 1.1 — other events log only
 - [Phase 01.1-openclaw-agent-setup]: Integration test mocks orchestrator via vi.mock — verifies invocation not LLM output
+- [Phase 08-telnyx-missions]: vitest.config.ts extended to include src/**/*.test.ts for co-located test files
+- [Phase 08-telnyx-missions]: Supabase client follows lazy-singleton pattern with resetSupabaseClient() for test isolation
+- [Phase 08-telnyx-missions]: TokenBucketRateLimiter singletons exported as smsLimiter (1/sec) and callLimiter (1/5sec)
+- [Phase 08-telnyx-missions]: planMission() routes to Anthropic via transfer-logic — mission planning needs high reasoning quality to decompose ambiguous natural language
+- [Phase 08-telnyx-missions]: parseMissionSteps() silently skips invalid steps (log + continue) — partial LLM output should still produce a usable plan
+- [Phase 08-telnyx-missions]: MissionEngine.fail() bypasses transition guard — any state can fail; catastrophic failures must always be recordable
+- [Phase 08-telnyx-missions]: Mission engine built as prerequisite in plan 03 (plan 02 was not executed) — Rule 3 auto-fix for blocking dependency
+- [Phase 08-telnyx-missions]: Scheduler uses void enqueue() in tool handler — returns step plan to AI immediately, mission executes asynchronously in background
+- [Phase 02-voice-conversation-core]: Regex/keyword extraction for intent (no LLM call) — deterministic, zero latency, testable in isolation
+- [Phase 02-voice-conversation-core]: EN and FR service keyword patterns maintained as separate arrays — clean separation, extensible
+- [Phase 02-voice-conversation-core]: Round-robin counter chosen over Math.random for filler phrases — deterministic rotation guarantees >= 3 unique variants in 20-call pool test
+- [Phase 02-voice-conversation-core]: Test import paths for tests/lib/voice/ use ../../../src/ (3 levels), not ../../../../src/ — path depth matches actual directory nesting
+- [Phase 08-telnyx-missions]: MissionReporter.onProgressEvent is an optional callback wired at runtime by ClawdTalk/voice handlers for flexibility
+- [Phase 08-telnyx-missions]: generateSummary uses 'status-update' task type routing to OpenRouter (Gemini Flash) — fast/cheap for SMS-length summaries
+- [Phase 08-telnyx-missions]: recoverIncompleteMissions re-enqueues both pending and in-progress steps — interrupted steps must retry from scratch
+- [Phase 02-voice-conversation-core]: Telnyx SDK v6 uses calls.actions.answer/speak (not calls.answer/speak) — corrected during type check
+- [Phase 02-voice-conversation-core]: setTimeout spy approach used for session persistence test — vi.useFakeTimers can't retroactively control timers registered before switch
+- [Phase 08-telnyx-missions]: Structural test uses __dirname + readFileSync to assert import/await presence — avoids gateway startup, compatible with NodeNext CJS
+- [Phase 08-telnyx-missions]: initMissions() called AFTER gateway health guard, BEFORE startServer() — ensures DB connectivity before mission recovery
 
 ### Pending Todos
 
@@ -111,6 +139,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-15T13:04:01.298Z
-Stopped at: Completed 01.1-03-PLAN.md — Phase 1.1 OpenClaw Agent Setup fully complete
-Resume file: None
+Last session: 2026-03-16T02:02:37.034Z
+Stopped at: Phase 2 context updated with voice conversation decisions
+Resume file: .planning/phases/02-voice-conversation-core/02-CONTEXT.md
