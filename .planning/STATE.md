@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Not planned yet
-stopped_at: Completed 08-telnyx-missions-03-PLAN.md
-last_updated: "2026-03-16T00:33:58.776Z"
+stopped_at: Completed 02-voice-conversation-core-02-PLAN.md
+last_updated: "2026-03-16T00:38:25.105Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
   total_phases: 9
   completed_phases: 2
   total_plans: 14
-  completed_plans: 10
+  completed_plans: 12
   percent: 0
 ---
 
@@ -62,6 +62,8 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 08-telnyx-missions P01 | 193s | 2 tasks | 11 files |
 | Phase 08-telnyx-missions PP02 | 167s | 2 tasks | 4 files |
 | Phase 08-telnyx-missions P03 | 293s | 2 tasks | 8 files |
+| Phase 02-voice-conversation-core P02 | 141s | 2 tasks | 5 files |
+| Phase 02-voice-conversation-core P01 | 2min | 1 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -105,6 +107,8 @@ Recent decisions affecting current work:
 - [Phase 08-telnyx-missions]: MissionEngine.fail() bypasses transition guard — any state can fail; catastrophic failures must always be recordable
 - [Phase 08-telnyx-missions]: Mission engine built as prerequisite in plan 03 (plan 02 was not executed) — Rule 3 auto-fix for blocking dependency
 - [Phase 08-telnyx-missions]: Scheduler uses void enqueue() in tool handler — returns step plan to AI immediately, mission executes asynchronously in background
+- [Phase 02-voice-conversation-core]: Regex/keyword extraction for intent (no LLM call) — deterministic, zero latency, testable in isolation
+- [Phase 02-voice-conversation-core]: EN and FR service keyword patterns maintained as separate arrays — clean separation, extensible
 
 ### Pending Todos
 
@@ -122,6 +126,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T00:33:58.774Z
-Stopped at: Completed 08-telnyx-missions-03-PLAN.md
+Last session: 2026-03-16T00:38:21.634Z
+Stopped at: Completed 02-voice-conversation-core-02-PLAN.md
 Resume file: None

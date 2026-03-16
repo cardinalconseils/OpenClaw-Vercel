@@ -18,8 +18,8 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Voice Conversation
 
 - [ ] **VOICE-01**: User calls Telnyx number and agent answers with a greeting
-- [ ] **VOICE-02**: Agent captures user intent from natural speech (service type, location, urgency)
-- [ ] **VOICE-03**: Agent asks smart clarifying questions when intent is ambiguous
+- [x] **VOICE-02**: Agent captures user intent from natural speech (service type, location, urgency)
+- [x] **VOICE-03**: Agent asks smart clarifying questions when intent is ambiguous
 - [ ] **VOICE-04**: Agent responds with sub-second perceived latency (streaming TTS)
 - [ ] **VOICE-05**: Agent uses filler speech during tool calls to avoid dead air
 
@@ -121,8 +121,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INFRA-04 | Phase 1 | Complete |
 | INFRA-05 | Phase 1 | Complete |
 | VOICE-01 | Phase 2 | Pending |
-| VOICE-02 | Phase 2 | Pending |
-| VOICE-03 | Phase 2 | Pending |
+| VOICE-02 | Phase 2 | Complete |
+| VOICE-03 | Phase 2 | Complete |
 | VOICE-04 | Phase 2 | Pending |
 | VOICE-05 | Phase 2 | Pending |
 | SRCH-01 | Phase 3 | Pending |
