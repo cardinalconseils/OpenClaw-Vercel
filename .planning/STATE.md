@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Not planned yet
-stopped_at: Completed 04-outbound-provider-calling/04-01-PLAN.md
-last_updated: "2026-03-16T19:53:00.915Z"
+stopped_at: Completed 04-outbound-provider-calling/04-02-PLAN.md
+last_updated: "2026-03-16T19:59:04.827Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
   total_phases: 9
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 20
-  completed_plans: 19
+  completed_plans: 20
   percent: 0
 ---
 
@@ -80,6 +80,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 03-provider-discovery P03 | 15min | 3 tasks | 3 files |
 | Phase 04-outbound-provider-calling P01 | 291s | 2 tasks | 4 files |
 | Phase 04-outbound-provider-calling P01 | 8min | 2 tasks | 4 files |
+| Phase 04-outbound-provider-calling P02 | 277s | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -172,6 +173,8 @@ Recent decisions affecting current work:
 - [Phase 04-outbound-provider-calling]: AI_INTRO required as first utterance on provider answer — CA SB-1001 / FCC automated call disclosure
 - [Phase 04-outbound-provider-calling]: sendProviderSms is non-fatal — SMS failure logs and continues to dial
 - [Phase 04-outbound-provider-calling]: client_state encoded as base64(JSON) for Telnyx webhook routing across both call legs
+- [Phase 04-outbound-provider-calling]: direction guard on call.initiated/call.answered routes outbound provider legs correctly
+- [Phase 04-outbound-provider-calling]: callProvider() delegates to startOutboundCascade with call_control_id validation
 
 ### Pending Todos
 
@@ -189,6 +192,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T19:53:00.911Z
-Stopped at: Completed 04-outbound-provider-calling/04-01-PLAN.md
+Last session: 2026-03-16T19:59:04.825Z
+Stopped at: Completed 04-outbound-provider-calling/04-02-PLAN.md
 Resume file: None
