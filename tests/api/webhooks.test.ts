@@ -18,7 +18,6 @@ vi.mock('../../src/lib/voice/call-state.js', () => ({
   getCall: vi.fn(),
   updateCall: vi.fn(),
   endCall: vi.fn(),
-  detectLanguage: vi.fn().mockReturnValue('en'),
   shouldAdvancePastClarification: vi.fn().mockReturnValue(false),
 }));
 
@@ -39,13 +38,18 @@ vi.mock('../../src/lib/ai/orchestrator.js', () => ({
   chat: vi.fn().mockResolvedValue('ok'),
 }));
 
+// Mock filler
+vi.mock('../../src/lib/voice/filler.js', () => ({
+  startFillerLoop: vi.fn().mockReturnValue({ stop: vi.fn() }),
+  getFillerPhrase: vi.fn().mockReturnValue('Let me look that up for you.'),
+}));
+
 import { telnyxClient, getTelnyxClient } from '../../src/lib/voice/telnyx-client.js';
 import {
   initCall,
   getCall,
   updateCall,
   endCall,
-  detectLanguage,
   shouldAdvancePastClarification,
 } from '../../src/lib/voice/call-state.js';
 import {
@@ -53,17 +57,20 @@ import {
   isIntentComplete,
   getDisambiguationPrompt,
 } from '../../src/lib/ai/intent-extractor.js';
+import { startFillerLoop } from '../../src/lib/voice/filler.js';
 import { GREETING_STEP_1 } from '../../src/lib/voice/greeting.js';
-import { SESSION_PERSIST_MS } from '../../src/lib/voice/voice-config.js';
+import { TELNYX_VOICE_STRING, SESSION_PERSIST_MS } from '../../src/lib/voice/voice-config.js';
 import { app } from '../../src/server.js';
 
 const mockUnwrap = vi.mocked(telnyxClient.webhooks.unwrap);
 const mockGetTelnyxClient = vi.mocked(getTelnyxClient);
 
-// Shared mock calls object — mirrors Telnyx SDK v6: calls.actions.answer / calls.actions.speak
+// Shared mock calls object — mirrors Telnyx SDK v6: calls.actions.answer / calls.actions.speak / calls.actions.startTranscription
 const mockActions = {
   answer: vi.fn().mockResolvedValue({}),
   speak: vi.fn().mockResolvedValue({}),
+  startTranscription: vi.fn().mockResolvedValue({}),
+  hangup: vi.fn().mockResolvedValue({}),
 };
 const mockCalls = { actions: mockActions };
 
@@ -121,7 +128,8 @@ describe('POST /webhooks/telnyx', () => {
     mockGetTelnyxClient.mockReturnValue({ calls: mockCalls } as any);
     mockActions.answer.mockResolvedValue({});
     mockActions.speak.mockResolvedValue({});
-    vi.mocked(detectLanguage).mockReturnValue('en');
+    mockActions.startTranscription.mockResolvedValue({});
+    mockActions.hangup.mockResolvedValue({});
     vi.mocked(shouldAdvancePastClarification).mockReturnValue(false);
     vi.mocked(extractIntent).mockReturnValue({
       serviceType: undefined,
@@ -131,6 +139,7 @@ describe('POST /webhooks/telnyx', () => {
     });
     vi.mocked(isIntentComplete).mockReturnValue(false);
     vi.mocked(getDisambiguationPrompt).mockReturnValue('What kind of help do you need?');
+    vi.mocked(startFillerLoop).mockReturnValue({ stop: vi.fn() });
   });
 
   afterAll(() => {
@@ -239,7 +248,7 @@ describe('POST /webhooks/telnyx', () => {
     expect(mockActions.answer).toHaveBeenCalledWith('cc-123', expect.any(Object));
   });
 
-  it('Test 8: call.answered event calls initCall and speaks greeting', async () => {
+  it('Test 8: call.answered speaks GREETING_STEP_1 with TELNYX_VOICE_STRING and calls startTranscription', async () => {
     const body = makePayload('call.answered');
     mockUnwrap.mockResolvedValueOnce(JSON.parse(body) as any);
 
@@ -251,11 +260,563 @@ describe('POST /webhooks/telnyx', () => {
       'cc-123',
       expect.objectContaining({
         payload: GREETING_STEP_1,
+        voice: TELNYX_VOICE_STRING,
       })
+    );
+    expect(mockActions.startTranscription).toHaveBeenCalledWith(
+      'cc-123',
+      expect.any(Object)
     );
   });
 
-  it('Test 9: call.transcription with complete intent advances to searching', async () => {
+  it('Test 9: call.speak.ended during greeting stage advances to name_capture', async () => {
+    vi.mocked(getCall).mockReturnValue({
+      callControlId: 'cc-123',
+      callerPhone: '+15550001111',
+      language: 'en',
+      stage: 'greeting',
+      intent: {},
+      clarificationTurns: 0,
+      startedAt: new Date(),
+      callerName: undefined,
+      smsConsent: undefined,
+      consentTimestamp: undefined,
+      consentMethod: undefined,
+      silenceNudgeTimer: undefined,
+      silenceNudgeCount: 0,
+    });
+
+    const body = makePayload('call.speak.ended');
+    mockUnwrap.mockResolvedValueOnce(JSON.parse(body) as any);
+
+    await postWebhook(body);
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(vi.mocked(updateCall)).toHaveBeenCalledWith(
+      'cc-123',
+      expect.objectContaining({ stage: 'name_capture' })
+    );
+  });
+
+  it('Test 10: call.transcription during greeting stage is discarded (speak not called)', async () => {
+    vi.mocked(getCall).mockReturnValue({
+      callControlId: 'cc-123',
+      callerPhone: '+15550001111',
+      language: 'en',
+      stage: 'greeting',
+      intent: {},
+      clarificationTurns: 0,
+      startedAt: new Date(),
+      callerName: undefined,
+      smsConsent: undefined,
+      consentTimestamp: undefined,
+      consentMethod: undefined,
+      silenceNudgeTimer: undefined,
+      silenceNudgeCount: 0,
+    });
+
+    const body = makePayload('call.transcription', {
+      transcription_data: {
+        transcript: 'hello',
+        words: [],
+      },
+    });
+    mockUnwrap.mockResolvedValueOnce(JSON.parse(body) as any);
+
+    await postWebhook(body);
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(mockActions.speak).not.toHaveBeenCalled();
+  });
+
+  it('Test 11: call.transcription during name_capture extracts last word as callerName and speaks GREETING_STEP_2', async () => {
+    vi.mocked(getCall).mockReturnValue({
+      callControlId: 'cc-123',
+      callerPhone: '+15550001111',
+      language: 'en',
+      stage: 'name_capture',
+      intent: {},
+      clarificationTurns: 0,
+      startedAt: new Date(),
+      callerName: undefined,
+      smsConsent: undefined,
+      consentTimestamp: undefined,
+      consentMethod: undefined,
+      silenceNudgeTimer: undefined,
+      silenceNudgeCount: 0,
+    });
+
+    const body = makePayload('call.transcription', {
+      transcription_data: {
+        transcript: "My name is John",
+        words: [],
+      },
+    });
+    mockUnwrap.mockResolvedValueOnce(JSON.parse(body) as any);
+
+    await postWebhook(body);
+    await new Promise((r) => setTimeout(r, 50));
+
+    // Should have extracted "John" (last word) and advanced to intake
+    expect(vi.mocked(updateCall)).toHaveBeenCalledWith(
+      'cc-123',
+      expect.objectContaining({ callerName: 'John', stage: 'intake' })
+    );
+    // Should speak GREETING_STEP_2 with the caller's name
+    expect(mockActions.speak).toHaveBeenCalledWith(
+      'cc-123',
+      expect.objectContaining({ payload: expect.stringContaining('John') })
+    );
+  });
+
+  it('Test 12: call.transcription during name_capture with single non-alpha word uses GREETING_STEP_2_FALLBACK', async () => {
+    vi.mocked(getCall).mockReturnValue({
+      callControlId: 'cc-123',
+      callerPhone: '+15550001111',
+      language: 'en',
+      stage: 'name_capture',
+      intent: {},
+      clarificationTurns: 0,
+      startedAt: new Date(),
+      callerName: undefined,
+      smsConsent: undefined,
+      consentTimestamp: undefined,
+      consentMethod: undefined,
+      silenceNudgeTimer: undefined,
+      silenceNudgeCount: 0,
+    });
+
+    const body = makePayload('call.transcription', {
+      transcription_data: {
+        transcript: "123",
+        words: [],
+      },
+    });
+    mockUnwrap.mockResolvedValueOnce(JSON.parse(body) as any);
+
+    await postWebhook(body);
+    await new Promise((r) => setTimeout(r, 50));
+
+    // cleanName should be undefined for non-alpha, falls back to GREETING_STEP_2_FALLBACK
+    expect(mockActions.speak).toHaveBeenCalledWith(
+      'cc-123',
+      expect.objectContaining({ payload: "What kind of service are you looking for today?" })
+    );
+  });
+
+  it('Test 13: call.transcription during intake with complete intent advances to consent and speaks TCPA_CONSENT_ASK', async () => {
+    vi.mocked(getCall).mockReturnValue({
+      callControlId: 'cc-123',
+      callerPhone: '+15550001111',
+      language: 'en',
+      stage: 'intake',
+      intent: {},
+      clarificationTurns: 0,
+      startedAt: new Date(),
+      callerName: undefined,
+      smsConsent: undefined,
+      consentTimestamp: undefined,
+      consentMethod: undefined,
+      silenceNudgeTimer: undefined,
+      silenceNudgeCount: 0,
+    });
+    vi.mocked(extractIntent).mockReturnValue({
+      serviceType: 'plumber',
+      location: 'Austin',
+      urgency: 'normal',
+      isComplete: true,
+    });
+    vi.mocked(isIntentComplete).mockReturnValue(true);
+
+    const body = makePayload('call.transcription', {
+      transcription_data: {
+        transcript: 'I need a plumber in Austin',
+        words: [],
+      },
+    });
+    mockUnwrap.mockResolvedValueOnce(JSON.parse(body) as any);
+
+    await postWebhook(body);
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(vi.mocked(updateCall)).toHaveBeenCalledWith(
+      'cc-123',
+      expect.objectContaining({ stage: 'consent' })
+    );
+    // Should speak TCPA_CONSENT_ASK
+    expect(mockActions.speak).toHaveBeenCalledWith(
+      'cc-123',
+      expect.objectContaining({ payload: expect.stringContaining("Before I search") })
+    );
+  });
+
+  it('Test 14: call.transcription during intake, second clarification (clarificationTurns=1) speaks open-ended question', async () => {
+    vi.mocked(getCall).mockReturnValue({
+      callControlId: 'cc-123',
+      callerPhone: '+15550001111',
+      language: 'en',
+      stage: 'intake',
+      intent: {},
+      clarificationTurns: 1,
+      startedAt: new Date(),
+      callerName: undefined,
+      smsConsent: undefined,
+      consentTimestamp: undefined,
+      consentMethod: undefined,
+      silenceNudgeTimer: undefined,
+      silenceNudgeCount: 0,
+    });
+    vi.mocked(isIntentComplete).mockReturnValue(false);
+    vi.mocked(shouldAdvancePastClarification).mockReturnValue(false);
+
+    const body = makePayload('call.transcription', {
+      transcription_data: {
+        transcript: 'I need some help',
+        words: [],
+      },
+    });
+    mockUnwrap.mockResolvedValueOnce(JSON.parse(body) as any);
+
+    await postWebhook(body);
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(mockActions.speak).toHaveBeenCalledWith(
+      'cc-123',
+      expect.objectContaining({ payload: "Could you tell me a bit more about what you need?" })
+    );
+  });
+
+  it('Test 15: second clarification text does NOT contain "plumbing", "electrical", "cleaning", or "For example"', async () => {
+    vi.mocked(getCall).mockReturnValue({
+      callControlId: 'cc-123',
+      callerPhone: '+15550001111',
+      language: 'en',
+      stage: 'intake',
+      intent: {},
+      clarificationTurns: 1,
+      startedAt: new Date(),
+      callerName: undefined,
+      smsConsent: undefined,
+      consentTimestamp: undefined,
+      consentMethod: undefined,
+      silenceNudgeTimer: undefined,
+      silenceNudgeCount: 0,
+    });
+    vi.mocked(isIntentComplete).mockReturnValue(false);
+    vi.mocked(shouldAdvancePastClarification).mockReturnValue(false);
+
+    const body = makePayload('call.transcription', {
+      transcription_data: {
+        transcript: 'I need help',
+        words: [],
+      },
+    });
+    mockUnwrap.mockResolvedValueOnce(JSON.parse(body) as any);
+
+    await postWebhook(body);
+    await new Promise((r) => setTimeout(r, 50));
+
+    const speakCalls = mockActions.speak.mock.calls;
+    const spokenTexts = speakCalls.map((c) => (c[1] as any).payload as string);
+    for (const text of spokenTexts) {
+      expect(text).not.toMatch(/plumbing/i);
+      expect(text).not.toMatch(/electrical/i);
+      expect(text).not.toMatch(/cleaning/i);
+      expect(text).not.toMatch(/For example/i);
+    }
+  });
+
+  it('Test 16: call.transcription with consent "yes" sets smsConsent=true, consentTimestamp defined, consentMethod="verbal", stage="searching"', async () => {
+    vi.mocked(getCall).mockReturnValue({
+      callControlId: 'cc-123',
+      callerPhone: '+15550001111',
+      language: 'en',
+      stage: 'consent',
+      intent: { serviceType: 'plumber', location: 'Austin' },
+      clarificationTurns: 0,
+      startedAt: new Date(),
+      callerName: 'John',
+      smsConsent: undefined,
+      consentTimestamp: undefined,
+      consentMethod: undefined,
+      silenceNudgeTimer: undefined,
+      silenceNudgeCount: 0,
+    });
+
+    const body = makePayload('call.transcription', {
+      transcription_data: { transcript: 'yes', words: [] },
+    });
+    mockUnwrap.mockResolvedValueOnce(JSON.parse(body) as any);
+
+    await postWebhook(body);
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(vi.mocked(updateCall)).toHaveBeenCalledWith(
+      'cc-123',
+      expect.objectContaining({
+        smsConsent: true,
+        consentMethod: 'verbal',
+        stage: 'searching',
+      })
+    );
+    // consentTimestamp should be set (a string)
+    const updateCalls = vi.mocked(updateCall).mock.calls;
+    const consentUpdate = updateCalls.find((c) => c[1].consentTimestamp !== undefined);
+    expect(consentUpdate).toBeDefined();
+    expect(typeof consentUpdate![1].consentTimestamp).toBe('string');
+  });
+
+  it('Test 17: call.transcription during consent with "no" sets smsConsent=false, speaks TCPA_CONSENT_DECLINE_ACK', async () => {
+    vi.mocked(getCall).mockReturnValue({
+      callControlId: 'cc-123',
+      callerPhone: '+15550001111',
+      language: 'en',
+      stage: 'consent',
+      intent: { serviceType: 'plumber', location: 'Austin' },
+      clarificationTurns: 0,
+      startedAt: new Date(),
+      callerName: 'John',
+      smsConsent: undefined,
+      consentTimestamp: undefined,
+      consentMethod: undefined,
+      silenceNudgeTimer: undefined,
+      silenceNudgeCount: 0,
+    });
+
+    const body = makePayload('call.transcription', {
+      transcription_data: { transcript: 'no', words: [] },
+    });
+    mockUnwrap.mockResolvedValueOnce(JSON.parse(body) as any);
+
+    await postWebhook(body);
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(vi.mocked(updateCall)).toHaveBeenCalledWith(
+      'cc-123',
+      expect.objectContaining({ smsConsent: false })
+    );
+    expect(mockActions.speak).toHaveBeenCalledWith(
+      'cc-123',
+      expect.objectContaining({ payload: "No problem at all. Let me find someone for you." })
+    );
+  });
+
+  it('Test 18: call.transcription during consent with ambiguous text sets smsConsent=false (conservative)', async () => {
+    vi.mocked(getCall).mockReturnValue({
+      callControlId: 'cc-123',
+      callerPhone: '+15550001111',
+      language: 'en',
+      stage: 'consent',
+      intent: { serviceType: 'plumber', location: 'Austin' },
+      clarificationTurns: 0,
+      startedAt: new Date(),
+      callerName: 'John',
+      smsConsent: undefined,
+      consentTimestamp: undefined,
+      consentMethod: undefined,
+      silenceNudgeTimer: undefined,
+      silenceNudgeCount: 0,
+    });
+
+    const body = makePayload('call.transcription', {
+      transcription_data: { transcript: 'I guess maybe', words: [] },
+    });
+    mockUnwrap.mockResolvedValueOnce(JSON.parse(body) as any);
+
+    await postWebhook(body);
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(vi.mocked(updateCall)).toHaveBeenCalledWith(
+      'cc-123',
+      expect.objectContaining({ smsConsent: false })
+    );
+  });
+
+  it('Test 19: max clarifications (clarificationTurns=2) advances to consent stage (NOT searching)', async () => {
+    vi.mocked(getCall).mockReturnValue({
+      callControlId: 'cc-123',
+      callerPhone: '+15550001111',
+      language: 'en',
+      stage: 'intake',
+      intent: {},
+      clarificationTurns: 2,
+      startedAt: new Date(),
+      callerName: undefined,
+      smsConsent: undefined,
+      consentTimestamp: undefined,
+      consentMethod: undefined,
+      silenceNudgeTimer: undefined,
+      silenceNudgeCount: 0,
+    });
+    vi.mocked(isIntentComplete).mockReturnValue(false);
+    vi.mocked(shouldAdvancePastClarification).mockReturnValue(true);
+
+    const body = makePayload('call.transcription', {
+      transcription_data: { transcript: 'I still need something', words: [] },
+    });
+    mockUnwrap.mockResolvedValueOnce(JSON.parse(body) as any);
+
+    await postWebhook(body);
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(vi.mocked(updateCall)).toHaveBeenCalledWith(
+      'cc-123',
+      expect.objectContaining({ stage: 'consent' })
+    );
+    // Must NOT have stage: 'searching'
+    const searchingUpdate = vi.mocked(updateCall).mock.calls.find(
+      (c) => c[1].stage === 'searching'
+    );
+    expect(searchingUpdate).toBeUndefined();
+  });
+
+  it('Test 20: max clarification bypass speaks "general home repair services" (broad search), NOT a specific service type', async () => {
+    vi.mocked(getCall).mockReturnValue({
+      callControlId: 'cc-123',
+      callerPhone: '+15550001111',
+      language: 'en',
+      stage: 'intake',
+      intent: { location: 'Austin' },
+      clarificationTurns: 2,
+      startedAt: new Date(),
+      callerName: undefined,
+      smsConsent: undefined,
+      consentTimestamp: undefined,
+      consentMethod: undefined,
+      silenceNudgeTimer: undefined,
+      silenceNudgeCount: 0,
+    });
+    vi.mocked(isIntentComplete).mockReturnValue(false);
+    vi.mocked(shouldAdvancePastClarification).mockReturnValue(true);
+
+    const body = makePayload('call.transcription', {
+      transcription_data: { transcript: 'I still need something', words: [] },
+    });
+    mockUnwrap.mockResolvedValueOnce(JSON.parse(body) as any);
+
+    await postWebhook(body);
+    await new Promise((r) => setTimeout(r, 50));
+
+    const speakCalls = mockActions.speak.mock.calls;
+    const spokenTexts = speakCalls.map((c) => (c[1] as any).payload as string);
+    const broadSearchText = spokenTexts.find((t) => t.includes('general home repair services'));
+    expect(broadSearchText).toBeDefined();
+  });
+
+  it('Test 21: max clarification bypass text does NOT contain "if that\'s not right"', async () => {
+    vi.mocked(getCall).mockReturnValue({
+      callControlId: 'cc-123',
+      callerPhone: '+15550001111',
+      language: 'en',
+      stage: 'intake',
+      intent: {},
+      clarificationTurns: 2,
+      startedAt: new Date(),
+      callerName: undefined,
+      smsConsent: undefined,
+      consentTimestamp: undefined,
+      consentMethod: undefined,
+      silenceNudgeTimer: undefined,
+      silenceNudgeCount: 0,
+    });
+    vi.mocked(isIntentComplete).mockReturnValue(false);
+    vi.mocked(shouldAdvancePastClarification).mockReturnValue(true);
+
+    const body = makePayload('call.transcription', {
+      transcription_data: { transcript: 'I still need something', words: [] },
+    });
+    mockUnwrap.mockResolvedValueOnce(JSON.parse(body) as any);
+
+    await postWebhook(body);
+    await new Promise((r) => setTimeout(r, 50));
+
+    const speakCalls = mockActions.speak.mock.calls;
+    const spokenTexts = speakCalls.map((c) => (c[1] as any).payload as string);
+    for (const text of spokenTexts) {
+      expect(text).not.toMatch(/if that'?s not right/i);
+    }
+  });
+
+  it('Test 22: consent stage starts filler loop via startFillerLoop', async () => {
+    vi.mocked(getCall).mockReturnValue({
+      callControlId: 'cc-123',
+      callerPhone: '+15550001111',
+      language: 'en',
+      stage: 'consent',
+      intent: { serviceType: 'plumber', location: 'Austin' },
+      clarificationTurns: 0,
+      startedAt: new Date(),
+      callerName: 'John',
+      smsConsent: undefined,
+      consentTimestamp: undefined,
+      consentMethod: undefined,
+      silenceNudgeTimer: undefined,
+      silenceNudgeCount: 0,
+    });
+
+    const body = makePayload('call.transcription', {
+      transcription_data: { transcript: 'yes', words: [] },
+    });
+    mockUnwrap.mockResolvedValueOnce(JSON.parse(body) as any);
+
+    await postWebhook(body);
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(vi.mocked(startFillerLoop)).toHaveBeenCalled();
+  });
+
+  it('Test 23: call.hangup stops active filler loop', async () => {
+    const mockStop = vi.fn();
+    vi.mocked(startFillerLoop).mockReturnValueOnce({ stop: mockStop });
+
+    // First — trigger consent to start the filler loop
+    vi.mocked(getCall).mockReturnValue({
+      callControlId: 'cc-123',
+      callerPhone: '+15550001111',
+      language: 'en',
+      stage: 'consent',
+      intent: { serviceType: 'plumber', location: 'Austin' },
+      clarificationTurns: 0,
+      startedAt: new Date(),
+      callerName: 'John',
+      smsConsent: undefined,
+      consentTimestamp: undefined,
+      consentMethod: undefined,
+      silenceNudgeTimer: undefined,
+      silenceNudgeCount: 0,
+    });
+
+    const consentBody = makePayload('call.transcription', {
+      transcription_data: { transcript: 'yes', words: [] },
+    });
+    mockUnwrap.mockResolvedValueOnce(JSON.parse(consentBody) as any);
+    await postWebhook(consentBody);
+    await new Promise((r) => setTimeout(r, 50));
+
+    // Now simulate hangup
+    vi.mocked(getCall).mockReturnValue({
+      callControlId: 'cc-123',
+      callerPhone: '+15550001111',
+      language: 'en',
+      stage: 'searching',
+      intent: {},
+      clarificationTurns: 0,
+      startedAt: new Date(),
+      callerName: 'John',
+      smsConsent: true,
+      consentTimestamp: new Date().toISOString(),
+      consentMethod: 'verbal',
+      silenceNudgeTimer: undefined,
+      silenceNudgeCount: 0,
+    });
+    mockUnwrap.mockResolvedValueOnce(JSON.parse(makePayload('call.hangup')) as any);
+    await postWebhook(makePayload('call.hangup'));
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(mockStop).toHaveBeenCalled();
+  });
+
+  it('Test 24: call.transcription with complete intent advances to searching (backward compat)', async () => {
     vi.mocked(getCall).mockReturnValue({
       callControlId: 'cc-123',
       callerPhone: '+15550001111',
@@ -292,12 +853,12 @@ describe('POST /webhooks/telnyx', () => {
 
     expect(vi.mocked(updateCall)).toHaveBeenCalledWith(
       'cc-123',
-      expect.objectContaining({ stage: 'searching' })
+      expect.objectContaining({ stage: 'consent' })
     );
     expect(mockActions.speak).toHaveBeenCalled();
   });
 
-  it('Test 10: call.transcription with incomplete intent and 0 clarifications asks disambiguation', async () => {
+  it('Test 25: call.transcription with incomplete intent and 0 clarifications asks disambiguation', async () => {
     vi.mocked(getCall).mockReturnValue({
       callControlId: 'cc-123',
       callerPhone: '+15550001111',
@@ -344,94 +905,7 @@ describe('POST /webhooks/telnyx', () => {
     );
   });
 
-  it('Test 11: call.transcription with incomplete intent and 1 clarification forces advance', async () => {
-    vi.mocked(getCall).mockReturnValue({
-      callControlId: 'cc-123',
-      callerPhone: '+15550001111',
-      language: 'en',
-      stage: 'intake',
-      intent: {},
-      clarificationTurns: 1,
-      startedAt: new Date(),
-      callerName: undefined,
-      smsConsent: undefined,
-      consentTimestamp: undefined,
-      consentMethod: undefined,
-      silenceNudgeTimer: undefined,
-      silenceNudgeCount: 0,
-    });
-    vi.mocked(extractIntent).mockReturnValue({
-      serviceType: undefined,
-      location: undefined,
-      urgency: 'normal',
-      isComplete: false,
-    });
-    vi.mocked(isIntentComplete).mockReturnValue(false);
-    vi.mocked(shouldAdvancePastClarification).mockReturnValue(true);
-
-    const body = makePayload('call.transcription', {
-      transcription_data: {
-        transcript: 'I still need something',
-        words: [{ word: 'still', language: 'en' }],
-      },
-    });
-    mockUnwrap.mockResolvedValueOnce(JSON.parse(body) as any);
-
-    await postWebhook(body);
-    await new Promise((r) => setTimeout(r, 50));
-
-    expect(vi.mocked(updateCall)).toHaveBeenCalledWith(
-      'cc-123',
-      expect.objectContaining({ stage: 'searching' })
-    );
-  });
-
-  it('Test 12: call.transcription calls detectLanguage on first utterance', async () => {
-    vi.mocked(getCall).mockReturnValue({
-      callControlId: 'cc-123',
-      callerPhone: '+15550001111',
-      language: 'en',
-      stage: 'intake',
-      intent: {},
-      clarificationTurns: 0,
-      startedAt: new Date(),
-      callerName: undefined,
-      smsConsent: undefined,
-      consentTimestamp: undefined,
-      consentMethod: undefined,
-      silenceNudgeTimer: undefined,
-      silenceNudgeCount: 0,
-    });
-    vi.mocked(detectLanguage).mockReturnValue('fr');
-    vi.mocked(extractIntent).mockReturnValue({
-      serviceType: undefined,
-      location: undefined,
-      urgency: 'normal',
-      isComplete: false,
-    });
-    vi.mocked(isIntentComplete).mockReturnValue(false);
-    vi.mocked(shouldAdvancePastClarification).mockReturnValue(false);
-
-    const words = [{ word: 'bonjour', language: 'fr' }];
-    const body = makePayload('call.transcription', {
-      transcription_data: {
-        transcript: 'Bonjour',
-        words,
-      },
-    });
-    mockUnwrap.mockResolvedValueOnce(JSON.parse(body) as any);
-
-    await postWebhook(body);
-    await new Promise((r) => setTimeout(r, 50));
-
-    expect(vi.mocked(detectLanguage)).toHaveBeenCalledWith(words);
-    expect(vi.mocked(updateCall)).toHaveBeenCalledWith(
-      'cc-123',
-      expect.objectContaining({ language: 'fr' })
-    );
-  });
-
-  it('Test 13: call.hangup with incomplete call delays endCall', async () => {
+  it('Test 26: call.hangup with incomplete call delays endCall', async () => {
     vi.mocked(getCall).mockReturnValue({
       callControlId: 'cc-123',
       callerPhone: '+15550001111',
@@ -478,7 +952,7 @@ describe('POST /webhooks/telnyx', () => {
     expect(vi.mocked(endCall)).toHaveBeenCalledWith('cc-123');
   });
 
-  it('Test 14: call.hangup with completed call calls endCall immediately', async () => {
+  it('Test 27: call.hangup with completed call calls endCall immediately', async () => {
     vi.mocked(getCall).mockReturnValue({
       callControlId: 'cc-123',
       callerPhone: '+15550001111',
@@ -504,7 +978,7 @@ describe('POST /webhooks/telnyx', () => {
     expect(vi.mocked(endCall)).toHaveBeenCalledWith('cc-123');
   });
 
-  it('Test 15: unknown event type does not throw', async () => {
+  it('Test 28: unknown event type does not throw', async () => {
     const body = makePayload('call.recording');
     mockUnwrap.mockResolvedValueOnce(JSON.parse(body) as any);
 

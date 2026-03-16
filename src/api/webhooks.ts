@@ -6,18 +6,37 @@ import {
   getCall,
   updateCall,
   endCall,
-  detectLanguage,
   shouldAdvancePastClarification,
 } from '../lib/voice/call-state.js';
-import { GREETING_STEP_1 } from '../lib/voice/greeting.js';
-import { getFillerPhrase } from '../lib/voice/filler.js';
-import { ELEVENLABS_VOICE_STRING, SESSION_PERSIST_MS } from '../lib/voice/voice-config.js';
+import {
+  GREETING_STEP_1,
+  GREETING_STEP_2,
+  GREETING_STEP_2_FALLBACK,
+  TCPA_CONSENT_ASK,
+  TCPA_CONSENT_DECLINE_ACK,
+  SILENCE_NUDGE,
+  GRACEFUL_HANGUP,
+  OFF_TOPIC_REDIRECT,
+  CONFUSED_CALLER_EXPLAINER,
+} from '../lib/voice/greeting.js';
+import {
+  TELNYX_VOICE_STRING,
+  TELNYX_VOICE_SETTINGS,
+  TELNYX_STT_CONFIG,
+  SILENCE_NUDGE_MS,
+  SESSION_PERSIST_MS,
+} from '../lib/voice/voice-config.js';
+import { startFillerLoop } from '../lib/voice/filler.js';
 import { getTelnyxClient } from '../lib/voice/telnyx-client.js';
 import {
   extractIntent,
   isIntentComplete,
   getDisambiguationPrompt,
 } from '../lib/ai/intent-extractor.js';
+
+// Make OFF_TOPIC_REDIRECT and CONFUSED_CALLER_EXPLAINER available for future use
+void OFF_TOPIC_REDIRECT;
+void CONFUSED_CALLER_EXPLAINER;
 
 /**
  * Express router for Telnyx webhook events.
@@ -31,6 +50,50 @@ import {
  * then processes the event asynchronously.
  */
 export const webhookRouter = Router();
+
+/** Track active filler loops per call so they can be stopped on hangup. */
+const _fillerLoops = new Map<string, { stop: () => void }>();
+
+/**
+ * Speak helper — avoids repeating voice/voice_settings on every call.
+ */
+async function speak(callControlId: string, text: string): Promise<void> {
+  await getTelnyxClient().calls.actions.speak(callControlId, {
+    payload: text,
+    voice: TELNYX_VOICE_STRING,
+    voice_settings: TELNYX_VOICE_SETTINGS,
+  });
+}
+
+/**
+ * Reset the per-call silence detection timer.
+ * Fires SILENCE_NUDGE after SILENCE_NUDGE_MS of no caller speech.
+ * After 2 nudges, speaks GRACEFUL_HANGUP and hangs up.
+ */
+function resetSilenceTimer(callControlId: string): void {
+  const state = getCall(callControlId);
+  if (!state) return;
+  if (state.silenceNudgeTimer) clearTimeout(state.silenceNudgeTimer);
+  const timer = setTimeout(async () => {
+    const current = getCall(callControlId);
+    if (!current) return;
+    if (current.silenceNudgeCount >= 2) {
+      await speak(callControlId, GRACEFUL_HANGUP);
+      setTimeout(async () => {
+        try { await getTelnyxClient().calls.actions.hangup(callControlId, {}); } catch {}
+        endCall(callControlId);
+      }, 3000);
+      return;
+    }
+    await speak(callControlId, SILENCE_NUDGE);
+    updateCall(callControlId, { silenceNudgeCount: current.silenceNudgeCount + 1 });
+    resetSilenceTimer(callControlId);
+  }, SILENCE_NUDGE_MS);
+  updateCall(callControlId, {
+    silenceNudgeTimer: timer,
+    silenceNudgeCount: state.silenceNudgeCount === undefined ? 0 : state.silenceNudgeCount,
+  });
+}
 
 webhookRouter.post(
   '/',
@@ -65,123 +128,160 @@ webhookRouter.post(
           case 'call.answered': {
             const from: string = (payload as any).from ?? 'unknown';
             initCall(callControlId, from);
-            await getTelnyxClient().calls.actions.speak(callControlId, {
-              payload: GREETING_STEP_1,  // Always English on first contact — language detected after first transcript
-              voice: ELEVENLABS_VOICE_STRING,
-            });
-            console.log(`[webhooks] Greeting emitted for ${callControlId}`);
-            break;
-          }
-
-          case 'call.transcription': {
-            const transcriptionData = (payload as any).transcription_data ?? {};
-            const transcript: string = transcriptionData.transcript ?? '';
-            const words: Array<{ word: string; language: string }> =
-              transcriptionData.words ?? [];
-
-            const state = getCall(callControlId);
-            if (!state) {
-              console.warn(
-                `[webhooks] call.transcription: no state found for ${callControlId}`
-              );
-              break;
-            }
-
-            // Language detection on first utterance (stage is intake, language still default 'en')
-            let currentState = state;
-            if (currentState.stage === 'intake' && words.length > 0) {
-              const detectedLanguage = detectLanguage(words);
-              updateCall(callControlId, { language: detectedLanguage });
-              currentState = getCall(callControlId)!;
-            }
-
-            // Intent extraction
-            const extractedIntent = extractIntent(transcript);
-
-            // Merge extracted intent into state (only overwrite defined fields)
-            const mergedIntent: typeof currentState.intent = {
-              ...currentState.intent,
-              ...(extractedIntent.serviceType !== undefined
-                ? { serviceType: extractedIntent.serviceType }
-                : {}),
-              ...(extractedIntent.location !== undefined
-                ? { location: extractedIntent.location }
-                : {}),
-              ...(extractedIntent.urgency !== undefined
-                ? { urgency: extractedIntent.urgency }
-                : {}),
-            };
-            updateCall(callControlId, { intent: mergedIntent });
-            currentState = getCall(callControlId)!;
-
-            if (isIntentComplete({ serviceType: mergedIntent.serviceType, location: mergedIntent.location })) {
-              // Intent complete — advance to searching
-              const lang = currentState.language;
-              const confirmationText =
-                lang === 'fr'
-                  ? `Compris — un ${mergedIntent.serviceType ?? 'service'} à ${mergedIntent.location ?? 'votre emplacement'}. Laissez-moi trouver les meilleures options.`
-                  : `Got it — a ${mergedIntent.serviceType ?? 'service'} in ${mergedIntent.location ?? 'your area'}. Let me find the best options.`;
-              console.log(`[webhooks] Intent complete, advancing to searching`);
-              await getTelnyxClient().calls.actions.speak(callControlId, {
-                payload: confirmationText,
-                voice: ELEVENLABS_VOICE_STRING,
-              });
-              updateCall(callControlId, { stage: 'searching' });
-            } else if (currentState.clarificationTurns === 0) {
-              // First clarification opportunity — ask disambiguation
-              const disambig = getDisambiguationPrompt(currentState.language);
-              await getTelnyxClient().calls.actions.speak(callControlId, {
-                payload: disambig,
-                voice: ELEVENLABS_VOICE_STRING,
-              });
-              updateCall(callControlId, {
-                clarificationTurns: currentState.clarificationTurns + 1,
-              });
-              console.log(`[webhooks] Asking clarification question`);
-            } else if (shouldAdvancePastClarification(currentState)) {
-              // Max clarifications reached — force advance with partial intent
-              const filler = getFillerPhrase(currentState.language);
-              await getTelnyxClient().calls.actions.speak(callControlId, {
-                payload: filler,
-                voice: ELEVENLABS_VOICE_STRING,
-              });
-              updateCall(callControlId, { stage: 'searching' });
-              console.log(
-                `[webhooks] Max clarifications reached, advancing with partial intent`
-              );
-            }
-
-            console.log(
-              `[webhooks] Transcription processed for ${callControlId}`
-            );
+            // Greeting + transcription must fire immediately — no intermediate awaits
+            await speak(callControlId, GREETING_STEP_1);
+            await getTelnyxClient().calls.actions.startTranscription(callControlId, TELNYX_STT_CONFIG);
+            console.log(`[webhooks] Greeting + transcription started for ${callControlId}`);
             break;
           }
 
           case 'call.speak.ended': {
             const state = getCall(callControlId);
             if (state?.stage === 'greeting') {
-              updateCall(callControlId, { stage: 'intake' });
+              updateCall(callControlId, { stage: 'name_capture' });
+              resetSilenceTimer(callControlId);
             }
-            console.log(
-              `[webhooks] Speak ended for ${callControlId}, stage: ${state?.stage}`
-            );
+            console.log(`[webhooks] Speak ended for ${callControlId}, stage: ${state?.stage}`);
+            break;
+          }
+
+          case 'call.transcription': {
+            const transcriptionData = (payload as any).transcription_data ?? {};
+            const transcript: string = transcriptionData.transcript ?? '';
+            if (!transcript.trim()) break;
+
+            const state = getCall(callControlId);
+            if (!state) {
+              console.warn(`[webhooks] call.transcription: no state for ${callControlId}`);
+              break;
+            }
+
+            // Reset silence timer on every transcript
+            resetSilenceTimer(callControlId);
+
+            // Gate: discard transcripts during greeting TTS playback
+            if (state.stage === 'greeting') {
+              console.log(`[webhooks] Discarding transcript during greeting stage`);
+              break;
+            }
+
+            // STAGE: name_capture
+            if (state.stage === 'name_capture') {
+              const words = transcript.trim().split(/\s+/);
+              const callerName = words.length > 0 ? words[words.length - 1] : undefined;
+              const cleanName = callerName?.replace(/[^a-zA-Z'-]/g, '') || undefined;
+              updateCall(callControlId, {
+                callerName: cleanName,
+                stage: 'intake',
+              });
+              const greetingStep2 = cleanName
+                ? GREETING_STEP_2(cleanName)
+                : GREETING_STEP_2_FALLBACK;
+              await speak(callControlId, greetingStep2);
+              console.log(`[webhooks] Name captured: ${cleanName ?? 'fallback'}, advancing to intake`);
+              break;
+            }
+
+            // STAGE: intake — extract intent
+            if (state.stage === 'intake') {
+              const extractedIntent = extractIntent(transcript);
+              const mergedIntent = {
+                ...state.intent,
+                ...(extractedIntent.serviceType !== undefined ? { serviceType: extractedIntent.serviceType } : {}),
+                ...(extractedIntent.location !== undefined ? { location: extractedIntent.location } : {}),
+                ...(extractedIntent.urgency !== undefined ? { urgency: extractedIntent.urgency } : {}),
+              };
+              updateCall(callControlId, { intent: mergedIntent });
+
+              if (isIntentComplete({ serviceType: mergedIntent.serviceType, location: mergedIntent.location })) {
+                // Intent complete — confirm and advance to consent
+                const confirmation = `Got it — a ${mergedIntent.serviceType} in ${mergedIntent.location}.`;
+                await speak(callControlId, confirmation);
+                updateCall(callControlId, { stage: 'consent' });
+                // Sequential speaks — Telnyx queues them
+                await speak(callControlId, TCPA_CONSENT_ASK);
+                console.log(`[webhooks] Intent complete, asking for consent`);
+              } else if (state.clarificationTurns === 0) {
+                const disambig = getDisambiguationPrompt('en');
+                await speak(callControlId, disambig);
+                updateCall(callControlId, { clarificationTurns: state.clarificationTurns + 1 });
+                console.log(`[webhooks] Asking clarification #1`);
+              } else if (state.clarificationTurns === 1) {
+                // Second clarification — OPEN-ENDED ONLY per user decision.
+                // Do NOT proactively suggest categories (no "For example, plumbing, electrical...").
+                await speak(callControlId, "Could you tell me a bit more about what you need?");
+                updateCall(callControlId, { clarificationTurns: state.clarificationTurns + 1 });
+                console.log(`[webhooks] Asking clarification #2`);
+              } else if (shouldAdvancePastClarification(state)) {
+                // Max clarifications reached — broad search + narrate per user decision.
+                // Do NOT name a specific service type. Do NOT hedge with "if that's not right".
+                const location = state.intent.location ?? 'your area';
+                await speak(callControlId, `I'll search for general home repair services near ${location} and we'll narrow it down from what I find.`);
+                updateCall(callControlId, { stage: 'consent' });
+                await speak(callControlId, TCPA_CONSENT_ASK);
+                console.log(`[webhooks] Max clarifications, broad search to consent`);
+              }
+              break;
+            }
+
+            // STAGE: consent — parse yes/no
+            if (state.stage === 'consent') {
+              const CONSENT_YES = /\b(yes|sure|ok|okay|go ahead|absolutely|please|that's fine|sounds good)\b/i;
+              const CONSENT_NO = /\b(no|nope|don't|do not|skip|pass)\b/i;
+
+              let consent: boolean;
+              if (CONSENT_YES.test(transcript)) {
+                consent = true;
+              } else if (CONSENT_NO.test(transcript)) {
+                consent = false;
+              } else {
+                consent = false; // ambiguous -> conservative default
+              }
+
+              updateCall(callControlId, {
+                smsConsent: consent,
+                consentTimestamp: new Date().toISOString(),
+                consentMethod: 'verbal',
+                stage: 'searching',
+              });
+
+              if (!consent) {
+                await speak(callControlId, TCPA_CONSENT_DECLINE_ACK);
+              }
+
+              // Start 10-second filler loop during searching stage
+              const speakFn = (text: string) => speak(callControlId, text);
+              if (consent) {
+                await speak(callControlId, "Great, I'll send that over.");
+              }
+              const fillerHandle = startFillerLoop(speakFn, 'en');
+              _fillerLoops.set(callControlId, fillerHandle);
+
+              // Phase 3: executeSearchTool(callControlId, state.intent) — will stop filler loop on completion
+
+              console.log(`[webhooks] Consent=${consent}, advancing to searching with filler loop`);
+              break;
+            }
+
+            console.log(`[webhooks] Transcription processed for ${callControlId}, stage=${state.stage}`);
             break;
           }
 
           case 'call.hangup': {
+            // Stop filler loop if active
+            const fillerHandle = _fillerLoops.get(callControlId);
+            if (fillerHandle) {
+              fillerHandle.stop();
+              _fillerLoops.delete(callControlId);
+            }
+
             const state = getCall(callControlId);
             if (state && state.stage !== 'complete') {
-              // Unexpected disconnect — delay cleanup to allow reconnect
               setTimeout(() => endCall(callControlId), SESSION_PERSIST_MS);
-              console.log(
-                `[webhooks] Unexpected disconnect for ${callControlId}, session persists for 30 min`
-              );
+              console.log(`[webhooks] Unexpected disconnect, session persists 30 min`);
             } else {
-              // Normal completion or no state
               endCall(callControlId);
-              console.log(
-                `[webhooks] Call completed and cleaned up ${callControlId}`
-              );
+              console.log(`[webhooks] Call completed and cleaned up ${callControlId}`);
             }
             break;
           }
