@@ -1,88 +1,103 @@
 ---
 phase: 02-voice-conversation-core
-plan: 02
-subsystem: ai-prompts-and-intent
-tags: [murphy, bilingual, intent-extraction, tdd, voice]
-dependency_graph:
-  requires: []
-  provides: [intent-extractor, bilingual-murphy-prompt]
-  affects: [voice-pipeline, disambiguation-flow, call-state]
-tech_stack:
+plan: "02"
+subsystem: voice
+tags: [telnyx, tts, stt, murphy, prompt-engineering, tcpa, voice-config]
+
+# Dependency graph
+requires:
+  - phase: 01.1-openclaw-agent-setup
+    provides: applyVoiceModifiers and buildMurphySystemPrompt function signatures
+provides:
+  - Telnyx-native voice constants (TELNYX_VOICE_STRING, TELNYX_VOICE_SETTINGS, TELNYX_STT_CONFIG, SILENCE_NUDGE_MS)
+  - Updated Murphy system prompt with two-step greeting, TCPA consent, 2-turn clarification with broad search bypass, off-topic redirect, confused caller explainer
+affects: [02-03, webhooks, orchestrator]
+
+# Tech tracking
+tech-stack:
   added: []
-  patterns: [regex-keyword-extraction, tdd-red-green, bilingual-pattern-matching]
-key_files:
+  patterns: [Telnyx-native TTS using KokoroTTS, Whisper-based STT via Telnyx transcription engine]
+
+key-files:
   created:
-    - src/lib/ai/intent-extractor.ts
-    - tests/lib/ai/intent-extractor.test.ts
+    - tests/lib/voice/voice-config.test.ts
+    - tests/lib/ai/murphy-system.test.ts
   modified:
+    - src/lib/voice/voice-config.ts
     - src/lib/ai/prompts/murphy-system.ts
-    - src/lib/ai/prompts/voice-modifiers.ts
-    - tests/lib/ai/prompts/murphy-system.test.ts
-decisions:
-  - "Regex/keyword extraction for intent (no LLM call) — deterministic, zero latency, testable in isolation"
-  - "EN and FR service patterns maintained as separate arrays — clean separation, easy to extend"
-  - "Location extraction: zip code matched first (most precise), then preposition-based, then postal code"
-  - "Urgency threshold: any single urgency keyword triggers emergency (intentionally sensitive for safety)"
-  - "language?: 'en' | 'fr' added to MurphyContext as optional — backward compatible"
-metrics:
-  duration: 141s
-  completed: "2026-03-16"
-  tasks_completed: 2
-  files_modified: 5
-  tests_added: 19
+
+key-decisions:
+  - "TELNYX_VOICE_STRING = 'Telnyx.KokoroTTS.am_adam' — Telnyx-native KokoroTTS replaces ElevenLabs for telephony TTS"
+  - "TWO clarifying questions maximum with broad search + narrate bypass — 'I'll search for general home repair services near you and we'll narrow it down from what I find.' No hedge phrase."
+  - "Two-step greeting: AI identity first ('Who am I speaking with?'), then name-addressed service question"
+  - "TCPA consent requested via SMS recap question before searching — optional, never pressured"
+  - "SILENCE_NUDGE_MS = 8000 — 8s silence fires 'Still there?' nudge"
+  - "webhooks.ts ELEVENLABS_VOICE_STRING import NOT updated in this plan — Plan 03 switches the import"
+
+patterns-established:
+  - "Voice constants centralized in voice-config.ts — single source of truth for Telnyx TTS/STT params"
+  - "Murphy prompt sections named with ## headers — Off-Topic Requests, Confused Callers, Silence Handling, Urgency Detection, TCPA Consent"
+
+requirements-completed: [VOICE-02, VOICE-03]
+
+# Metrics
+duration: 2min
+completed: 2026-03-16
 ---
 
-# Phase 02 Plan 02: Murphy Prompt + Intent Extractor Summary
+# Phase 02 Plan 02: Voice Config & Murphy Prompt Summary
 
-**One-liner:** Bilingual Murphy prompt with 1-question limit and regex-based intent extractor for EN/FR service dispatch.
+**Telnyx-native TTS/STT constants replacing ElevenLabs/Deepgram, Murphy prompt upgraded with two-step greeting, TCPA consent, 2-turn clarification with broad search bypass, off-topic redirect, and confused caller explainer**
 
-## What Was Built
+## Performance
 
-### Task 1: Updated Murphy System Prompt
+- **Duration:** 2 min
+- **Started:** 2026-03-16T02:42:03Z
+- **Completed:** 2026-03-16T02:44:01Z
+- **Tasks:** 1
+- **Files modified:** 4 (2 source, 2 tests created)
 
-- Changed greeting from "Who am I speaking with?" to "What service can I help you find today?" (per CONTEXT.md locked decision)
-- Replaced `2-turn clarification maximum` with `ONE clarifying question maximum` — one attempt then best-guess and proceed
-- Added `## Language Rules` section: detect caller language from first utterance, respond in same language (EN/FR), default to EN
-- Added `## Confirmation Pattern` section: confirm service + location before searching (bilingual)
-- Added `## Call Timeout` section: 10-minute rule
-- Added `language?: 'en' | 'fr'` to `MurphyContext` interface
-- Added bilingual response directive to `voice-modifiers.ts`
+## Accomplishments
+- Replaced all ElevenLabs/Deepgram exports with Telnyx-native constants (TELNYX_VOICE_STRING, TELNYX_VOICE_SETTINGS, TELNYX_STT_CONFIG, SILENCE_NUDGE_MS)
+- Updated Murphy system prompt with two-step greeting flow (name capture first), TWO clarification max with broad search + narrate bypass, TCPA SMS consent, silence handling, urgency detection, off-topic redirect, and confused caller explainer
+- Added 24 tests covering all new behavior (12 voice-config, 12 murphy-system), all passing
 
-**Test count:** 14 original + 6 new = 20 tests, all passing.
+## Task Commits
 
-### Task 2: Intent Extractor (TDD)
+Each task was committed atomically:
 
-Created `src/lib/ai/intent-extractor.ts` with:
+1. **Task 1: Migrate voice-config to Telnyx-native and update Murphy prompt** - `6b30f2f` (feat)
 
-- `IntentResult` interface: `{ serviceType, location, urgency, isComplete }`
-- `extractIntent(transcript)`: regex/keyword extraction for EN + FR natural speech
-  - 13 EN service patterns (plumber, electrician, locksmith, cleaner, HVAC, roofer, painter, carpenter, handyman, pest control, lawn care, movers)
-  - 8 FR service patterns (plombier, electricien, serrurier, nettoyeur, couvreur, peintre, carpentier)
-  - Location: `in/near/a` prepositions, 5-digit zip codes, Canadian postal codes
-  - Urgency: emergency/urgent/ASAP/urgence/immediatement keywords (case-insensitive)
-- `isIntentComplete(intent)`: validates both serviceType and location are present
-- `getDisambiguationPrompt(language)`: EN/FR clarification prompts
+**Plan metadata:** (docs commit follows)
 
-**Test count:** 13 tests covering all behavior cases, all passing.
+_Note: This was a TDD task — tests written first (RED: 19 failures), then implementation (GREEN: 24 passing)_
+
+## Files Created/Modified
+- `src/lib/voice/voice-config.ts` - Complete rewrite: ElevenLabs/Deepgram constants replaced with TELNYX_VOICE_STRING, TELNYX_VOICE_SETTINGS, TELNYX_STT_CONFIG, SILENCE_NUDGE_MS
+- `src/lib/ai/prompts/murphy-system.ts` - Updated Murphy system prompt with 7 new sections
+- `tests/lib/voice/voice-config.test.ts` - Created: 12 tests for Telnyx-native constants and removed ElevenLabs/Deepgram exports
+- `tests/lib/ai/murphy-system.test.ts` - Created: 12 tests for Murphy prompt behavior
+
+## Decisions Made
+- TELNYX_VOICE_STRING uses KokoroTTS am_adam — Telnyx-native warm male voice matching Murphy persona
+- webhooks.ts still imports ELEVENLABS_VOICE_STRING — Plan 03 will migrate that import (as specified in plan)
+- Broad search bypass phrase is exact: "I'll search for general home repair services near you and we'll narrow it down from what I find." — No hedge per user decision
 
 ## Deviations from Plan
 
 None — plan executed exactly as written.
 
-## Test Results
+## Issues Encountered
+None.
 
-```
-Test Files: 28 passed
-Tests:      202 passed
-Duration:   1.21s
-```
+## User Setup Required
+None — no external service configuration required.
 
-All AI module tests pass. Zero regressions.
+## Next Phase Readiness
+- voice-config.ts exports Telnyx-native constants ready for Plan 03 to wire into webhooks.ts
+- Murphy prompt reflects full conversation design — ready for integration testing
+- Plan 03 must update webhooks.ts import from ELEVENLABS_VOICE_STRING to TELNYX_VOICE_STRING
 
-## Self-Check: PASSED
-- [x] `src/lib/ai/intent-extractor.ts` — exists and exports IntentResult, extractIntent, isIntentComplete, getDisambiguationPrompt
-- [x] `src/lib/ai/prompts/murphy-system.ts` — contains ONE clarifying question, Language Rules, What service, 10 minutes
-- [x] `src/lib/ai/prompts/voice-modifiers.ts` — contains caller's detected language
-- [x] `tests/lib/ai/intent-extractor.test.ts` — 13 tests passing
-- [x] `tests/lib/ai/prompts/murphy-system.test.ts` — 20 tests passing
-- [x] Commits: d48c7a7 (Task 1), 321a49f (TDD RED), 56e97b6 (TDD GREEN)
+---
+*Phase: 02-voice-conversation-core*
+*Completed: 2026-03-16*

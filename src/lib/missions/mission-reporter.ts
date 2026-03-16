@@ -1,4 +1,4 @@
-import type { MissionProgressEvent } from '../../types/mission.js';
+import type { MissionProgressEvent, MissionStatus, MissionStepStatus } from '../../types/mission.js';
 import { getMission, getMissionEvents } from '../db/missions-repo.js';
 import { chat } from '../ai/orchestrator.js';
 
@@ -28,7 +28,7 @@ export class MissionReporter {
     missionId: string,
     stepNumber: number,
     totalSteps: number,
-    status: string,
+    status: MissionStatus | MissionStepStatus,
     detail: string,
   ): void {
     const event: MissionProgressEvent = {

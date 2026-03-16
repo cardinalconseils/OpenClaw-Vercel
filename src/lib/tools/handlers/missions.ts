@@ -111,6 +111,7 @@ export async function getMissionStatusHandler(
 
     // Ownership check — prevent cross-user data access (IDOR)
     if (params.userId && mission.userId !== params.userId) {
+      console.warn(`[tools:missions] IDOR blocked: user ${params.userId} attempted to access mission ${params.mission_id} owned by ${mission.userId}`);
       return {
         missionId: params.mission_id,
         status: 'not_found',

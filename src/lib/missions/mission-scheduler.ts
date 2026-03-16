@@ -94,18 +94,22 @@ export class MissionScheduler {
       await this.executeStep(item.missionId, item.step);
     }
 
-    this.processing = false;
-
-    // Notify mission complete for all missions whose steps we processed
-    for (const missionId of processedMissions) {
-      const stillQueued = this.queue.some((q) => q.missionId === missionId);
-      if (!stillQueued) {
-        try {
-          await this.onMissionComplete?.(missionId);
-        } catch (err) {
-          console.error(`[missions:scheduler] onMissionComplete callback failed for ${missionId}:`, err);
+    // Notify mission complete for all missions whose steps we processed.
+    // Keep this.processing = true until after all callbacks finish so that
+    // a concurrent enqueue() cannot start a second processNext() mid-flight.
+    try {
+      for (const missionId of processedMissions) {
+        const stillQueued = this.queue.some((q) => q.missionId === missionId);
+        if (!stillQueued) {
+          try {
+            await this.onMissionComplete?.(missionId);
+          } catch (err) {
+            console.error(`[missions:scheduler] onMissionComplete callback failed for ${missionId}:`, err);
+          }
         }
       }
+    } finally {
+      this.processing = false;
     }
   }
 

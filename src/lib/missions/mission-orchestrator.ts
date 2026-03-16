@@ -89,10 +89,11 @@ export async function initMissions(): Promise<void> {
       console.log(`[missions:orchestrator] Mission ${missionId} completed with summary`);
     } catch (err) {
       console.error(`[missions:orchestrator] Failed to complete mission ${missionId}:`, err);
-      await missionEngine.fail(
-        missionId,
-        'Mission could not be completed — please try again.',
-      );
+      try {
+        await missionEngine.fail(missionId, 'Mission could not be completed — please try again.');
+      } catch (failErr) {
+        console.error(`[missions:orchestrator] Could not mark mission ${missionId} as failed:`, failErr);
+      }
     }
   };
 

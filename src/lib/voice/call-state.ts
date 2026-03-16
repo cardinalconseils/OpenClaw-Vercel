@@ -8,14 +8,26 @@
  * can persist to DB separately.
  */
 
+// Type-only import to avoid circular dependency with search.ts
+import type { Provider } from '../tools/handlers/search.js';
+export type { Provider };
+
 export interface CallState {
   callControlId: string;
   callerPhone: string;
   language: 'en' | 'fr';
-  stage: 'greeting' | 'intake' | 'searching' | 'complete';
+  stage: 'greeting' | 'name_capture' | 'intake' | 'consent' | 'searching' | 'complete';
   intent: Partial<{ serviceType: string; location: string; urgency: string }>;
   clarificationTurns: number;
   startedAt: Date;
+  callerName: string | undefined;
+  smsConsent: boolean | undefined;
+  consentTimestamp: string | undefined;
+  consentMethod: 'verbal' | undefined;
+  silenceNudgeTimer: ReturnType<typeof setTimeout> | undefined;
+  silenceNudgeCount: number;
+  providers: Provider[];
+  currentProviderIndex: number;
 }
 
 const _calls = new Map<string, CallState>();
@@ -33,6 +45,14 @@ export function initCall(callControlId: string, callerPhone: string): CallState 
     intent: {},
     clarificationTurns: 0,
     startedAt: new Date(),
+    callerName: undefined,
+    smsConsent: undefined,
+    consentTimestamp: undefined,
+    consentMethod: undefined,
+    silenceNudgeTimer: undefined,
+    silenceNudgeCount: 0,
+    providers: [],
+    currentProviderIndex: 0,
   };
   _calls.set(callControlId, state);
   return state;
@@ -54,13 +74,15 @@ export function updateCall(id: string, patch: Partial<CallState>): void {
   }
 }
 
-/** Removes the call state — call getCall after to confirm. */
+/** Clears silence nudge timer and removes the call state. */
 export function endCall(id: string): void {
+  const state = _calls.get(id);
+  if (state?.silenceNudgeTimer) clearTimeout(state.silenceNudgeTimer);
   _calls.delete(id);
 }
 
 /**
- * Detects the dominant language from a Deepgram Nova-3 transcript word list.
+ * Detects the dominant language from a transcript word list.
  *
  * Returns 'fr' if more than 30% of words are tagged with language='fr',
  * otherwise returns 'en'. Empty arrays always return 'en'.
@@ -77,12 +99,12 @@ export function detectLanguage(
 }
 
 /**
- * Returns true if the call has already used its one clarification turn.
+ * Returns true if the call has already used its maximum clarification turns (>= 2).
  *
- * Maximum one clarifying question per call (Phase 2 design decision). If this returns
+ * Maximum two clarifying questions per call (Phase 2 design decision). If this returns
  * true, the orchestrator must proceed to search with best-available intent
  * rather than asking another question.
  */
 export function shouldAdvancePastClarification(state: CallState): boolean {
-  return state.clarificationTurns >= 1;
+  return state.clarificationTurns >= 2;
 }

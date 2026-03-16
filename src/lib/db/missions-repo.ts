@@ -73,9 +73,11 @@ export async function getMission(id: string): Promise<Mission | null> {
     .eq('id', id)
     .single();
 
-  if (error || !data) {
-    return null;
+  if (error) {
+    if (error.code === 'PGRST116') return null; // Supabase "no rows" for .single()
+    throw new Error(`[missions-repo] getMission failed: ${error.message}`);
   }
+  if (!data) return null;
   return rowToMission(data as Record<string, unknown>);
 }
 

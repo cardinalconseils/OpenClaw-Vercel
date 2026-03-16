@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Infrastructure Foundation** - Provision and configure Vercel Sandbox, Telnyx number, device pairing, keep-alive, and 10DLC registration (completed 2026-03-14)
 - [ ] **Phase 1.1: OpenClaw Agent Setup** - Install and configure OpenClaw framework, define agent persona, wire LLM provider, create tool registry, verify agent responds via gateway (INSERTED)
 - [x] **Phase 2: Voice Conversation Core** - Answer inbound calls, capture user intent from natural speech, maintain clean conversational state (completed 2026-03-16)
-- [ ] **Phase 3: Provider Discovery** - Search Google Places and ranked provider sources, narrate results to user
+- [x] **Phase 3: Provider Discovery** - Search Google Places and ranked provider sources, narrate results to user (completed 2026-03-16)
 - [ ] **Phase 4: Outbound Provider Calling** - Dial providers sequentially with live user narration, handle voicemail and busy signals, cascade through ranked list
 - [ ] **Phase 5: Live Call Transfer** - Warm-transfer user to confirmed-available provider via conference bridge, exit cleanly, handle transfer failures
 - [ ] **Phase 6: Post-Call SMS** - Send SMS recap with outcome, provider info, and tip link; persist call record
@@ -81,7 +81,12 @@ Plans:
   3. Agent narrates its findings aloud: "I found 6 plumbers near downtown Austin. The top-rated one is Acme Plumbing with 4.8 stars — calling them now"
   4. When user says "it's urgent" or "emergency," agent re-ranks for same-day and emergency-available providers ahead of higher-rated ones that are closed
   5. Agent produces a ranked provider list with phone numbers that feeds directly into Phase 4 outbound calling without manual intervention
-**Plans**: TBD
+**Plans:** 3/3 plans complete
+
+Plans:
+- [ ] 03-01-PLAN.md — Google Places search, geocoding, haversine distance, ranking algorithm, CallState update (SRCH-01, SRCH-03, SRCH-04, SRCH-05)
+- [ ] 03-02-PLAN.md — Bilingual narration builder functions (SRCH-06)
+- [ ] 03-03-PLAN.md — OpenRouter web search fallback, webhook wiring for search+narration flow (SRCH-02, SRCH-06)
 
 ### Phase 4: Outbound Provider Calling
 **Goal**: Agent dials providers sequentially from the ranked list, announces itself as an AI on each outbound call, gives the user live verbal status updates every 15-20 seconds, handles voicemail and no-answers automatically, sends SMS pre-notification to providers, and cascades through up to four providers before declaring no match
@@ -155,8 +160,8 @@ Phases execute in numeric order: 1 -> 1.1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 |-------|----------------|--------|-----------|
 | 1. Infrastructure Foundation | 3/4 | Gap closure | 2026-03-14 |
 | 1.1. OpenClaw Agent Setup (INSERTED) | 2/3 | In Progress|  |
-| 2. Voice Conversation Core | 3/3 | Complete   | 2026-03-16 |
-| 3. Provider Discovery | 0/TBD | Not started | - |
+| 2. Voice Conversation Core | 3/3 | Complete    | 2026-03-16 |
+| 3. Provider Discovery | 2/3 | Complete    | 2026-03-16 |
 | 4. Outbound Provider Calling | 0/TBD | Not started | - |
 | 5. Live Call Transfer | 0/TBD | Not started | - |
 | 6. Post-Call SMS | 0/TBD | Not started | - |

@@ -1,5 +1,11 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { TOOLS, executeTool } from '../../../src/lib/tools/registry';
+
+// Mock searchProviders so registry tests don't require GOOGLE_MAPS_API_KEY.
+// The real searchProviders is tested in search.test.ts.
+vi.mock('../../../src/lib/tools/handlers/search.js', () => ({
+  searchProviders: vi.fn().mockResolvedValue({ providers: [], source: 'google_places', count: 0 }),
+}));
 
 describe('TOOLS array', () => {
   it('has exactly 6 entries', () => {
