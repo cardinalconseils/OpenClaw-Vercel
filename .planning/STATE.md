@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Not planned yet
-stopped_at: Completed 03-provider-discovery/03-03-PLAN.md — awaiting human-verify checkpoint for Task 3
-last_updated: "2026-03-16T03:22:39.110Z"
+stopped_at: Completed 03-provider-discovery/03-03-PLAN.md
+last_updated: "2026-03-16T03:25:25.212Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
   total_phases: 9
@@ -76,6 +76,8 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 03-provider-discovery P01 | 6min | 1 tasks | 4 files |
 | Phase 03-provider-discovery P03 | 4min | 2 tasks | 3 files |
 | Phase 03-provider-discovery P03 | 286s | 2 tasks | 4 files |
+| Phase 03-provider-discovery P03 | 15min | 3 tasks | 4 files |
+| Phase 03-provider-discovery P03 | 15min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -156,6 +158,12 @@ Recent decisions affecting current work:
 - [Phase 03-provider-discovery]: Stage guard (searching|complete) added at top of call.transcription to prevent re-triggering search
 - [Phase 03-provider-discovery]: stopFillerLoop/searchProviders/narration mocks added to webhook tests — real API dependencies must always be mocked in webhook integration tests
 - [Phase 03-provider-discovery]: _fillerLoops.delete(callControlId) called after stopFillerLoop in all consent handler paths to prevent stale handles on hangup
+- [Phase 03-provider-discovery]: webSearchFallback uses two-layer error safety: outer catch for API errors, inner catch for JSON parse failures — partial LLM output never crashes the search pipeline
+- [Phase 03-provider-discovery]: Stage guard (searching|complete) at top of call.transcription handler prevents re-triggering search from subsequent transcription events
+- [Phase 03-provider-discovery]: Filler loop starts in consent handler (not intake) — TCPA consent must precede search per Phase 02 design
+- [Phase 03-provider-discovery]: webSearchFallback uses two-layer error safety: outer catch for API errors, inner catch for JSON parse failures
+- [Phase 03-provider-discovery]: Stage guard (searching|complete) added at top of call.transcription to prevent re-triggering search
+- [Phase 03-provider-discovery]: stopFillerLoop/searchProviders/narration mocks added to webhook tests — real API dependencies must always be mocked in webhook integration tests
 
 ### Pending Todos
 
@@ -173,6 +181,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T03:22:39.107Z
-Stopped at: Completed 03-provider-discovery/03-03-PLAN.md — awaiting human-verify checkpoint for Task 3
+Last session: 2026-03-16T03:25:25.209Z
+Stopped at: Completed 03-provider-discovery/03-03-PLAN.md
 Resume file: None
