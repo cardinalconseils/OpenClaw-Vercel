@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Not planned yet
-stopped_at: "Checkpoint 09-02 Task 3: awaiting visual verification of landing page"
-last_updated: "2026-03-16T23:39:54.097Z"
+stopped_at: Completed 09-frontend-website-03-PLAN.md
+last_updated: "2026-03-16T23:41:42.643Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
   total_phases: 10
   completed_phases: 6
   total_plans: 26
-  completed_plans: 23
+  completed_plans: 24
   percent: 0
 ---
 
@@ -85,6 +85,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 09-frontend-website PP00 | 5min | 2 tasks | 9 files |
 | Phase 09-frontend-website P01 | 338s | 3 tasks | 20 files |
 | Phase 09-frontend-website P02 | 135s | 2 tasks | 8 files |
+| Phase 09-frontend-website PP03 | 222s | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -192,6 +193,8 @@ Recent decisions affecting current work:
 - [Phase 09-frontend-website]: turbopack.root set in next.config.ts to resolve dual-lockfile warning from nested frontend/package-lock.json
 - [Phase 09-frontend-website]: NavBar uses plain Next.js Link for Sign In (not Button asChild) — @base-ui/react Button does not support asChild prop
 - [Phase 09-frontend-website]: VoiceWave uses inline <style> tag with @media (prefers-reduced-motion: reduce) — CSS disables animation at browser level
+- [Phase 09-frontend-website]: base-ui Button uses render prop (not asChild) — Radix-style asChild not available in base-ui 1.x
+- [Phase 09-frontend-website]: Always use getUser() in middleware/server code — never getSession() (Supabase security requirement, validates token with auth server)
 
 ### Pending Todos
 
@@ -209,6 +212,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T23:39:54.095Z
-Stopped at: Checkpoint 09-02 Task 3: awaiting visual verification of landing page
+Last session: 2026-03-16T23:41:42.640Z
+Stopped at: Completed 09-frontend-website-03-PLAN.md
 Resume file: None
