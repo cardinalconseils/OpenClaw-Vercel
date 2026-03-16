@@ -3,7 +3,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "build": "tsc",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "frontend:dev": "cd frontend && npm run dev",
+    "frontend:build": "cd frontend && npm run build",
+    "frontend:install": "cd frontend && npm install"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
