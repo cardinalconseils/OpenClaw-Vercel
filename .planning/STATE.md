@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Not planned yet
-stopped_at: Completed 02-voice-conversation-core-03-PLAN.md (human-verify checkpoint approved)
-last_updated: "2026-03-16T00:50:52.274Z"
+stopped_at: Completed 08-telnyx-missions-05-PLAN.md
+last_updated: "2026-03-16T00:59:49.735Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
   total_phases: 9
   completed_phases: 4
-  total_plans: 14
-  completed_plans: 14
+  total_plans: 15
+  completed_plans: 15
   percent: 0
 ---
 
@@ -67,6 +67,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 08-telnyx-missions PP04 | 3min | 2 tasks | 4 files |
 | Phase 02-voice-conversation-core P03 | 308s | 2 tasks | 5 files |
 | Phase 02-voice-conversation-core PP03 | 308s | 3 tasks | 5 files |
+| Phase 08-telnyx-missions P05 | 3min | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -119,6 +120,8 @@ Recent decisions affecting current work:
 - [Phase 08-telnyx-missions]: recoverIncompleteMissions re-enqueues both pending and in-progress steps — interrupted steps must retry from scratch
 - [Phase 02-voice-conversation-core]: Telnyx SDK v6 uses calls.actions.answer/speak (not calls.answer/speak) — corrected during type check
 - [Phase 02-voice-conversation-core]: setTimeout spy approach used for session persistence test — vi.useFakeTimers can't retroactively control timers registered before switch
+- [Phase 08-telnyx-missions]: Structural test uses __dirname + readFileSync to assert import/await presence — avoids gateway startup, compatible with NodeNext CJS
+- [Phase 08-telnyx-missions]: initMissions() called AFTER gateway health guard, BEFORE startServer() — ensures DB connectivity before mission recovery
 
 ### Pending Todos
 
@@ -136,6 +139,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T00:47:30.042Z
-Stopped at: Completed 02-voice-conversation-core-03-PLAN.md (human-verify checkpoint approved)
+Last session: 2026-03-16T00:59:49.732Z
+Stopped at: Completed 08-telnyx-missions-05-PLAN.md
 Resume file: None
