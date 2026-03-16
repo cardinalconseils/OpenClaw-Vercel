@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Not planned yet
-stopped_at: Completed 08-telnyx-missions-04-PLAN.md
-last_updated: "2026-03-16T00:39:18.495Z"
+stopped_at: Completed 02-voice-conversation-core-03-PLAN.md
+last_updated: "2026-03-16T00:45:48.764Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
   total_phases: 9
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 14
-  completed_plans: 13
+  completed_plans: 14
   percent: 0
 ---
 
@@ -65,6 +65,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 02-voice-conversation-core P02 | 141s | 2 tasks | 5 files |
 | Phase 02-voice-conversation-core P01 | 2min | 1 tasks | 6 files |
 | Phase 08-telnyx-missions PP04 | 3min | 2 tasks | 4 files |
+| Phase 02-voice-conversation-core P03 | 308s | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -115,6 +116,8 @@ Recent decisions affecting current work:
 - [Phase 08-telnyx-missions]: MissionReporter.onProgressEvent is an optional callback wired at runtime by ClawdTalk/voice handlers for flexibility
 - [Phase 08-telnyx-missions]: generateSummary uses 'status-update' task type routing to OpenRouter (Gemini Flash) — fast/cheap for SMS-length summaries
 - [Phase 08-telnyx-missions]: recoverIncompleteMissions re-enqueues both pending and in-progress steps — interrupted steps must retry from scratch
+- [Phase 02-voice-conversation-core]: Telnyx SDK v6 uses calls.actions.answer/speak (not calls.answer/speak) — corrected during type check
+- [Phase 02-voice-conversation-core]: setTimeout spy approach used for session persistence test — vi.useFakeTimers can't retroactively control timers registered before switch
 
 ### Pending Todos
 
@@ -132,6 +135,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T00:39:18.493Z
-Stopped at: Completed 08-telnyx-missions-04-PLAN.md
+Last session: 2026-03-16T00:45:48.762Z
+Stopped at: Completed 02-voice-conversation-core-03-PLAN.md
 Resume file: None
