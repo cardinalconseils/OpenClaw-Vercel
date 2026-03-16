@@ -4,7 +4,7 @@ milestone: v1.0
 milestone_name: milestone
 status: Not planned yet
 stopped_at: Completed 04-outbound-provider-calling/04-02-PLAN.md
-last_updated: "2026-03-16T19:59:04.827Z"
+last_updated: "2026-03-16T19:59:57.523Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
   total_phases: 9
@@ -81,6 +81,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 04-outbound-provider-calling P01 | 291s | 2 tasks | 4 files |
 | Phase 04-outbound-provider-calling P01 | 8min | 2 tasks | 4 files |
 | Phase 04-outbound-provider-calling P02 | 277s | 2 tasks | 4 files |
+| Phase 04-outbound-provider-calling PP02 | 193s | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -175,6 +176,9 @@ Recent decisions affecting current work:
 - [Phase 04-outbound-provider-calling]: client_state encoded as base64(JSON) for Telnyx webhook routing across both call legs
 - [Phase 04-outbound-provider-calling]: direction guard on call.initiated/call.answered routes outbound provider legs correctly
 - [Phase 04-outbound-provider-calling]: callProvider() delegates to startOutboundCascade with call_control_id validation
+- [Phase Phase 04-outbound-provider-calling]: direction === 'incoming' guard on call.initiated prevents outbound legs from auto-answering
+- [Phase Phase 04-outbound-provider-calling]: consent handler calls startOutboundCascade instead of stage='complete' after narrating results
+- [Phase Phase 04-outbound-provider-calling]: callProvider() in dispatch.ts validates call_control_id then delegates to startOutboundCascade; transferCall remains STUB for Phase 5
 
 ### Pending Todos
 
@@ -192,6 +196,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T19:59:04.825Z
+Last session: 2026-03-16T19:59:57.520Z
 Stopped at: Completed 04-outbound-provider-calling/04-02-PLAN.md
 Resume file: None
