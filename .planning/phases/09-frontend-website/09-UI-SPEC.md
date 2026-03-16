@@ -25,14 +25,14 @@ created: 2026-03-16
 | Primary font | Montserrat (Google Fonts) — UI, copy, buttons, labels | brand/guidelines |
 | Display font | Cormorant Garamond (Google Fonts) — hero headlines, large branding text | brand/guidelines |
 | CSS framework | Tailwind CSS 4 — CSS-first config via `@theme` in globals.css (no tailwind.config.js) | RESEARCH.md |
-| Dark mode | Not in scope for v1 — Soft White `#F8F9FA` is the canonical background. `next-themes` still installed for future compatibility, defaultTheme set to `"light"` with `enableSystem={false}` | brand reconciliation |
+| Theme | Dark surfaces (`#0D0D0D` base) — locked per CONTEXT.md. `next-themes` installed, `defaultTheme="dark"`, `enableSystem={false}`. Brand accent colors (Azure Teal, Navy, Terracotta) applied on dark surfaces. | CONTEXT.md |
 
 **shadcn initialization (Wave 0, Plan 01):**
 ```bash
 cd frontend
 npx shadcn@latest init
 # Select: TypeScript, App Router, Tailwind CSS, src/ dir, @/* alias
-# Manually configure @theme in globals.css per Pattern 4 (RESEARCH.md) using brand tokens below
+# Manually configure @theme in globals.css per color contract below
 ```
 
 ---
@@ -60,16 +60,16 @@ Exceptions:
 
 ## Typography
 
-Two families. Three weights total across both families. Four size roles.
+Two families. Two weights per family — no exceptions.
 
 | Role | Family | Size | Weight | Line Height | Usage |
 |------|--------|------|--------|-------------|-------|
 | Display | Cormorant Garamond | 60px (text-6xl) | Bold (700) | 1.1 | Hero headline only ("One call replaces five.") |
 | Heading | Montserrat | 28px (text-3xl) | Bold (700) | 1.2 | Page headings, section titles, card headings |
-| Body | Montserrat | 16px (text-base) | Regular (400) | 1.5 | Paragraph copy, descriptions, table rows |
+| Body | Montserrat | 16px (text-base) | Regular (400) | 1.5 | Paragraph copy, descriptions, table rows, sub-captions |
 | Label | Montserrat | 14px (text-sm) | Regular (400) | 1.4 | Form labels, captions, metadata, badge text |
 
-Weight constraint: exactly 2 weights per family — Bold (700) and Regular (400). Montserrat Light (300) is permissible for decorative sub-captions below hero display text only.
+Weight constraint: exactly 2 weights per family. Montserrat: Regular (400) and Bold (700) only. Cormorant Garamond: Bold (700) only. No Light, no SemiBold, no exceptions.
 
 Google Fonts import (add to `frontend/src/app/layout.tsx`):
 ```typescript
@@ -84,7 +84,7 @@ const montserrat = Montserrat({
 
 const cormorant = Cormorant_Garamond({
   subsets: ['latin'],
-  weight: ['600', '700'],
+  weight: ['700'],
   variable: '--font-cormorant',
   display: 'swap',
 })
@@ -102,21 +102,21 @@ In globals.css `@theme` block:
 
 ## Color
 
-Brand source: `brand/colors/palette.md` and `brand/guidelines/brand-guidelines.md`.
+Dark surface system per CONTEXT.md locked decision ("dark backgrounds, accent colors, glassmorphism cards"). Brand accent colors from `brand/guidelines/brand-guidelines.md` applied on dark surfaces.
 
-All values expressed in both hex (brand spec) and OKLCH (Tailwind v4 runtime). OKLCH values are computed approximations — verified visually at implementation.
+All values expressed in both hex and OKLCH (Tailwind v4 runtime). OKLCH values are computed approximations — verified visually at implementation.
 
 | Role | Hex | OKLCH (approx) | Usage |
 |------|-----|-----------------|-------|
-| Dominant background (60%) | `#F8F9FA` | `oklch(0.98 0.003 240)` | Page background, main surface |
-| Secondary surface (30%) | `#FAF9F6` | `oklch(0.975 0.004 80)` | Card backgrounds, sidebar, nav bar |
-| Primary text | `#333333` | `oklch(0.25 0 0)` | Body copy, headings — not pure black |
+| Dominant background (60%) | `#0D0D0D` | `oklch(0.09 0 0)` | Page background, main surface |
+| Secondary surface (30%) | `#1A1A1A` | `oklch(0.13 0 0)` | Cards, sidebar, nav bar, input backgrounds |
+| Primary text | `#F0F0F0` | `oklch(0.94 0 0)` | Body copy, headings — near-white on dark |
 | Accent — Azure Teal (10%) | `#00BFFF` | `oklch(0.75 0.14 215)` | See reserved-for list below |
-| Navy structural | `#000080` | `oklch(0.22 0.18 264)` | Shield elements, footer, trust badges, borders on key layout components |
+| Navy structural | `#000080` | `oklch(0.22 0.18 264)` | Shield elements, footer, trust badges, key borders |
 | Rich Terracotta | `#A52A2A` | `oklch(0.40 0.12 22)` | Logo, persona illustrations, Sir Murphy mark — decorative only |
 | Ochre | `#B87333` | `oklch(0.62 0.09 60)` | Classical accent elements, dividers with heritage character |
-| Accent Red | `#990000` | `oklch(0.36 0.14 22)` | Destructive actions only (delete account, data export warning) |
-| Muted / secondary text | `#36454F` | `oklch(0.32 0.02 220)` | Subtitles, placeholders, muted copy (Charcoal Gray) |
+| Destructive | `#990000` | `oklch(0.36 0.14 22)` | Destructive actions only (delete account, data export warning) |
+| Muted / secondary text | `#8A9BA8` | `oklch(0.64 0.03 220)` | Subtitles, placeholders, muted copy — legible on dark surfaces |
 
 **Accent (Azure Teal `#00BFFF`) reserved for:**
 1. Primary CTA buttons ("Call Murphy Now", "Sign In", "Save Changes")
@@ -131,16 +131,16 @@ Accent is NOT used for decorative backgrounds, card fills, or passive UI element
 **globals.css @theme block (full color contract):**
 ```css
 @theme {
-  --color-background:    oklch(0.98  0.003 240);   /* Soft White #F8F9FA */
-  --color-card:          oklch(0.975 0.004 80);    /* Cream #FAF9F6 */
-  --color-foreground:    oklch(0.25  0     0);     /* Deep Charcoal #333333 */
-  --color-muted:         oklch(0.32  0.02  220);   /* Charcoal Gray #36454F */
+  --color-background:    oklch(0.09  0     0);     /* Near-black #0D0D0D */
+  --color-card:          oklch(0.13  0     0);     /* Dark surface #1A1A1A */
+  --color-foreground:    oklch(0.94  0     0);     /* Near-white #F0F0F0 */
+  --color-muted:         oklch(0.64  0.03  220);   /* Muted blue-gray #8A9BA8 */
   --color-primary:       oklch(0.75  0.14  215);   /* Azure Teal #00BFFF */
-  --color-primary-foreground: oklch(0.10 0 0);     /* Near-black on teal */
+  --color-primary-foreground: oklch(0.09 0 0);     /* Near-black on teal */
   --color-navy:          oklch(0.22  0.18  264);   /* Navy #000080 */
   --color-destructive:   oklch(0.36  0.14  22);    /* Accent Red #990000 */
-  --color-border:        oklch(0.88  0.005 240);   /* Light border */
-  --color-input:         oklch(0.95  0.003 240);   /* Input background */
+  --color-border:        oklch(0.20  0     0);     /* Dark border — subtle on #1A1A1A */
+  --color-input:         oklch(0.13  0     0);     /* Input background = card surface */
   --color-ring:          oklch(0.75  0.14  215);   /* Focus ring = teal */
 }
 ```
@@ -174,33 +174,38 @@ Custom components (not from shadcn — built in-phase):
 
 ## Interaction Patterns
 
+### Primary Visual Focal Point (Landing Page)
+
+The primary visual anchor on the landing page is the hero headline — "One call replaces five." — rendered in Cormorant Garamond Bold 60px, centered, on the dark `#0D0D0D` background. The Azure Teal VoiceWave animation sits directly below it, drawing the eye downward to the CTA button. All other hero elements (sub-headline, phone number) are subordinate in size and weight to this headline. Nothing in the hero may exceed 60px or Bold 700 in Cormorant Garamond.
+
 ### Glassmorphism Cards
-Cards use a semi-transparent cream background with a subtle border and backdrop blur. Applied only in the landing page hero/features area — not in the dashboard (which uses solid card backgrounds for data legibility).
+
+Applied only in the landing page hero/features area — not in the dashboard (which uses solid `#1A1A1A` card backgrounds for data legibility). Glassmorphism on dark surfaces uses a semi-transparent dark fill with a lighter border to create depth.
 
 ```css
-/* Landing page card treatment */
+/* Landing page card treatment — dark glassmorphism */
 backdrop-filter: blur(12px);
-background-color: oklch(0.975 0.004 80 / 0.85);
-border: 1px solid oklch(0.88 0.005 240 / 0.6);
+background-color: oklch(0.13 0 0 / 0.75);
+border: 1px solid oklch(0.30 0 0 / 0.5);
 border-radius: 12px;
 ```
 
 ### Subtle Animations
-- Hero voice wave: CSS keyframe animation, 2-second loop, no reduce-motion bypass needed (ambient, not content-carrying). Must respect `prefers-reduced-motion: reduce` — disable animation when set.
-- CTA button hover: `transform: translateY(-1px)` + `box-shadow` lift, 150ms ease transition.
+- Hero voice wave: CSS keyframe animation, 2-second loop. Must respect `prefers-reduced-motion: reduce` — disable animation when set.
+- CTA button hover: `transform: translateY(-1px)` + `box-shadow` lift, 150ms ease transition. Disable translate under `prefers-reduced-motion`.
 - Card hover (dashboard): subtle `box-shadow` increase, 150ms ease. No translate.
 - Page transitions: none — Next.js default navigation. No animated route transitions (performance budget).
 
 ### Auth States
 - Unauthenticated user on `/dashboard/*`: redirect to `/login` via middleware (no flash of protected content).
 - Loading state: shadcn `Skeleton` component matching the shape of the content being loaded.
-- Auth error (wrong password, expired session): inline form error in Alert Red `#990000`, below the field, not a toast.
+- Auth error (wrong password, expired session): inline form error in Destructive Red `#990000`, below the field, not a toast.
 
 ### Form Validation
 - All forms use `react-hook-form` + zod resolver.
 - Errors appear inline below each field using the shadcn `FormMessage` component.
 - Submit button disabled while form is submitting (show spinner in button).
-- Destructive actions (delete account, export data) require shadcn `AlertDialog` confirmation — never inline confirmation.
+- Destructive actions (delete account) require shadcn `AlertDialog` confirmation — never inline confirmation.
 
 ---
 
@@ -208,7 +213,7 @@ border-radius: 12px;
 
 | Element | Copy | Notes |
 |---------|------|-------|
-| Hero headline | "One call replaces five." | Cormorant Garamond Bold 60px. Period is intentional. |
+| Hero headline | "One call replaces five." | Cormorant Garamond Bold 60px. Period is intentional. Primary visual focal point. |
 | Hero sub-headline | "Murphy finds local service providers, calls them to check availability, then connects you live — all while you wait on the line." | Montserrat Regular 16px, max-width 640px, centered |
 | Primary CTA button | "Call Murphy Now" | Azure Teal background, near-black text. Uppercase Montserrat Bold. |
 | CTA sub-text | "+1-888-830-6873" | Montserrat Regular 14px, muted color, below button |
@@ -226,7 +231,7 @@ border-radius: 12px;
 | Destructive: export data | Not a destructive action — no confirmation required. Show success toast: "Your data export has been sent to your email." | |
 | Mission status labels | "Live" (teal) / "Completed" (green) / "Failed" (red) / "Pending" (gray) / "Paused" (ochre) | StatusBadge component |
 | Nav links | "Dashboard" / "Missions" / "Analytics" / "Settings" | Montserrat Regular 14px |
-| Footer tagline | "One call replaces five." | Montserrat Light 14px, muted |
+| Footer tagline | "One call replaces five." | Montserrat Regular 14px, muted color |
 
 ---
 
@@ -278,8 +283,8 @@ Dashboard sidebar: drawer (Sheet component) on mobile, persistent sidebar `w-64`
 
 ## Accessibility Contract
 
-- Color contrast: all body text on white/cream backgrounds must meet WCAG AA (4.5:1 ratio). Azure Teal `#00BFFF` on white fails AA at small sizes — use Navy `#000080` or Charcoal `#333333` for body text. Teal is only used for large interactive elements (buttons, links) where decorative intent is clear.
-- Focus rings: teal focus ring on all interactive elements (`ring-2 ring-primary ring-offset-2`).
+- Color contrast: all body text (`#F0F0F0` on `#0D0D0D`) achieves WCAG AAA (>7:1). Azure Teal `#00BFFF` on `#0D0D0D` achieves approximately 8.6:1 — passes AAA. Verify muted text `#8A9BA8` on `#0D0D0D` meets AA minimum (4.5:1) at implementation.
+- Focus rings: teal focus ring on all interactive elements (`ring-2 ring-primary ring-offset-2 ring-offset-background`).
 - Touch targets: minimum 44px height on all interactive controls on mobile.
 - `prefers-reduced-motion`: disable VoiceWave animation, disable CTA button translate transition.
 - `alt` text: all images require alt text. Logo: `alt="OpenClaw — Sir Murphy logo"`. Hero image: descriptive alt.
@@ -302,4 +307,5 @@ Dashboard sidebar: drawer (Sheet component) on mobile, persistent sidebar `w-64`
 
 *Phase: 09-frontend-website*
 *UI contract created: 2026-03-16*
+*Revised: 2026-03-16 — dark surface system, weight constraint tightened, focal point declaration added*
 *Sources: brand/guidelines/brand-guidelines.md, brand/colors/palette.md, .planning/phases/09-frontend-website/09-CONTEXT.md, .planning/phases/09-frontend-website/09-RESEARCH.md*
