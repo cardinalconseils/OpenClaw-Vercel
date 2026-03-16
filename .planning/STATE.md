@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Not planned yet
-stopped_at: Completed 02-voice-conversation-core-02-PLAN.md
-last_updated: "2026-03-16T00:38:25.105Z"
+stopped_at: Completed 02-voice-conversation-core-01-PLAN.md
+last_updated: "2026-03-16T00:38:32.026Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
   total_phases: 9
@@ -109,6 +109,8 @@ Recent decisions affecting current work:
 - [Phase 08-telnyx-missions]: Scheduler uses void enqueue() in tool handler — returns step plan to AI immediately, mission executes asynchronously in background
 - [Phase 02-voice-conversation-core]: Regex/keyword extraction for intent (no LLM call) — deterministic, zero latency, testable in isolation
 - [Phase 02-voice-conversation-core]: EN and FR service keyword patterns maintained as separate arrays — clean separation, extensible
+- [Phase 02-voice-conversation-core]: Round-robin counter chosen over Math.random for filler phrases — deterministic rotation guarantees >= 3 unique variants in 20-call pool test
+- [Phase 02-voice-conversation-core]: Test import paths for tests/lib/voice/ use ../../../src/ (3 levels), not ../../../../src/ — path depth matches actual directory nesting
 
 ### Pending Todos
 
@@ -126,6 +128,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T00:38:21.634Z
-Stopped at: Completed 02-voice-conversation-core-02-PLAN.md
+Last session: 2026-03-16T00:38:32.025Z
+Stopped at: Completed 02-voice-conversation-core-01-PLAN.md
 Resume file: None
