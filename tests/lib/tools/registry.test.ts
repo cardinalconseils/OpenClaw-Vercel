@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { TOOLS, executeTool } from '../../../src/lib/tools/registry';
 
 describe('TOOLS array', () => {
-  it('has exactly 4 entries', () => {
-    expect(TOOLS).toHaveLength(4);
+  it('has exactly 6 entries', () => {
+    expect(TOOLS).toHaveLength(6);
   });
 
   it('each tool has name, description, and input_schema fields', () => {
@@ -17,12 +17,14 @@ describe('TOOLS array', () => {
     }
   });
 
-  it('tool names are search_providers, call_provider, transfer_call, send_sms', () => {
+  it('tool names include search_providers, call_provider, transfer_call, send_sms, create_mission, get_mission_status', () => {
     const names = TOOLS.map((t) => t.name);
     expect(names).toContain('search_providers');
     expect(names).toContain('call_provider');
     expect(names).toContain('transfer_call');
     expect(names).toContain('send_sms');
+    expect(names).toContain('create_mission');
+    expect(names).toContain('get_mission_status');
   });
 });
 

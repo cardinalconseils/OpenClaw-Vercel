@@ -14,12 +14,13 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Infrastructure Foundation** - Provision and configure Vercel Sandbox, Telnyx number, device pairing, keep-alive, and 10DLC registration (completed 2026-03-14)
 - [ ] **Phase 1.1: OpenClaw Agent Setup** - Install and configure OpenClaw framework, define agent persona, wire LLM provider, create tool registry, verify agent responds via gateway (INSERTED)
-- [ ] **Phase 2: Voice Conversation Core** - Answer inbound calls, capture user intent from natural speech, maintain clean conversational state
+- [x] **Phase 2: Voice Conversation Core** - Answer inbound calls, capture user intent from natural speech, maintain clean conversational state (completed 2026-03-16)
 - [ ] **Phase 3: Provider Discovery** - Search Google Places and ranked provider sources, narrate results to user
 - [ ] **Phase 4: Outbound Provider Calling** - Dial providers sequentially with live user narration, handle voicemail and busy signals, cascade through ranked list
 - [ ] **Phase 5: Live Call Transfer** - Warm-transfer user to confirmed-available provider via conference bridge, exit cleanly, handle transfer failures
 - [ ] **Phase 6: Post-Call SMS** - Send SMS recap with outcome, provider info, and tip link; persist call record
 - [ ] **Phase 7: Web Dashboard** - Serve read-only call history by phone number from Vercel Sandbox
+- [ ] **Phase 8: Telnyx Missions** - Create and execute batch missions (multi-call campaigns, SMS surveys, provider research) via natural language through any connected channel
 
 ## Phase Details
 
@@ -63,7 +64,12 @@ Plans:
   3. User says something ambiguous ("I need help with my house") and the agent asks one focused clarifying question to extract service type
   4. Agent responses feel immediate — no perceptible silence between user speaking and agent responding (streaming TTS)
   5. Agent speaks a brief filler phrase ("Let me look that up for you") when running a search, so the line never goes silent during tool calls
-**Plans**: TBD
+**Plans:** 3/3 plans complete
+
+Plans:
+- [ ] 02-01-PLAN.md — Call state, greeting constants, filler phrases with TDD tests (VOICE-01, VOICE-03, VOICE-05)
+- [ ] 02-02-PLAN.md — Murphy prompt bilingual update, intent extractor module (VOICE-02, VOICE-03)
+- [ ] 02-03-PLAN.md — Webhook lifecycle handler, voice config, env setup, human verification (VOICE-01, VOICE-02, VOICE-04, VOICE-05)
 
 ### Phase 3: Provider Discovery
 **Goal**: Given extracted service type and location, the agent searches Google Places, web, and a custom directory for providers, ranks them by ratings/reviews/proximity/urgency, and narrates a transparent verbal summary to the user before proceeding
@@ -121,18 +127,38 @@ Plans:
   3. Dashboard is served directly from the Vercel Sandbox at a public HTTPS URL — no separate hosting or deployment needed
 **Plans**: TBD
 
+### Phase 8: Telnyx Missions
+**Goal**: Users can create multi-step missions via voice, SMS, or any connected chat channel. The agent plans the mission, creates a dedicated AI assistant, schedules and executes events (batch calls, SMS campaigns, provider research), and reports results — all trackable in real-time via the ClawdTalk portal
+**Depends on**: Phase 6 (requires outbound calling + SMS), ClawdTalk integration
+**Requirements**: MISSION-01, MISSION-02, MISSION-03, MISSION-04, MISSION-05, MISSION-06
+**Success Criteria** (what must be TRUE):
+  1. User says "Call the top 5 plumbers in Austin and get quotes" and the agent creates a mission plan, dials each provider sequentially, and captures results
+  2. User says "Text all my leads and confirm their demo times" and the agent sends personalized SMS to each number with automatic throttling
+  3. Mission progress is visible in the ClawdTalk portal in real-time (events scheduled, in-progress, completed)
+  4. After mission completes, user receives a summary with all captured results and conversation insights
+  5. Agent handles batch operations with rate limiting — no more than N concurrent calls or SMS per minute
+**Plans:** 5 plans (4 executed, 1 gap closure)
+
+Plans:
+- [x] 08-01-PLAN.md — Mission types, Supabase client, rate limiter, DB repository, migration SQL (MISSION-06)
+- [x] 08-02-PLAN.md — Mission planner (LLM decomposition) and lifecycle engine (MISSION-01, MISSION-02)
+- [x] 08-03-PLAN.md — Mission scheduler (rate-limited queue) and tool handler registration (MISSION-03, MISSION-06)
+- [x] 08-04-PLAN.md — Mission reporter (progress events, summaries) and orchestrator wiring (MISSION-04, MISSION-05)
+- [ ] 08-05-PLAN.md — Gap closure: wire initMissions() into server.ts startup sequence (MISSION-04, MISSION-05, MISSION-06)
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 1.1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
+Phases execute in numeric order: 1 -> 1.1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Infrastructure Foundation | 3/4 | Gap closure | 2026-03-14 |
 | 1.1. OpenClaw Agent Setup (INSERTED) | 2/3 | In Progress|  |
-| 2. Voice Conversation Core | 0/TBD | Not started | - |
+| 2. Voice Conversation Core | 3/3 | Complete   | 2026-03-16 |
 | 3. Provider Discovery | 0/TBD | Not started | - |
 | 4. Outbound Provider Calling | 0/TBD | Not started | - |
 | 5. Live Call Transfer | 0/TBD | Not started | - |
 | 6. Post-Call SMS | 0/TBD | Not started | - |
 | 7. Web Dashboard | 0/TBD | Not started | - |
+| 8. Telnyx Missions | 4/5 | Gap closure |  |

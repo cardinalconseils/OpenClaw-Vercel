@@ -1,6 +1,7 @@
-import { searchProviders } from './handlers/search';
-import { callProvider, transferCall } from './handlers/dispatch';
-import { sendSms } from './handlers/sms';
+import { searchProviders } from './handlers/search.js';
+import { callProvider, transferCall } from './handlers/dispatch.js';
+import { sendSms } from './handlers/sms.js';
+import { createMissionHandler, getMissionStatusHandler } from './handlers/missions.js';
 
 interface ToolDefinition {
   name: string;
@@ -93,6 +94,39 @@ export const TOOLS: ToolDefinition[] = [
       required: ['to', 'message'],
     },
   },
+  {
+    name: 'create_mission',
+    description:
+      'Create a new batch mission from a natural language description. The agent will plan, schedule, and execute the mission automatically.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        description: {
+          type: 'string',
+          description: 'Natural language description of the mission (e.g., "Call the top 5 plumbers in Austin and get quotes")',
+        },
+        channel: {
+          type: 'string',
+          description: 'Channel the mission was created from: "voice", "sms", or "chat" (default: "voice")',
+        },
+      },
+      required: ['description'],
+    },
+  },
+  {
+    name: 'get_mission_status',
+    description: 'Get the current status and progress of a mission by ID.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        mission_id: {
+          type: 'string',
+          description: 'The mission ID to check status for',
+        },
+      },
+      required: ['mission_id'],
+    },
+  },
 ];
 
 export async function executeTool(
@@ -119,6 +153,12 @@ export async function executeTool(
 
     case 'send_sms':
       return sendSms(params as { to: string; message: string });
+
+    case 'create_mission':
+      return createMissionHandler(params as { description: string; channel?: string });
+
+    case 'get_mission_status':
+      return getMissionStatusHandler(params as { mission_id: string });
 
     default:
       throw new Error(`Unknown tool: "${name}". Available tools: ${TOOLS.map((t) => t.name).join(', ')}`);
