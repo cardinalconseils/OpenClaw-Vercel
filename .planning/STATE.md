@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Not planned yet
-stopped_at: Completed 02-voice-conversation-core/02-01-PLAN.md
-last_updated: "2026-03-16T02:46:04.951Z"
+stopped_at: "Checkpoint: 02-voice-conversation-core/02-03 — awaiting human-verify Task 2"
+last_updated: "2026-03-16T02:52:45.082Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
   total_phases: 9
-  completed_phases: 3
-  total_plans: 15
-  completed_plans: 14
+  completed_phases: 4
+  total_plans: 16
+  completed_plans: 15
   percent: 0
 ---
 
@@ -70,6 +70,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 08-telnyx-missions P05 | 3min | 1 tasks | 2 files |
 | Phase 02-voice-conversation-core P02 | 118s | 1 tasks | 4 files |
 | Phase 02-voice-conversation-core P01 | 212s | 1 tasks | 8 files |
+| Phase 02-voice-conversation-core PP03 | 4min | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -131,6 +132,10 @@ Recent decisions affecting current work:
 - [Phase 02-voice-conversation-core]: webhooks.ts ELEVENLABS_VOICE_STRING import deferred to Plan 03
 - [Phase 02-voice-conversation-core]: shouldAdvancePastClarification threshold raised from >= 1 to >= 2 per CONTEXT.md 2-turn clarification max
 - [Phase 02-voice-conversation-core]: GREETING bilingual record removed — French deferred to LANG-02; GREETING_STEP_1 replaces GREETING.en
+- [Phase 02-voice-conversation-core]: speak() wrapper centralizes TELNYX_VOICE_STRING/TELNYX_VOICE_SETTINGS on all TTS calls in webhooks.ts
+- [Phase 02-voice-conversation-core]: Second clarification is open-ended only ('Could you tell me a bit more?') — no category suggestions per user decision
+- [Phase 02-voice-conversation-core]: Max-clarification bypass advances to consent stage (not searching) — TCPA consent must precede search
+- [Phase 02-voice-conversation-core]: Ambiguous consent defaults to smsConsent=false (conservative) — TCPA compliance requirement
 
 ### Pending Todos
 
@@ -148,6 +153,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T02:46:04.949Z
-Stopped at: Completed 02-voice-conversation-core/02-01-PLAN.md
+Last session: 2026-03-16T02:52:45.079Z
+Stopped at: Checkpoint: 02-voice-conversation-core/02-03 — awaiting human-verify Task 2
 Resume file: None
