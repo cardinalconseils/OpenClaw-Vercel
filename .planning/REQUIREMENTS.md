@@ -34,13 +34,13 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Outbound Calling
 
-- [ ] **CALL-01**: Agent calls providers starting from the best-ranked match
-- [ ] **CALL-02**: Agent identifies itself as AI on outbound calls (legal compliance)
-- [ ] **CALL-03**: Agent gives live verbal updates to user while calling providers
-- [ ] **CALL-04**: Agent sends SMS pre-notification to provider before/during call to signal legitimate customer interest
-- [ ] **CALL-05**: Agent handles answering machines and busy signals, moves to next provider
-- [ ] **CALL-06**: Agent confirms provider availability before attempting transfer
-- [ ] **CALL-07**: Agent cascades through ranked providers if first match is unavailable
+- [x] **CALL-01**: Agent calls providers starting from the best-ranked match
+- [x] **CALL-02**: Agent identifies itself as AI on outbound calls (legal compliance)
+- [x] **CALL-03**: Agent gives live verbal updates to user while calling providers
+- [x] **CALL-04**: Agent sends SMS pre-notification to provider before/during call to signal legitimate customer interest
+- [x] **CALL-05**: Agent handles answering machines and busy signals, moves to next provider
+- [x] **CALL-06**: Agent confirms provider availability before attempting transfer
+- [x] **CALL-07**: Agent cascades through ranked providers if first match is unavailable
 
 ### Call Transfer
 
@@ -131,13 +131,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SRCH-04 | Phase 3 | Complete |
 | SRCH-05 | Phase 3 | Complete |
 | SRCH-06 | Phase 3 | Complete |
-| CALL-01 | Phase 4 | Pending |
-| CALL-02 | Phase 4 | Pending |
-| CALL-03 | Phase 4 | Pending |
-| CALL-04 | Phase 4 | Pending |
-| CALL-05 | Phase 4 | Pending |
-| CALL-06 | Phase 4 | Pending |
-| CALL-07 | Phase 4 | Pending |
+| CALL-01 | Phase 4 | Complete |
+| CALL-02 | Phase 4 | Complete |
+| CALL-03 | Phase 4 | Complete |
+| CALL-04 | Phase 4 | Complete |
+| CALL-05 | Phase 4 | Complete |
+| CALL-06 | Phase 4 | Complete |
+| CALL-07 | Phase 4 | Complete |
 | XFER-01 | Phase 5 | Pending |
 | XFER-02 | Phase 5 | Pending |
 | XFER-03 | Phase 5 | Pending |
