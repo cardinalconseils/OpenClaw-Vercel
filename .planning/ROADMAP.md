@@ -20,6 +20,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 5: Live Call Transfer** - Warm-transfer user to confirmed-available provider via conference bridge, exit cleanly, handle transfer failures
 - [ ] **Phase 6: Post-Call SMS** - Send SMS recap with outcome, provider info, and tip link; persist call record
 - [ ] **Phase 7: Web Dashboard** - Serve read-only call history by phone number from Vercel Sandbox
+- [ ] **Phase 8: Telnyx Missions** - Create and execute batch missions (multi-call campaigns, SMS surveys, provider research) via natural language through any connected channel
 
 ## Phase Details
 
@@ -126,10 +127,28 @@ Plans:
   3. Dashboard is served directly from the Vercel Sandbox at a public HTTPS URL — no separate hosting or deployment needed
 **Plans**: TBD
 
+### Phase 8: Telnyx Missions
+**Goal**: Users can create multi-step missions via voice, SMS, or any connected chat channel. The agent plans the mission, creates a dedicated AI assistant, schedules and executes events (batch calls, SMS campaigns, provider research), and reports results — all trackable in real-time via the ClawdTalk portal
+**Depends on**: Phase 6 (requires outbound calling + SMS), ClawdTalk integration
+**Requirements**: MISSION-01, MISSION-02, MISSION-03, MISSION-04, MISSION-05, MISSION-06
+**Success Criteria** (what must be TRUE):
+  1. User says "Call the top 5 plumbers in Austin and get quotes" and the agent creates a mission plan, dials each provider sequentially, and captures results
+  2. User says "Text all my leads and confirm their demo times" and the agent sends personalized SMS to each number with automatic throttling
+  3. Mission progress is visible in the ClawdTalk portal in real-time (events scheduled, in-progress, completed)
+  4. After mission completes, user receives a summary with all captured results and conversation insights
+  5. Agent handles batch operations with rate limiting — no more than N concurrent calls or SMS per minute
+**Plans:** 4 plans
+
+Plans:
+- [ ] 08-01-PLAN.md — Mission types, Supabase client, rate limiter, DB repository, migration SQL (MISSION-06)
+- [ ] 08-02-PLAN.md — Mission planner (LLM decomposition) and lifecycle engine (MISSION-01, MISSION-02)
+- [ ] 08-03-PLAN.md — Mission scheduler (rate-limited queue) and tool handler registration (MISSION-03, MISSION-06)
+- [ ] 08-04-PLAN.md — Mission reporter (progress events, summaries) and orchestrator wiring (MISSION-04, MISSION-05)
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 1.1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
+Phases execute in numeric order: 1 -> 1.1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -141,3 +160,4 @@ Phases execute in numeric order: 1 -> 1.1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7
 | 5. Live Call Transfer | 0/TBD | Not started | - |
 | 6. Post-Call SMS | 0/TBD | Not started | - |
 | 7. Web Dashboard | 0/TBD | Not started | - |
+| 8. Telnyx Missions | 0/4 | Planned | - |
