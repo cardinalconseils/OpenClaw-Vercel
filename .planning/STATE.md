@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Not planned yet
-stopped_at: Completed 09-frontend-website-00-PLAN.md
-last_updated: "2026-03-16T23:31:03.935Z"
+stopped_at: Completed 09-frontend-website-01-PLAN.md
+last_updated: "2026-03-16T23:35:06.837Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
   total_phases: 10
   completed_phases: 6
   total_plans: 26
-  completed_plans: 21
+  completed_plans: 22
   percent: 0
 ---
 
@@ -83,6 +83,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 04-outbound-provider-calling P02 | 277s | 2 tasks | 4 files |
 | Phase 04-outbound-provider-calling PP02 | 193s | 2 tasks | 4 files |
 | Phase 09-frontend-website PP00 | 5min | 2 tasks | 9 files |
+| Phase 09-frontend-website P01 | 338s | 3 tasks | 20 files |
 
 ## Accumulated Context
 
@@ -183,6 +184,11 @@ Recent decisions affecting current work:
 - [Phase 09-frontend-website]: frontend/ created as standalone npm workspace — separate vitest config from root to avoid Next.js/Express test config conflicts
 - [Phase 09-frontend-website]: Test scaffolds use it.todo() not it.skip() — preserves test intent without importing not-yet-created production code at wave 0
 - [Phase 09-frontend-website]: call_history INSERT RLS policy uses WITH CHECK (true) — service role bypasses RLS at call time; user-scoped SELECT policy protects dashboard reads
+- [Phase 09-frontend-website]: shadcn v4 uses :root CSS variable override pattern (not bare @theme) for brand color application — keeps shadcn @theme inline mapping intact
+- [Phase 09-frontend-website]: frontend/src/lib/types.ts duplicates backend types (Mission, CallHistoryRecord) — no cross-package imports to preserve Vercel isolated Next.js build
+- [Phase 09-frontend-website]: vercel.json builds+routes replaces catch-all rewrites — Express owns /webhooks/*, /health, /api/*; Next.js catches all other routes
+- [Phase 09-frontend-website]: sonner replaces deprecated toast component in shadcn v4
+- [Phase 09-frontend-website]: turbopack.root set in next.config.ts to resolve dual-lockfile warning from nested frontend/package-lock.json
 
 ### Pending Todos
 
@@ -200,6 +206,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T23:31:03.932Z
-Stopped at: Completed 09-frontend-website-00-PLAN.md
+Last session: 2026-03-16T23:35:06.834Z
+Stopped at: Completed 09-frontend-website-01-PLAN.md
 Resume file: None
