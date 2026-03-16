@@ -1,118 +1,113 @@
 # Phase 2: Voice Conversation Core - Context
 
-**Gathered:** 2026-03-15
+**Gathered:** 2026-03-15 (updated)
 **Status:** Ready for planning
 
 <domain>
 ## Phase Boundary
 
-Answer inbound calls, capture user intent from natural speech, maintain conversational state, and respond with streaming TTS and filler speech. This phase delivers the real-time voice pipeline — Murphy answers calls, understands what the caller needs (service type + location), and confirms before handing off to provider search (Phase 3).
+Answer inbound calls with a greeting, capture user intent from natural speech (service type + location), ask smart clarifying questions when intent is ambiguous, and respond with streaming TTS using filler speech to avoid dead air. This is the first real phone conversation experience — Murphy goes from silent webhook processing to a live voice agent.
 
 </domain>
 
 <decisions>
 ## Implementation Decisions
 
-### Voice Channel Integration
-- **ClawdTalk** handles the voice layer — STT/TTS, Telnyx Call Control, and OpenClaw gateway connection
-- Murphy responds via OpenClaw chat; ClawdTalk bridges that to voice
-- **Telnyx MCP** used for portal configuration (Call Control apps, webhook URLs, number management)
-- Existing Telnyx phone number already provisioned — just needs to be pointed at ClawdTalk
-- **Deepgram** for STT (fast, accurate transcription)
-- **ElevenLabs** for TTS (natural voice synthesis)
-- API keys for both services added to `.env.example` — user fills in values
+### Murphy's Voice
+- Warm male voice — matches Murphy's "he/him" persona and "friendly contractor" energy
+- Telnyx built-in TTS — zero extra latency, no additional cost, streaming speak commands
+- Telnyx built-in STT — part of Call Control v2 gather command, lowest latency
+- Canadian persona flavor — baked into system prompt, not slang or stereotypes. Canadian warmth and politeness, knows Canadian geography
+- Speaking pace: Claude's discretion — pick what sounds most natural for the Telnyx voice selected
 
-### Conversation Flow & Intent Capture
-- **Instant short greeting**: "Hi, this is Murphy from OpenClaw — I'm an AI assistant. What service do you need today?" — under 2 seconds
-- **Bilingual: English + French** — auto-detect language from first utterance via Deepgram, respond in that language for entire call
-- **One focused clarifying question** max for ambiguous requests — "What kind of help — plumbing, electrical, cleaning, or something else?" Never more than one question
-- **Confirm then act**: "Got it — a plumber in Montreal. Let me find the best options." Quick confirmation + filler, then search
-- **Brief natural filler** during tool calls: "Let me look that up for you" / "One moment while I search" — short, natural, then silence until results
+### Conversation Pacing
+- Straight to business after greeting — AI disclosure + name ask + "what do you need?" in the opening. No small talk
+- Greeting flow: "Hi, I'm Murphy — an AI assistant from OpenClaw. Who am I speaking with?" -> [name] -> "Hey [name], what kind of service are you looking for?"
+- Ask for caller's name in greeting — use it naturally throughout the call
+- Confirm-and-go for complete requests — echo intent in one phrase, immediately search. "Plumber in Montreal — searching now." No explicit "is that right?" wait
+- Guided narrowing for vague requests — offer 2-3 categories. "What kind of help — plumbing, electrical, cleaning, or something else?"
+- 2-turn clarification max (carried from Phase 1.1) — then transparent best-guess. "Based on what you described, I'll look for a general handyman. If that's not right, just let me know."
+- Stop and listen on interruptions — Murphy stops speaking immediately when caller talks over him. Uses Telnyx barge-in detection
+- Gentle nudge after 8s silence — "Still there?" Two nudges before graceful hangup
+- Urgency auto-detection — keywords like "emergency", "flooding", "urgent" trigger faster flow (fewer questions, immediate search with urgency=emergency)
+- Brief empathy + solve for frustrated callers — "That sounds really stressful. Let me find an emergency plumber near you right now."
+- Brief + redirect for off-topic — one-line friendly response then steer back to service finding
+- Quick echo + go for intent readback — "Electrician in Laval — let me find someone for you." Caller corrects only if wrong
+- Location: Claude's discretion — decide whether to always ask or hint from area code
+- Edge-case requests: Claude's discretion — try searching with caller's own words, fallback gracefully
+- Multi-request handling: Claude's discretion — handle one at a time or queue, whichever feels natural
 
-### Call State Management
-- **OpenClaw sessions** for state management — each call = a session, state tracked automatically by gateway
-- **SMS follow-up on call drop**: "Looks like we got disconnected. Call back anytime to pick up where we left off." Session persists for 30 minutes
-- **10-minute call timeout**: Murphy says "I want to be respectful of your time — let me wrap up what we've found"
+### TCPA Consent
+- Ask after intent capture, before searching — natural transition point. "Before I search, mind if I send you a text recap after we're done? It'll have the provider's info handy."
+- Casual but complete phrasing — covers opt-in, purpose, and content without sounding like a lawyer
+- No problem on decline — "No problem at all" and move on immediately. SMS is a bonus, not required
+- Flag + timestamp logging — store `sms_consent: boolean`, `consent_timestamp: ISO string`, `consent_method: "verbal"` in call state
+- Ask every call — even repeat callers. TCPA best practice, consent is per-interaction. Acknowledge repeat callers though: "good to hear from you again"
 
-### Voice Personality & TTS
-- **Professional male, warm** voice — like a friendly customer service rep. Clear, medium pace, slight warmth
-- ElevenLabs voices like "Adam" or "Josh" as reference
-- **Same voice for both English and French** — ElevenLabs multilingual voice, consistent Murphy identity
-- **Medium pace, natural** — ~150 words/min, conversational speed
+### Dead Air & Filler Speech
+- Personality-driven static pool — pre-written 15-20 varied filler phrases. "Let me check on that." "Searching a few spots now." "Give me just a moment." Zero LLM latency
+- Voice only — no artificial audio effects, typing sounds, or hold music. Pure Murphy voice or brief natural silence
+- Updates every 3-4 seconds during waits — never more than ~4s of silence on a phone call
+- Concurrent filler + tool calls — TTS filler fires at the same time as the API call. Minimizes perceived latency
+- Action statement before search — "Electrician in Laval — let me find someone for you." Sets caller expectations
+- 10-second escalation threshold — after 10s of filler, escalate: "Taking a bit longer than usual." After 20s, offer alternatives
+- Transparent + retry on errors — "Hmm, that didn't come through. Let me try again." One retry, then graceful fallback with options
 
 ### Claude's Discretion
-- Exact ElevenLabs voice ID selection (within "professional male, warm" parameters)
-- Deepgram model and configuration (language detection settings, punctuation, endpointing)
-- ClawdTalk skill configuration details
-- Filler phrase variety and rotation
-- Error handling for STT failures or TTS timeouts
-- Exact greeting wording in French
+- Exact Telnyx TTS voice selection (warm male, best available)
+- Speaking pace strategy (match caller vs. steady)
+- Location detection approach (always ask vs. area code hint)
+- Edge-case service request handling
+- Multi-request call flow design
+- Filler phrase pool content (15-20 phrases in Murphy's voice)
+- Call state machine design and state transitions
+- STT configuration (language model, silence detection thresholds)
 
 </decisions>
 
-<canonical_refs>
-## Canonical References
+<specifics>
+## Specific Ideas
 
-**Downstream agents MUST read these before planning or implementing.**
+- Murphy should feel like calling a really helpful friend who happens to know every service provider in town (carried from Phase 1.1)
+- The dispatch-process skill defines the full pipeline (INTAKE -> SEARCH -> RANK -> DIAL -> CONNECT -> FOLLOW-UP) — Phase 2 implements only INTAKE (greeting + intent capture). Search tool call is triggered but results narration is Phase 3 scope
+- The discussion-builder skill defines conversation architecture (4 stages on caller side) — Phase 2 covers Stage 1 (intake/greeting) and the transition to Stage 2 (search)
+- Canadian warmth in persona — not stereotypes, just naturally Canadian politeness and geography awareness
+- The orchestrator already has task types for 'greeting', 'intent-capture', and 'filler' routed to OpenRouter, and 'disambiguation' routed to Anthropic — these map directly to Phase 2 conversation needs
 
-### Voice pipeline
-- `.claude/skills/discussion-builder/SKILL.md` — Conversation architecture (4 caller stages, 4 provider stages)
-- `.claude/skills/dispatch-process/SKILL.md` — Full dispatch pipeline (INTAKE → SEARCH → RANK → DIAL → CONNECT → FOLLOW-UP)
-
-### Existing code
-- `src/lib/voice/telnyx-client.ts` — Telnyx SDK client (lazy-initialized)
-- `src/lib/voice/webhook-verify.ts` — Webhook signature verification
-- `src/lib/ai/orchestrator.ts` — LLM orchestrator with task-based routing
-- `src/lib/ai/prompts/murphy-system.ts` — Murphy system prompt and persona
-- `src/lib/tools/registry.ts` — Tool registry with stub handlers
-
-### ClawdTalk
-- ClawdTalk skill installed at `~/.openclaw/workspace/skills/clawdtalk-client/` in sandbox
-- `skill-config.json` has API key configured
-
-### Environment
-- `.env.example` — Template for API keys (add DEEPGRAM_API_KEY, ELEVENLABS_API_KEY)
-
-</canonical_refs>
+</specifics>
 
 <code_context>
 ## Existing Code Insights
 
 ### Reusable Assets
-- `src/lib/ai/orchestrator.ts`: Tiered LLM routing — currently routes by task type (greeting→cheap, disambiguation→Anthropic). Voice tasks will use similar routing
-- `src/lib/ai/prompts/murphy-system.ts`: Murphy persona system prompt — needs voice-specific directives added
-- `src/lib/tools/registry.ts`: Tool registry with stub handlers for search_providers, call_provider, transfer_call, send_sms
-- `src/api/webhooks.ts`: Telnyx webhook handler — processes call.initiated events
+- `src/lib/ai/orchestrator.ts`: Chat function with tiered routing (OpenRouter for routine, Anthropic for complex). Task types already defined for greeting, intent-capture, filler, disambiguation
+- `src/lib/ai/prompts/murphy-system.ts`: Murphy persona with AI disclosure, dispatch pipeline, conversation rules, and 2-turn clarification max
+- `src/lib/ai/prompts/voice-modifiers.ts`: Voice mode constraints (no markdown, short sentences, natural speech)
+- `src/lib/tools/registry.ts`: Tool definitions with search_providers, call_provider, transfer_call, send_sms — all stubs ready to be wired
+- `src/lib/voice/telnyx-client.ts`: Singleton Telnyx SDK client, lazy-initialized
+- `src/api/webhooks.ts`: Webhook handler with call.initiated dispatch to orchestrator
 
 ### Established Patterns
 - Express v5 with route-level middleware
+- Vitest + supertest for testing
+- TypeScript strict mode, zod for validation
 - Structured logging with `[component]` prefix
-- Vitest for testing, supertest for HTTP tests
-- TypeScript strict mode, Zod for validation
+- Raw body parsing for webhook signature verification
+- `setImmediate()` for async event processing after 200 ACK
 
 ### Integration Points
-- OpenClaw gateway at `ws://127.0.0.1:18789` — ClawdTalk connects here
-- ClawdTalk skill bridges voice calls to OpenClaw chat sessions
-- Telnyx MCP for programmatic portal configuration
-- Sandbox URL changes on each create — allowed origins must be updated
+- `src/api/webhooks.ts` line 35 — call.initiated handler currently only sends greeting prompt. Needs to become a full conversation manager
+- `src/lib/state/` — empty directory, ready for call state machine
+- `src/lib/voice/` — needs Telnyx Call Control commands (answer, speak, gather)
+- Orchestrator needs conversation history management (currently stateless single-turn)
 
 </code_context>
-
-<specifics>
-## Specific Ideas
-
-- Murphy should feel like calling a really helpful friend who happens to know every service provider in town
-- Greeting must comply with FCC/CA SB-1001 AI disclosure requirements
-- Montreal is home base — French support is essential for local callers
-- Secrets (Deepgram, ElevenLabs keys) to be stored in Supabase rather than .env files
-
-</specifics>
 
 <deferred>
 ## Deferred Ideas
 
-- Storing secrets in Supabase instead of .env — infrastructure concern, separate from voice core
-- Custom voice cloning for Murphy — future optimization after v1 works
+- Bilingual French + English voice support — user wants Murphy to eventually handle both languages. Maps to LANG-01/LANG-02 in v2 requirements. Canadian French specifically (Quebec context)
+- Repeat caller recognition — acknowledge returning callers by name from call history database. Requires POST-04 (call data persistence) from Phase 6
 
 </deferred>
 
