@@ -38,20 +38,20 @@ created: 2026-03-16
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 03-01-01 | 01 | 1 | SRCH-01 | unit | `npx vitest run tests/lib/tools/handlers/search.test.ts` | ❌ W0 | ⬜ pending |
-| 03-01-02 | 01 | 1 | SRCH-04 | unit | `npx vitest run tests/lib/tools/handlers/search.test.ts` | ❌ W0 | ⬜ pending |
-| 03-02-01 | 02 | 1 | SRCH-02 | unit | `npx vitest run tests/lib/tools/handlers/search.test.ts` | ❌ W0 | ⬜ pending |
-| 03-02-02 | 02 | 1 | SRCH-05 | unit | `npx vitest run tests/lib/voice/narration.test.ts` | ❌ W0 | ⬜ pending |
-| 03-03-01 | 03 | 2 | SRCH-03, SRCH-06 | integration | `npx vitest run tests/api/webhooks.test.ts` | ✅ exists | ⬜ pending |
+| 03-01-01 | 01 | 1 | SRCH-01 | unit | `npx vitest run src/lib/tools/handlers/search.test.ts` | W0 | pending |
+| 03-01-02 | 01 | 1 | SRCH-04 | unit | `npx vitest run src/lib/tools/handlers/search.test.ts` | W0 | pending |
+| 03-02-01 | 02 | 1 | SRCH-02 | unit | `npx vitest run src/lib/voice/narration.test.ts` | W0 | pending |
+| 03-02-02 | 02 | 1 | SRCH-05 | unit | `npx vitest run src/lib/voice/narration.test.ts` | W0 | pending |
+| 03-03-01 | 03 | 2 | SRCH-03, SRCH-06 | integration | `npx vitest run tests/api/webhooks.test.ts` | exists | pending |
 
-*Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
+*Status: pending / green / red / flaky*
 
 ---
 
 ## Wave 0 Requirements
 
-- [ ] `tests/lib/tools/handlers/search.test.ts` — Google Places search, ranking, fallback, urgency re-ranking
-- [ ] `tests/lib/voice/narration.test.ts` — result narration templates, bilingual, no-results handling
+- [ ] `src/lib/tools/handlers/search.test.ts` — Google Places search, ranking, fallback, urgency re-ranking
+- [ ] `src/lib/voice/narration.test.ts` — result narration templates, bilingual, no-results handling
 
 ---
 
