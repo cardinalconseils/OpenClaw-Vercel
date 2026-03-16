@@ -251,8 +251,8 @@ export async function webSearchFallback(
   try {
     const response = await openRouterClient.chat.completions.create({
       model: 'openai/gpt-4o-mini:online',
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      plugins: [{ id: 'web', max_results: 5 }] as any,
+      // OpenRouter-specific extension — not in OpenAI SDK types
+      ...({ plugins: [{ id: 'web', max_results: 5 }] } as Record<string, unknown>),
       messages: [
         {
           role: 'system',
