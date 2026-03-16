@@ -26,8 +26,10 @@ import {
   SILENCE_NUDGE_MS,
   SESSION_PERSIST_MS,
 } from '../lib/voice/voice-config.js';
-import { startFillerLoop } from '../lib/voice/filler.js';
+import { startFillerLoop, stopFillerLoop } from '../lib/voice/filler.js';
 import { getTelnyxClient } from '../lib/voice/telnyx-client.js';
+import { searchProviders } from '../lib/tools/handlers/search.js';
+import { buildResultNarration, buildNoResultsNarration, buildSearchingFiller } from '../lib/voice/narration.js';
 import {
   extractIntent,
   isIntentComplete,
@@ -156,6 +158,12 @@ webhookRouter.post(
               break;
             }
 
+            // Gate: ignore transcripts while search is in progress or call is complete
+            if (state.stage === 'searching' || state.stage === 'complete') {
+              console.log(`[webhooks] Ignoring transcription — stage is ${state.stage}`);
+              break;
+            }
+
             // Reset silence timer on every transcript
             resetSilenceTimer(callControlId);
 
@@ -247,19 +255,66 @@ webhookRouter.post(
 
               if (!consent) {
                 await speak(callControlId, TCPA_CONSENT_DECLINE_ACK);
-              }
-
-              // Start 10-second filler loop during searching stage
-              const speakFn = (text: string) => speak(callControlId, text);
-              if (consent) {
+              } else {
                 await speak(callControlId, "Great, I'll send that over.");
               }
-              const fillerHandle = startFillerLoop(speakFn, 'en');
+
+              const lang = state.language ?? 'en';
+              const sType = state.intent?.serviceType ?? 'service';
+              const loc = state.intent?.location ?? 'your area';
+
+              // Build speak function for filler loop
+              const speakFn = async (text: string) => speak(callControlId, text);
+
+              // Speak context-specific searching filler immediately
+              const searchFiller = buildSearchingFiller(sType, loc, lang);
+              await speakFn(searchFiller);
+
+              // Start generic filler loop concurrently with search
+              const fillerHandle = startFillerLoop(speakFn, lang);
               _fillerLoops.set(callControlId, fillerHandle);
+              console.log(`[webhooks] Consent=${consent}, starting filler loop and search`);
 
-              // Phase 3: executeSearchTool(callControlId, state.intent) — will stop filler loop on completion
+              try {
+                const result = await searchProviders({
+                  service_type: sType,
+                  location: loc,
+                  urgency: state.intent?.urgency,
+                  callControlId,
+                });
 
-              console.log(`[webhooks] Consent=${consent}, advancing to searching with filler loop`);
+                // Stop filler BEFORE narrating results
+                stopFillerLoop(fillerHandle);
+                _fillerLoops.delete(callControlId);
+
+                if (result.providers.length > 0) {
+                  const top = result.providers[0];
+                  const narration = buildResultNarration(
+                    result.count,
+                    sType,
+                    loc,
+                    { name: top.name, rating: top.rating, distanceKm: top.distanceKm },
+                    lang,
+                  );
+                  await speakFn(narration);
+                  updateCall(callControlId, { stage: 'complete' });
+                  console.log(`[webhooks] Narrated ${result.count} results, top: ${top.name}`);
+                } else {
+                  const noResults = buildNoResultsNarration(sType, loc, lang);
+                  await speakFn(noResults);
+                  updateCall(callControlId, { stage: 'complete', providers: [] });
+                  console.log('[webhooks] No providers found');
+                }
+              } catch (err) {
+                stopFillerLoop(fillerHandle);
+                _fillerLoops.delete(callControlId);
+                console.error('[webhooks] Search failed:', err);
+                const errorMsg = lang === 'fr'
+                  ? "Desole, j'ai eu un probleme avec la recherche. Veuillez reessayer plus tard."
+                  : "Sorry, I had trouble searching for providers. Please try again.";
+                await speakFn(errorMsg);
+                updateCall(callControlId, { stage: 'complete' });
+              }
               break;
             }
 
