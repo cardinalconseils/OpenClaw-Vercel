@@ -4,7 +4,7 @@ milestone: v1.0
 milestone_name: milestone
 status: Not planned yet
 stopped_at: Completed 04-outbound-provider-calling/04-01-PLAN.md
-last_updated: "2026-03-16T19:52:00.210Z"
+last_updated: "2026-03-16T19:53:00.915Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
   total_phases: 9
@@ -79,6 +79,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 03-provider-discovery P03 | 15min | 3 tasks | 4 files |
 | Phase 03-provider-discovery P03 | 15min | 3 tasks | 3 files |
 | Phase 04-outbound-provider-calling P01 | 291s | 2 tasks | 4 files |
+| Phase 04-outbound-provider-calling P01 | 8min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -168,6 +169,9 @@ Recent decisions affecting current work:
 - [Phase 04-outbound-provider-calling]: PROVIDER_RING_TIMEOUT_MS=25_000 (25s, ~5 rings) — locked cascade timeout per plan spec
 - [Phase 04-outbound-provider-calling]: AI_INTRO required as first utterance on provider answer — CA SB-1001/FCC automated call disclosure
 - [Phase 04-outbound-provider-calling]: sendProviderSms is non-fatal — SMS failure logs and continues to dial
+- [Phase 04-outbound-provider-calling]: AI_INTRO required as first utterance on provider answer — CA SB-1001 / FCC automated call disclosure
+- [Phase 04-outbound-provider-calling]: sendProviderSms is non-fatal — SMS failure logs and continues to dial
+- [Phase 04-outbound-provider-calling]: client_state encoded as base64(JSON) for Telnyx webhook routing across both call legs
 
 ### Pending Todos
 
@@ -185,6 +189,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T19:52:00.208Z
+Last session: 2026-03-16T19:53:00.911Z
 Stopped at: Completed 04-outbound-provider-calling/04-01-PLAN.md
 Resume file: None
