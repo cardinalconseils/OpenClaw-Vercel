@@ -38,14 +38,14 @@ created: 2026-03-15
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 02-01-01 | 01 | 1 | VOICE-01 | unit | `npx vitest run tests/lib/voice/greeting.test.ts` | ❌ W0 | ⬜ pending |
-| 02-01-02 | 01 | 1 | VOICE-01 | unit | `npx vitest run tests/lib/voice/call-state.test.ts` | ❌ W0 | ⬜ pending |
-| 02-02-01 | 02 | 1 | VOICE-02 | unit | `npx vitest run tests/lib/ai/intent-extractor.test.ts` | ❌ W0 | ⬜ pending |
-| 02-02-02 | 02 | 1 | VOICE-03 | unit | `npx vitest run tests/lib/ai/disambiguation.test.ts` | ❌ W0 | ⬜ pending |
-| 02-03-01 | 03 | 2 | VOICE-04 | manual | N/A — requires live call | ❌ | ⬜ pending |
-| 02-03-02 | 03 | 2 | VOICE-05 | unit | `npx vitest run tests/lib/voice/filler.test.ts` | ❌ W0 | ⬜ pending |
+| 02-01-01 | 01 | 1 | VOICE-01 | unit | `npx vitest run tests/lib/voice/greeting.test.ts` | :x: W0 | :white_large_square: pending |
+| 02-01-02 | 01 | 1 | VOICE-01 | unit | `npx vitest run tests/lib/voice/call-state.test.ts` | :x: W0 | :white_large_square: pending |
+| 02-02-01 | 02 | 1 | VOICE-02 | unit | `npx vitest run tests/lib/ai/intent-extractor.test.ts` | :x: W0 | :white_large_square: pending |
+| 02-02-02 | 02 | 1 | VOICE-03 | unit | `npx vitest run tests/lib/ai/intent-extractor.test.ts` | :x: W0 | :white_large_square: pending |
+| 02-03-01 | 03 | 2 | VOICE-04 | manual | N/A — requires live call | :x: | :white_large_square: pending |
+| 02-03-02 | 03 | 2 | VOICE-05 | unit | `npx vitest run tests/lib/voice/filler.test.ts` | :x: W0 | :white_large_square: pending |
 
-*Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
+*Status: :white_large_square: pending · :white_check_mark: green · :x: red · :warning: flaky*
 
 ---
 
@@ -53,8 +53,7 @@ created: 2026-03-15
 
 - [ ] `tests/lib/voice/greeting.test.ts` — greeting template, AI disclosure, bilingual
 - [ ] `tests/lib/voice/call-state.test.ts` — call state lifecycle
-- [ ] `tests/lib/ai/intent-extractor.test.ts` — service+location extraction
-- [ ] `tests/lib/ai/disambiguation.test.ts` — clarifying question generation
+- [ ] `tests/lib/ai/intent-extractor.test.ts` — service+location extraction, clarifying question generation (getDisambiguationPrompt)
 - [ ] `tests/lib/voice/filler.test.ts` — filler phrase pool, bilingual
 
 ---
