@@ -137,13 +137,14 @@ Plans:
   3. Mission progress is visible in the ClawdTalk portal in real-time (events scheduled, in-progress, completed)
   4. After mission completes, user receives a summary with all captured results and conversation insights
   5. Agent handles batch operations with rate limiting — no more than N concurrent calls or SMS per minute
-**Plans:** 2/4 plans executed
+**Plans:** 5 plans (4 executed, 1 gap closure)
 
 Plans:
-- [ ] 08-01-PLAN.md — Mission types, Supabase client, rate limiter, DB repository, migration SQL (MISSION-06)
-- [ ] 08-02-PLAN.md — Mission planner (LLM decomposition) and lifecycle engine (MISSION-01, MISSION-02)
-- [ ] 08-03-PLAN.md — Mission scheduler (rate-limited queue) and tool handler registration (MISSION-03, MISSION-06)
-- [ ] 08-04-PLAN.md — Mission reporter (progress events, summaries) and orchestrator wiring (MISSION-04, MISSION-05)
+- [x] 08-01-PLAN.md — Mission types, Supabase client, rate limiter, DB repository, migration SQL (MISSION-06)
+- [x] 08-02-PLAN.md — Mission planner (LLM decomposition) and lifecycle engine (MISSION-01, MISSION-02)
+- [x] 08-03-PLAN.md — Mission scheduler (rate-limited queue) and tool handler registration (MISSION-03, MISSION-06)
+- [x] 08-04-PLAN.md — Mission reporter (progress events, summaries) and orchestrator wiring (MISSION-04, MISSION-05)
+- [ ] 08-05-PLAN.md — Gap closure: wire initMissions() into server.ts startup sequence (MISSION-04, MISSION-05, MISSION-06)
 
 ## Progress
 
@@ -160,4 +161,4 @@ Phases execute in numeric order: 1 -> 1.1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 | 5. Live Call Transfer | 0/TBD | Not started | - |
 | 6. Post-Call SMS | 0/TBD | Not started | - |
 | 7. Web Dashboard | 0/TBD | Not started | - |
-| 8. Telnyx Missions | 2/4 | In Progress|  |
+| 8. Telnyx Missions | 4/5 | Gap closure |  |
