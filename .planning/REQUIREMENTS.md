@@ -62,6 +62,16 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **DASH-02**: Dashboard shows past searches, providers contacted, and outcomes
 - [ ] **DASH-03**: Dashboard is a simple web page served from the Vercel Sandbox
 
+### Frontend Website
+
+- [ ] **WEB-01**: murphy.help serves a polished dark-themed landing page with hero, features, social proof, and CTA
+- [ ] **WEB-02**: User can sign up and log in via Supabase Auth (email + Google OAuth)
+- [ ] **WEB-03**: Authenticated dashboard displays call history with dates, service types, providers, and outcomes
+- [ ] **WEB-04**: Dashboard shows missions with real-time status and results
+- [ ] **WEB-05**: Settings page for profile, notifications, and account management
+- [ ] **WEB-06**: Next.js frontend coexists with Express backend on the same Vercel deployment
+- [ ] **WEB-07**: All pages responsive and performant (Lighthouse > 90)
+
 ### Telnyx Missions
 
 - [x] **MISSION-01**: User can create missions via voice, SMS, or any connected chat channel by describing what they need
@@ -155,10 +165,17 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MISSION-04 | Phase 8 | Complete |
 | MISSION-05 | Phase 8 | Complete |
 | MISSION-06 | Phase 8 | Complete |
+| WEB-01 | Phase 9 | Pending |
+| WEB-02 | Phase 9 | Pending |
+| WEB-03 | Phase 9 | Pending |
+| WEB-04 | Phase 9 | Pending |
+| WEB-05 | Phase 9 | Pending |
+| WEB-06 | Phase 9 | Pending |
+| WEB-07 | Phase 9 | Pending |
 
 **Coverage:**
-- v1 requirements: 40 total
-- Mapped to phases: 40
+- v1 requirements: 47 total
+- Mapped to phases: 47
 - Unmapped: 0
 
 ---
