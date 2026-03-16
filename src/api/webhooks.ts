@@ -26,6 +26,16 @@ import {
 } from '../lib/voice/voice-config.js';
 import { startFillerLoop, stopFillerLoop } from '../lib/voice/filler.js';
 import { getTelnyxClient } from '../lib/voice/telnyx-client.js';
+import {
+  startOutboundCascade,
+  tryNextProvider,
+  handleProviderAnswer,
+  handleAmdResult,
+  handleProviderHangup,
+  decodeClientState,
+  parseAvailability,
+  stopNarrationTimer,
+} from '../lib/voice/outbound-caller.js';
 import { searchProviders } from '../lib/tools/handlers/search.js';
 import { buildResultNarration, buildNoResultsNarration, buildSearchingFiller } from '../lib/voice/narration.js';
 import {
@@ -120,22 +130,42 @@ webhookRouter.post(
 
         switch (eventType) {
           case 'call.initiated': {
-            console.log(`[webhooks] Answering call ${callControlId}`);
-            await getTelnyxClient().calls.actions.answer(callControlId, {
-              client_state: Buffer.from(
-                JSON.stringify({ source: 'openclaw' })
-              ).toString('base64'),
-            });
+            const direction = (payload as any).direction;
+            if (direction === 'incoming') {
+              console.log(`[webhooks] Answering inbound call ${callControlId}`);
+              await getTelnyxClient().calls.actions.answer(callControlId, {
+                client_state: Buffer.from(
+                  JSON.stringify({ source: 'openclaw' })
+                ).toString('base64'),
+              });
+            } else {
+              console.log(`[webhooks] Outbound call initiated ${callControlId} — no auto-answer`);
+            }
             break;
           }
 
           case 'call.answered': {
-            const from: string = (payload as any).from ?? 'unknown';
-            initCall(callControlId, from);
-            // Greeting + transcription must fire immediately — no intermediate awaits
-            await speak(callControlId, GREETING_STEP_1);
-            await getTelnyxClient().calls.actions.startTranscription(callControlId, TELNYX_STT_CONFIG);
-            console.log(`[webhooks] Greeting + transcription started for ${callControlId}`);
+            const direction = (payload as any).direction;
+            if (direction === 'incoming' || !direction) {
+              // Inbound caller — greet and start transcription
+              const from: string = (payload as any).from ?? 'unknown';
+              initCall(callControlId, from);
+              // Greeting + transcription must fire immediately — no intermediate awaits
+              await speak(callControlId, GREETING_STEP_1);
+              await getTelnyxClient().calls.actions.startTranscription(callControlId, TELNYX_STT_CONFIG);
+              console.log(`[webhooks] Greeting + transcription started for ${callControlId}`);
+            } else {
+              // Outbound provider leg answered
+              const clientState = decodeClientState((payload as any).client_state);
+              if (clientState.stage === 'provider-dial') {
+                await handleProviderAnswer(callControlId, clientState);
+                // Start transcription on provider leg to capture availability response (CALL-06)
+                await getTelnyxClient().calls.actions.startTranscription(callControlId, {
+                  ...TELNYX_STT_CONFIG,
+                  transcription_tracks: 'inbound',  // listen to provider's speech
+                });
+              }
+            }
             break;
           }
 
@@ -154,14 +184,47 @@ webhookRouter.post(
             const transcript: string = transcriptionData.transcript ?? '';
             if (!transcript.trim()) break;
 
+            // Check if this is a provider leg transcription (CALL-06)
+            const transcriptionClientState = decodeClientState((payload as any).client_state);
+            if (transcriptionClientState.stage === 'provider-dial') {
+              const providerTranscript: string = transcriptionData.transcript ?? '';
+              if (providerTranscript.trim()) {
+                const availability = parseAvailability(providerTranscript);
+                const userCcid = transcriptionClientState.userCallControlId as string;
+                const providerName = transcriptionClientState.providerName as string;
+                const providerIndex = transcriptionClientState.providerIndex as number;
+
+                console.log(`[webhooks] Provider ${providerName} transcript: "${providerTranscript}" → ${availability}`);
+
+                if (availability === 'available') {
+                  // Provider confirmed available — store for Phase 5 transfer
+                  stopNarrationTimer(userCcid);
+                  await speak(userCcid, `Great news — ${providerName} is available! I'm going to connect you now.`);
+                  updateCall(userCcid, { stage: 'complete', currentProviderIndex: providerIndex });
+                  // Phase 5 will handle the actual bridge
+                  console.log(`[webhooks] Provider ${providerName} available — ready for transfer`);
+                } else if (availability === 'unavailable') {
+                  // Provider declined — cascade
+                  try {
+                    await getTelnyxClient().calls.actions.hangup(callControlId, {});
+                  } catch (_) { /* may already be hung up */ }
+                  await speak(userCcid, `${providerName} isn't available right now — trying the next one.`);
+                  updateCall(userCcid, { currentProviderIndex: providerIndex + 1, providerCallControlId: undefined });
+                  await tryNextProvider(userCcid);
+                }
+                // 'unclear' — wait for more speech from provider
+              }
+              break;
+            }
+
             const state = getCall(callControlId);
             if (!state) {
               console.warn(`[webhooks] call.transcription: no state for ${callControlId}`);
               break;
             }
 
-            // Gate: ignore transcripts while search is in progress or call is complete
-            if (state.stage === 'searching' || state.stage === 'complete') {
+            // Gate: ignore transcripts while search is in progress, calling is active, or call is complete
+            if (['searching', 'calling', 'complete'].includes(state.stage)) {
               console.log(`[webhooks] Ignoring transcription — stage is ${state.stage}`);
               break;
             }
@@ -299,8 +362,10 @@ webhookRouter.post(
                     lang,
                   );
                   await speakFn(narration);
-                  updateCall(callControlId, { stage: 'complete' });
-                  console.log(`[webhooks] Narrated ${result.count} results, top: ${top.name}`);
+                  updateCall(callControlId, { providers: result.providers });
+                  // Start outbound cascade — agent will dial providers sequentially
+                  await startOutboundCascade(callControlId);
+                  console.log(`[webhooks] Narrated ${result.count} results, starting outbound cascade`);
                 } else {
                   const noResults = buildNoResultsNarration(sType, loc, lang);
                   await speakFn(noResults);
@@ -324,13 +389,37 @@ webhookRouter.post(
             break;
           }
 
+          case 'call.machine.detection.ended': {
+            const result = (payload as any).result;  // 'human' | 'machine' | 'not_sure'
+            const clientState = decodeClientState((payload as any).client_state);
+            if (clientState.stage === 'provider-dial') {
+              await handleAmdResult(callControlId, result, clientState);
+            }
+            console.log(`[webhooks] AMD result: ${result} for ${callControlId}`);
+            break;
+          }
+
           case 'call.hangup': {
-            // Stop filler loop if active
+            const hangupDirection = (payload as any).direction;
+            const hangupCause = (payload as any).hangup_cause ?? 'unknown';
+
+            // Handle outbound provider leg hangup
+            if (hangupDirection === 'outgoing') {
+              const clientState = decodeClientState((payload as any).client_state);
+              if (clientState.stage === 'provider-dial') {
+                await handleProviderHangup(callControlId, hangupCause, clientState);
+              }
+              console.log(`[webhooks] Outbound leg hangup: cause=${hangupCause}, id=${callControlId}`);
+              break;
+            }
+
+            // Inbound caller hangup — stop filler loop if active
             const fillerHandle = _fillerLoops.get(callControlId);
             if (fillerHandle) {
               fillerHandle.stop();
               _fillerLoops.delete(callControlId);
             }
+            stopNarrationTimer(callControlId);
 
             const state = getCall(callControlId);
             if (state?.silenceNudgeTimer) clearTimeout(state.silenceNudgeTimer);

@@ -117,7 +117,7 @@ const VALID_PAYLOAD = JSON.stringify({
       from: '+15550001111',
       to: '+15550002222',
       state: 'parked',
-      direction: 'inbound',
+      direction: 'incoming',
     },
   },
 });
@@ -271,7 +271,7 @@ describe('POST /webhooks/telnyx', () => {
   // ---- New lifecycle tests ----
 
   it('Test 7: call.initiated event triggers calls.answer', async () => {
-    const body = makePayload('call.initiated');
+    const body = makePayload('call.initiated', { direction: 'incoming' });
     mockUnwrap.mockResolvedValueOnce(JSON.parse(body) as any);
 
     await postWebhook(body);

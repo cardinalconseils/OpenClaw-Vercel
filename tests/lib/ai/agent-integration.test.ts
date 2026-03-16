@@ -59,7 +59,7 @@ const makePayload = (eventType: string, from = '+15550001234') =>
         from,
         to: '+15550009999',
         state: 'parked',
-        direction: 'inbound',
+        direction: 'incoming',
       },
     },
   });
@@ -86,7 +86,7 @@ describe('Webhook-to-orchestrator integration', () => {
     mockUnwrap.mockResolvedValueOnce({
       data: {
         event_type: 'call.initiated',
-        payload: { from, to: '+15550009999', call_control_id: 'cc-123' },
+        payload: { from, to: '+15550009999', call_control_id: 'cc-123', direction: 'incoming' },
       },
     } as any);
 
