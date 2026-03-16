@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Not planned yet
-stopped_at: Completed 04-outbound-provider-calling/04-02-PLAN.md
-last_updated: "2026-03-16T20:03:53.202Z"
+stopped_at: Completed 09-frontend-website-00-PLAN.md
+last_updated: "2026-03-16T23:31:03.935Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
-  total_phases: 9
+  total_phases: 10
   completed_phases: 6
-  total_plans: 20
-  completed_plans: 20
+  total_plans: 26
+  completed_plans: 21
   percent: 0
 ---
 
@@ -82,6 +82,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 04-outbound-provider-calling P01 | 8min | 2 tasks | 4 files |
 | Phase 04-outbound-provider-calling P02 | 277s | 2 tasks | 4 files |
 | Phase 04-outbound-provider-calling PP02 | 193s | 2 tasks | 4 files |
+| Phase 09-frontend-website PP00 | 5min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -179,6 +180,9 @@ Recent decisions affecting current work:
 - [Phase Phase 04-outbound-provider-calling]: direction === 'incoming' guard on call.initiated prevents outbound legs from auto-answering
 - [Phase Phase 04-outbound-provider-calling]: consent handler calls startOutboundCascade instead of stage='complete' after narrating results
 - [Phase Phase 04-outbound-provider-calling]: callProvider() in dispatch.ts validates call_control_id then delegates to startOutboundCascade; transferCall remains STUB for Phase 5
+- [Phase 09-frontend-website]: frontend/ created as standalone npm workspace — separate vitest config from root to avoid Next.js/Express test config conflicts
+- [Phase 09-frontend-website]: Test scaffolds use it.todo() not it.skip() — preserves test intent without importing not-yet-created production code at wave 0
+- [Phase 09-frontend-website]: call_history INSERT RLS policy uses WITH CHECK (true) — service role bypasses RLS at call time; user-scoped SELECT policy protects dashboard reads
 
 ### Pending Todos
 
@@ -196,6 +200,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T19:59:57.520Z
-Stopped at: Completed 04-outbound-provider-calling/04-02-PLAN.md
+Last session: 2026-03-16T23:31:03.932Z
+Stopped at: Completed 09-frontend-website-00-PLAN.md
 Resume file: None

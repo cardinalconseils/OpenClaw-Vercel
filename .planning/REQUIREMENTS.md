@@ -64,11 +64,11 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Frontend Website
 
-- [ ] **WEB-01**: murphy.help serves a polished dark-themed landing page with hero, features, social proof, and CTA
-- [ ] **WEB-02**: User can sign up and log in via Supabase Auth (email + Google OAuth)
-- [ ] **WEB-03**: Authenticated dashboard displays call history with dates, service types, providers, and outcomes
-- [ ] **WEB-04**: Dashboard shows missions with real-time status and results
-- [ ] **WEB-05**: Settings page for profile, notifications, and account management
+- [x] **WEB-01**: murphy.help serves a polished dark-themed landing page with hero, features, social proof, and CTA
+- [x] **WEB-02**: User can sign up and log in via Supabase Auth (email + Google OAuth)
+- [x] **WEB-03**: Authenticated dashboard displays call history with dates, service types, providers, and outcomes
+- [x] **WEB-04**: Dashboard shows missions with real-time status and results
+- [x] **WEB-05**: Settings page for profile, notifications, and account management
 - [ ] **WEB-06**: Next.js frontend coexists with Express backend on the same Vercel deployment
 - [ ] **WEB-07**: All pages responsive and performant (Lighthouse > 90)
 
@@ -165,11 +165,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | MISSION-04 | Phase 8 | Complete |
 | MISSION-05 | Phase 8 | Complete |
 | MISSION-06 | Phase 8 | Complete |
-| WEB-01 | Phase 9 | Pending |
-| WEB-02 | Phase 9 | Pending |
-| WEB-03 | Phase 9 | Pending |
-| WEB-04 | Phase 9 | Pending |
-| WEB-05 | Phase 9 | Pending |
+| WEB-01 | Phase 9 | Complete |
+| WEB-02 | Phase 9 | Complete |
+| WEB-03 | Phase 9 | Complete |
+| WEB-04 | Phase 9 | Complete |
+| WEB-05 | Phase 9 | Complete |
 | WEB-06 | Phase 9 | Pending |
 | WEB-07 | Phase 9 | Pending |
 
