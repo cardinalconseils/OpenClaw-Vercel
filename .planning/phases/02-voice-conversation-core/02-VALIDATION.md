@@ -17,20 +17,20 @@ created: 2026-03-15
 
 | Property | Value |
 |----------|-------|
-| **Framework** | vitest 4.x |
-| **Config file** | vitest.config.ts (implicit — uses tsconfig) |
+| **Framework** | vitest 3.x |
+| **Config file** | vitest.config.ts |
 | **Quick run command** | `npx vitest run --reporter=verbose` |
-| **Full suite command** | `npx vitest run` |
-| **Estimated runtime** | ~2 seconds |
+| **Full suite command** | `npx vitest run --reporter=verbose` |
+| **Estimated runtime** | ~15 seconds |
 
 ---
 
 ## Sampling Rate
 
-- **After every task commit:** Run `npx vitest run`
-- **After every plan wave:** Run `npx vitest run`
+- **After every task commit:** Run `npx vitest run --reporter=verbose`
+- **After every plan wave:** Run `npx vitest run --reporter=verbose`
 - **Before `/gsd:verify-work`:** Full suite must be green
-- **Max feedback latency:** 3 seconds
+- **Max feedback latency:** 15 seconds
 
 ---
 
@@ -38,23 +38,23 @@ created: 2026-03-15
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 02-01-01 | 01 | 1 | VOICE-01 | unit | `npx vitest run tests/lib/voice/greeting.test.ts` | :x: W0 | :white_large_square: pending |
-| 02-01-02 | 01 | 1 | VOICE-01 | unit | `npx vitest run tests/lib/voice/call-state.test.ts` | :x: W0 | :white_large_square: pending |
-| 02-02-01 | 02 | 1 | VOICE-02 | unit | `npx vitest run tests/lib/ai/intent-extractor.test.ts` | :x: W0 | :white_large_square: pending |
-| 02-02-02 | 02 | 1 | VOICE-03 | unit | `npx vitest run tests/lib/ai/intent-extractor.test.ts` | :x: W0 | :white_large_square: pending |
-| 02-03-01 | 03 | 2 | VOICE-04 | manual | N/A — requires live call | :x: | :white_large_square: pending |
-| 02-03-02 | 03 | 2 | VOICE-05 | unit | `npx vitest run tests/lib/voice/filler.test.ts` | :x: W0 | :white_large_square: pending |
+| 02-01-01 | 01 | 1 | VOICE-01 | unit | `npx vitest run src/lib/state` | ❌ W0 | ⬜ pending |
+| 02-01-02 | 01 | 1 | VOICE-05 | unit | `npx vitest run src/lib/voice/filler` | ❌ W0 | ⬜ pending |
+| 02-02-01 | 02 | 1 | VOICE-02 | unit | `npx vitest run src/lib/ai` | ✅ | ⬜ pending |
+| 02-02-02 | 02 | 1 | VOICE-03 | unit | `npx vitest run src/lib/ai` | ❌ W0 | ⬜ pending |
+| 02-03-01 | 03 | 2 | VOICE-04 | integration | `npx vitest run src/api` | ✅ | ⬜ pending |
+| 02-03-02 | 03 | 2 | VOICE-01 | manual | live call test | N/A | ⬜ pending |
 
-*Status: :white_large_square: pending · :white_check_mark: green · :x: red · :warning: flaky*
+*Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
 ---
 
 ## Wave 0 Requirements
 
-- [ ] `tests/lib/voice/greeting.test.ts` — greeting template, AI disclosure, bilingual
-- [ ] `tests/lib/voice/call-state.test.ts` — call state lifecycle
-- [ ] `tests/lib/ai/intent-extractor.test.ts` — service+location extraction, clarifying question generation (getDisambiguationPrompt)
-- [ ] `tests/lib/voice/filler.test.ts` — filler phrase pool, bilingual
+- [ ] `src/lib/state/call-state.test.ts` — stubs for call state machine tests
+- [ ] `src/lib/voice/filler.test.ts` — stubs for filler phrase pool tests
+
+*Existing test infrastructure (vitest, supertest) covers framework needs.*
 
 ---
 
@@ -62,9 +62,10 @@ created: 2026-03-15
 
 | Behavior | Requirement | Why Manual | Test Instructions |
 |----------|-------------|------------|-------------------|
-| Greeting within 2s of call connect | VOICE-01 | Requires live Telnyx call | Call the number, time from ring to greeting |
-| No perceptible silence between speech and response | VOICE-04 | Subjective latency perception | Call and have a conversation, note any dead air |
-| Streaming TTS sounds natural | VOICE-04 | Audio quality assessment | Listen to Murphy's responses for naturalness |
+| Greeting within 2s | VOICE-01 | Requires live Telnyx call | Call the number, time from ring to greeting |
+| Streaming TTS feels immediate | VOICE-04 | Requires live Telnyx call | Call and verify no perceptible delay |
+| Filler speech during tool calls | VOICE-05 | Requires live Telnyx call | Trigger search, verify filler plays |
+| Telnyx KokoroTTS voice quality | VOICE-04 | Subjective audio quality | Call and assess voice naturalness |
 
 ---
 
@@ -74,7 +75,7 @@ created: 2026-03-15
 - [ ] Sampling continuity: no 3 consecutive tasks without automated verify
 - [ ] Wave 0 covers all MISSING references
 - [ ] No watch-mode flags
-- [ ] Feedback latency < 3s
+- [ ] Feedback latency < 15s
 - [ ] `nyquist_compliant: true` set in frontmatter
 
 **Approval:** pending
