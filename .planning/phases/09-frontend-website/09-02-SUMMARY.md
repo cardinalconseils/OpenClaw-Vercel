@@ -33,7 +33,7 @@ decisions:
 metrics:
   duration: "135s"
   completed_date: "2026-03-16"
-  tasks_completed: 2
+  tasks_completed: 3
   tasks_total: 3
   files_created: 6
   files_modified: 2
@@ -52,11 +52,7 @@ metrics:
 | 1 | Build landing page components | 35cef5a | navbar.tsx, hero-section.tsx, voice-wave.tsx, features-section.tsx, social-proof-section.tsx, footer.tsx |
 | 2 | Compose landing page and tests | 2f09489 | page.tsx, landing.test.tsx |
 
-## Task Pending (Checkpoint)
-
-| Task | Name | Status |
-|------|------|--------|
-| 3 | Visual verification of landing page | Awaiting human review |
+| 3 | Visual verification of landing page | — | Checkpoint approved by user |
 
 ---
 
