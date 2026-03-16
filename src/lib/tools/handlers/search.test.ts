@@ -15,10 +15,23 @@ vi.mock('../../voice/call-state.js', () => ({
   updateCall: vi.fn(),
 }));
 
-import { searchProviders, geocodeLocation, haversineKm, scoreProvider, type Provider } from './search.js';
+// Mock openRouterClient to avoid real API calls in tests.
+vi.mock('../../ai/llm-clients.js', () => ({
+  openRouterClient: {
+    chat: {
+      completions: {
+        create: vi.fn(),
+      },
+    },
+  },
+}));
+
+import { searchProviders, webSearchFallback, geocodeLocation, haversineKm, scoreProvider, type Provider } from './search.js';
 import { updateCall } from '../../voice/call-state.js';
+import { openRouterClient } from '../../ai/llm-clients.js';
 
 const mockFetch = vi.mocked(fetch);
+const mockOpenRouter = vi.mocked(openRouterClient.chat.completions.create);
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -386,5 +399,191 @@ describe('searchProviders', () => {
     await expect(
       searchProviders({ service_type: 'plumber', location: 'Austin, TX' })
     ).rejects.toThrow(/GOOGLE_MAPS_API_KEY/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// webSearchFallback
+// ---------------------------------------------------------------------------
+
+function makeOpenRouterResponse(content: string) {
+  return {
+    choices: [
+      {
+        message: { content },
+      },
+    ],
+  };
+}
+
+describe('webSearchFallback', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns providers with source=web from a valid JSON response', async () => {
+    const providers = [
+      { name: 'Austin Plumbing Co.', phone: '+15125550001', rating: 4.5, address: '123 Main St, Austin, TX' },
+      { name: 'Quick Fix Plumbers', phone: '+15125550002', rating: 4.2, address: '456 Oak Ave, Austin, TX' },
+    ];
+    mockOpenRouter.mockResolvedValueOnce(makeOpenRouterResponse(JSON.stringify(providers)) as any);
+
+    const result = await webSearchFallback('plumber', 'Austin, TX');
+
+    expect(result).toHaveLength(2);
+    expect(result[0].source).toBe('web');
+    expect(result[0].name).toBe('Austin Plumbing Co.');
+    expect(result[0].phone).toBe('+15125550001');
+    expect(result[0].distanceKm).toBe(0);
+    expect(result[0].distanceLabel).toBe('unknown');
+    expect(result[0].reviewCount).toBe(0);
+    expect(result[0].isOpenNow).toBeUndefined();
+    expect(result[0].placeId).toBe('');
+  });
+
+  it('returns empty array on JSON parse failure', async () => {
+    mockOpenRouter.mockResolvedValueOnce(makeOpenRouterResponse('not valid json at all') as any);
+
+    const result = await webSearchFallback('plumber', 'Austin, TX');
+
+    expect(result).toEqual([]);
+  });
+
+  it('returns empty array when JSON is not an array', async () => {
+    mockOpenRouter.mockResolvedValueOnce(makeOpenRouterResponse('{"name": "test"}') as any);
+
+    const result = await webSearchFallback('plumber', 'Austin, TX');
+
+    expect(result).toEqual([]);
+  });
+
+  it('filters out entries with missing phone', async () => {
+    const providers = [
+      { name: 'Good Provider', phone: '+15125550001', rating: 4.5, address: '123 Main St' },
+      { name: 'No Phone Provider', phone: '', rating: 4.0, address: '456 Oak Ave' },
+      { name: 'Missing Phone', rating: 3.5, address: '789 Elm Rd' },
+    ];
+    mockOpenRouter.mockResolvedValueOnce(makeOpenRouterResponse(JSON.stringify(providers)) as any);
+
+    const result = await webSearchFallback('plumber', 'Austin, TX');
+
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe('Good Provider');
+  });
+
+  it('filters out entries with missing name', async () => {
+    const providers = [
+      { name: 'Good Provider', phone: '+15125550001', rating: 4.5, address: '123 Main St' },
+      { name: '', phone: '+15125550002', rating: 4.0, address: '456 Oak Ave' },
+    ];
+    mockOpenRouter.mockResolvedValueOnce(makeOpenRouterResponse(JSON.stringify(providers)) as any);
+
+    const result = await webSearchFallback('plumber', 'Austin, TX');
+
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe('Good Provider');
+  });
+
+  it('returns empty array when openRouterClient throws', async () => {
+    mockOpenRouter.mockRejectedValueOnce(new Error('API error'));
+
+    const result = await webSearchFallback('plumber', 'Austin, TX');
+
+    expect(result).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// searchProviders — web fallback integration
+// ---------------------------------------------------------------------------
+
+describe('searchProviders with web fallback', () => {
+  beforeEach(() => {
+    process.env.GOOGLE_MAPS_API_KEY = 'test-api-key';
+    vi.clearAllMocks();
+  });
+
+  it('triggers web fallback when Places returns < 3 results after radius expansion', async () => {
+    const twoResults = [
+      makePlaceFixture({ id: 'p1' }),
+      makePlaceFixture({ id: 'p2', nationalPhoneNumber: '+15125550002' }),
+    ];
+    const webProviders = [
+      { name: 'Web Plumber 1', phone: '+15125550010', rating: 4.0, address: '111 Web St, Austin, TX' },
+    ];
+
+    mockFetch
+      .mockResolvedValueOnce(makeGeocodingResponse(30.2672, -97.7431) as Response) // geocode
+      .mockResolvedValueOnce(makePlacesResponse(twoResults) as Response)            // 5km search
+      .mockResolvedValueOnce(makePlacesResponse(twoResults) as Response);           // 25km search (still < 3)
+
+    mockOpenRouter.mockResolvedValueOnce(makeOpenRouterResponse(JSON.stringify(webProviders)) as any);
+
+    const result = await searchProviders({ service_type: 'plumber', location: 'Austin, TX' });
+
+    expect(mockOpenRouter).toHaveBeenCalledOnce();
+    expect(result.count).toBe(3);
+    const webResult = result.providers.find((p) => p.source === 'web');
+    expect(webResult).toBeDefined();
+    expect(webResult?.name).toBe('Web Plumber 1');
+  });
+
+  it('does NOT trigger web fallback when Places returns >= 3 results', async () => {
+    const threeResults = [
+      makePlaceFixture({ id: 'p1' }),
+      makePlaceFixture({ id: 'p2', nationalPhoneNumber: '+15125550002' }),
+      makePlaceFixture({ id: 'p3', nationalPhoneNumber: '+15125550003' }),
+    ];
+
+    mockFetch
+      .mockResolvedValueOnce(makeGeocodingResponse(30.2672, -97.7431) as Response)
+      .mockResolvedValueOnce(makePlacesResponse(threeResults) as Response);
+
+    await searchProviders({ service_type: 'plumber', location: 'Austin, TX' });
+
+    expect(mockOpenRouter).not.toHaveBeenCalled();
+  });
+
+  it('combined results are sorted by score after web fallback appended', async () => {
+    // One Google result with high rating, one web result with high rating
+    const oneGoogleResult = [
+      makePlaceFixture({ id: 'p1', rating: 2.0, userRatingCount: 10 }),
+    ];
+    const webProviders = [
+      { name: 'Web High Rated', phone: '+15125550010', rating: 5.0, address: '111 Web St' },
+      { name: 'Web Low Rated', phone: '+15125550011', rating: 1.0, address: '222 Web St' },
+    ];
+
+    mockFetch
+      .mockResolvedValueOnce(makeGeocodingResponse(30.2672, -97.7431) as Response) // geocode
+      .mockResolvedValueOnce(makePlacesResponse(oneGoogleResult) as Response)      // 5km
+      .mockResolvedValueOnce(makePlacesResponse(oneGoogleResult) as Response);     // 25km
+
+    mockOpenRouter.mockResolvedValueOnce(makeOpenRouterResponse(JSON.stringify(webProviders)) as any);
+
+    const result = await searchProviders({ service_type: 'plumber', location: 'Austin, TX' });
+
+    // High-rated web provider should rank above low-rated ones
+    expect(result.providers[0].name).toBe('Web High Rated');
+    expect(result.providers[0].source).toBe('web');
+  });
+
+  it('web fallback providers tagged with source=web', async () => {
+    const zeroResults: unknown[] = [];
+    const webProviders = [
+      { name: 'Web Provider', phone: '+15125550010', rating: 4.0, address: '111 Web St' },
+    ];
+
+    mockFetch
+      .mockResolvedValueOnce(makeGeocodingResponse(30.2672, -97.7431) as Response)
+      .mockResolvedValueOnce(makePlacesResponse(zeroResults) as Response)  // 5km: empty
+      .mockResolvedValueOnce(makePlacesResponse(zeroResults) as Response); // 25km: empty
+
+    mockOpenRouter.mockResolvedValueOnce(makeOpenRouterResponse(JSON.stringify(webProviders)) as any);
+
+    const result = await searchProviders({ service_type: 'plumber', location: 'Austin, TX' });
+
+    expect(result.providers).toHaveLength(1);
+    expect(result.providers[0].source).toBe('web');
   });
 });

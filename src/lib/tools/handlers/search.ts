@@ -7,6 +7,7 @@
  */
 
 import { updateCall } from '../../voice/call-state.js';
+import { openRouterClient } from '../../ai/llm-clients.js';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -226,6 +227,86 @@ export function scoreProvider(provider: Provider, urgency: string | undefined): 
 }
 
 // ---------------------------------------------------------------------------
+// OpenRouter web search fallback
+// ---------------------------------------------------------------------------
+
+interface WebProviderRaw {
+  name?: unknown;
+  phone?: unknown;
+  rating?: unknown;
+  address?: unknown;
+}
+
+/**
+ * Falls back to OpenRouter web search (gpt-4o-mini:online) when Google Places
+ * returns fewer than MIN_RESULTS_BEFORE_EXPAND providers.
+ *
+ * Returned providers are tagged with source='web' and have unknown distance.
+ * JSON parse failures return an empty array (logged, never thrown).
+ */
+export async function webSearchFallback(
+  serviceType: string,
+  location: string,
+): Promise<Provider[]> {
+  try {
+    const response = await openRouterClient.chat.completions.create({
+      model: 'openai/gpt-4o-mini:online',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      plugins: [{ id: 'web', max_results: 5 }] as any,
+      messages: [
+        {
+          role: 'system',
+          content:
+            'Return a JSON array of service providers. Each entry must have: name (string), phone (string in format +1XXXXXXXXXX), rating (number 1-5), address (string). Return ONLY the JSON array, no other text.',
+        },
+        {
+          role: 'user',
+          content: `Find the top ${serviceType} service providers near ${location}. Return their name, phone number, rating, and address as a JSON array.`,
+        },
+      ],
+    });
+
+    const content = response.choices[0]?.message?.content ?? '';
+
+    let parsed: WebProviderRaw[];
+    try {
+      parsed = JSON.parse(content) as WebProviderRaw[];
+    } catch {
+      console.log('[tools:search] Web fallback JSON parse failed');
+      return [];
+    }
+
+    if (!Array.isArray(parsed)) {
+      console.log('[tools:search] Web fallback JSON parse failed');
+      return [];
+    }
+
+    const results: Provider[] = parsed
+      .filter((r) => r && typeof r.name === 'string' && r.name.trim() !== '' &&
+                     typeof r.phone === 'string' && r.phone.trim() !== '')
+      .map((r) => ({
+        name: (r.name as string).trim(),
+        phone: (r.phone as string).trim(),
+        rating: typeof r.rating === 'number' ? r.rating : 0,
+        reviewCount: 0,
+        address: typeof r.address === 'string' ? r.address : '',
+        distanceKm: 0,
+        distanceLabel: 'unknown',
+        isOpenNow: undefined,
+        openingHoursText: undefined,
+        placeId: '',
+        source: 'web' as const,
+      }));
+
+    console.log(`[tools:search] Web fallback returned ${results.length} providers`);
+    return results;
+  } catch (err) {
+    console.log('[tools:search] Web fallback error:', err);
+    return [];
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Main export
 // ---------------------------------------------------------------------------
 
@@ -234,8 +315,9 @@ export function scoreProvider(provider: Provider, urgency: string | undefined): 
  *
  * 1. Geocodes the caller's location.
  * 2. Queries Places API within 5 km; expands to 25 km if < 3 results.
- * 3. Maps, scores, and sorts providers by urgency-aware ranking.
- * 4. Optionally updates CallState if callControlId is provided.
+ * 3. If still < 3 results after radius expansion, falls back to OpenRouter web search.
+ * 4. Maps, scores, and sorts providers by urgency-aware ranking.
+ * 5. Optionally updates CallState if callControlId is provided.
  *
  * @throws Error if GOOGLE_MAPS_API_KEY is not set.
  */
@@ -265,8 +347,17 @@ export async function searchProviders(
     console.log(`[tools:search] Expanded search (25 km): ${places.length} results with phone`);
   }
 
-  // Step 3: Map, score, and sort
-  const providers: Provider[] = places.map((p) => mapPlaceToProvider(p, lat, lng));
+  // Step 3: Map Google Places results
+  let providers: Provider[] = places.map((p) => mapPlaceToProvider(p, lat, lng));
+
+  // Step 4: Web fallback if still < MIN_RESULTS
+  if (providers.length < MIN_RESULTS_BEFORE_EXPAND) {
+    console.log('[tools:search] Falling back to OpenRouter web search');
+    const webResults = await webSearchFallback(service_type, location);
+    providers = [...providers, ...webResults];
+  }
+
+  // Step 5: Score, sort combined results
   const ranked = providers
     .map((p) => ({ provider: p, score: scoreProvider(p, urgency) }))
     .sort((a, b) => b.score - a.score)
@@ -274,7 +365,7 @@ export async function searchProviders(
 
   console.log(`[tools:search] Ranked ${ranked.length} providers`);
 
-  // Step 4: Update CallState if callControlId is provided
+  // Step 6: Update CallState if callControlId is provided
   if (callControlId) {
     updateCall(callControlId, {
       providers: ranked,
@@ -286,7 +377,7 @@ export async function searchProviders(
 
   return {
     providers: ranked,
-    source: 'google_places',
+    source: providers.length > 0 && providers.every((p) => p.source === 'web') ? 'web' : 'google_places',
     count: ranked.length,
   };
 }
