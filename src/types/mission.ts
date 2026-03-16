@@ -81,7 +81,7 @@ export interface MissionProgressEvent {
   missionId: string;
   step: number;
   totalSteps: number;
-  status: string;
+  status: MissionStatus | MissionStepStatus;
   detail: string;
   timestamp: string;
 }

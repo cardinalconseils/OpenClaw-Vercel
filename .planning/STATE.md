@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Not planned yet
-stopped_at: Phase 2 context updated with voice conversation decisions
-last_updated: "2026-03-16T02:02:37.036Z"
+stopped_at: Completed 03-provider-discovery/03-03-PLAN.md
+last_updated: "2026-03-16T12:46:14.805Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
   total_phases: 9
-  completed_phases: 4
-  total_plans: 15
-  completed_plans: 15
+  completed_phases: 5
+  total_plans: 18
+  completed_plans: 18
   percent: 0
 ---
 
@@ -68,6 +68,16 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 02-voice-conversation-core P03 | 308s | 2 tasks | 5 files |
 | Phase 02-voice-conversation-core PP03 | 308s | 3 tasks | 5 files |
 | Phase 08-telnyx-missions P05 | 3min | 1 tasks | 2 files |
+| Phase 02-voice-conversation-core P02 | 118s | 1 tasks | 4 files |
+| Phase 02-voice-conversation-core P01 | 212s | 1 tasks | 8 files |
+| Phase 02-voice-conversation-core PP03 | 4min | 1 tasks | 2 files |
+| Phase 02-voice-conversation-core P03 | 11min | 2 tasks | 2 files |
+| Phase 03-provider-discovery P02 | 2min | 1 tasks | 2 files |
+| Phase 03-provider-discovery P01 | 6min | 1 tasks | 4 files |
+| Phase 03-provider-discovery P03 | 4min | 2 tasks | 3 files |
+| Phase 03-provider-discovery P03 | 286s | 2 tasks | 4 files |
+| Phase 03-provider-discovery P03 | 15min | 3 tasks | 4 files |
+| Phase 03-provider-discovery P03 | 15min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -122,6 +132,38 @@ Recent decisions affecting current work:
 - [Phase 02-voice-conversation-core]: setTimeout spy approach used for session persistence test — vi.useFakeTimers can't retroactively control timers registered before switch
 - [Phase 08-telnyx-missions]: Structural test uses __dirname + readFileSync to assert import/await presence — avoids gateway startup, compatible with NodeNext CJS
 - [Phase 08-telnyx-missions]: initMissions() called AFTER gateway health guard, BEFORE startServer() — ensures DB connectivity before mission recovery
+- [Phase 02-voice-conversation-core]: TELNYX_VOICE_STRING = 'Telnyx.KokoroTTS.am_adam' — Telnyx-native KokoroTTS replaces ElevenLabs for telephony TTS
+- [Phase 02-voice-conversation-core]: TWO clarifying questions maximum with broad search + narrate bypass — no hedge phrase per user decision
+- [Phase 02-voice-conversation-core]: Two-step greeting: AI identity first ('Who am I speaking with?'), then name-addressed service question
+- [Phase 02-voice-conversation-core]: TCPA consent requested via SMS recap question before searching — optional, never pressured
+- [Phase 02-voice-conversation-core]: webhooks.ts ELEVENLABS_VOICE_STRING import deferred to Plan 03
+- [Phase 02-voice-conversation-core]: shouldAdvancePastClarification threshold raised from >= 1 to >= 2 per CONTEXT.md 2-turn clarification max
+- [Phase 02-voice-conversation-core]: GREETING bilingual record removed — French deferred to LANG-02; GREETING_STEP_1 replaces GREETING.en
+- [Phase 02-voice-conversation-core]: speak() wrapper centralizes TELNYX_VOICE_STRING/TELNYX_VOICE_SETTINGS on all TTS calls in webhooks.ts
+- [Phase 02-voice-conversation-core]: Second clarification is open-ended only ('Could you tell me a bit more?') — no category suggestions per user decision
+- [Phase 02-voice-conversation-core]: Max-clarification bypass advances to consent stage (not searching) — TCPA consent must precede search
+- [Phase 02-voice-conversation-core]: Ambiguous consent defaults to smsConsent=false (conservative) — TCPA compliance requirement
+- [Phase 02-voice-conversation-core]: speak() wrapper centralizes TELNYX_VOICE_STRING/TELNYX_VOICE_SETTINGS — avoids repetition across all TTS calls in webhooks.ts
+- [Phase 02-voice-conversation-core]: Second clarification open-ended only ('Could you tell me a bit more?') — no category suggestions per user decision
+- [Phase 02-voice-conversation-core]: Max-clarification bypass advances to consent stage (not searching) — TCPA consent must precede search
+- [Phase 02-voice-conversation-core]: Ambiguous consent defaults to smsConsent=false (conservative) — TCPA compliance requirement
+- [Phase 03-provider-discovery]: NarrationProvider interface defined inline in narration.ts — avoids importing from search.ts which may not exist during parallel plan execution
+- [Phase 03-provider-discovery]: distanceKm.toFixed(1) applied in buildNextProviderNarration — consistent 1dp formatting for spoken distance
+- [Phase 03-provider-discovery]: buildSearchingFiller fires alongside generic filler loop as context-specific initial filler before results arrive
+- [Phase 03-provider-discovery]: scoreProvider normal weights: rating 40%, proximity 35% — rating-dominant for non-emergency queries
+- [Phase 03-provider-discovery]: scoreProvider emergency: proximity 40%, openNow boost x1.5 — fast response prioritized
+- [Phase 03-provider-discovery]: callControlId optional param in searchProviders — avoids circular import between search.ts and call-state.ts
+- [Phase 03-provider-discovery]: Type-only import of Provider in call-state.ts — no runtime circular dependency
+- [Phase 03-provider-discovery]: webSearchFallback uses two-layer error safety: outer catch for API errors, inner catch for JSON parse failures
+- [Phase 03-provider-discovery]: Stage guard (searching|complete) added at top of call.transcription to prevent re-triggering search
+- [Phase 03-provider-discovery]: stopFillerLoop/searchProviders/narration mocks added to webhook tests — real API dependencies must always be mocked in webhook integration tests
+- [Phase 03-provider-discovery]: _fillerLoops.delete(callControlId) called after stopFillerLoop in all consent handler paths to prevent stale handles on hangup
+- [Phase 03-provider-discovery]: webSearchFallback uses two-layer error safety: outer catch for API errors, inner catch for JSON parse failures — partial LLM output never crashes the search pipeline
+- [Phase 03-provider-discovery]: Stage guard (searching|complete) at top of call.transcription handler prevents re-triggering search from subsequent transcription events
+- [Phase 03-provider-discovery]: Filler loop starts in consent handler (not intake) — TCPA consent must precede search per Phase 02 design
+- [Phase 03-provider-discovery]: webSearchFallback uses two-layer error safety: outer catch for API errors, inner catch for JSON parse failures
+- [Phase 03-provider-discovery]: Stage guard (searching|complete) added at top of call.transcription to prevent re-triggering search
+- [Phase 03-provider-discovery]: stopFillerLoop/searchProviders/narration mocks added to webhook tests — real API dependencies must always be mocked in webhook integration tests
 
 ### Pending Todos
 
@@ -139,6 +181,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T02:02:37.034Z
-Stopped at: Phase 2 context updated with voice conversation decisions
-Resume file: .planning/phases/02-voice-conversation-core/02-CONTEXT.md
+Last session: 2026-03-16T03:25:25.209Z
+Stopped at: Completed 03-provider-discovery/03-03-PLAN.md
+Resume file: None

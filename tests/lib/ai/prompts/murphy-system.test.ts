@@ -77,10 +77,9 @@ describe('buildMurphySystemPrompt', () => {
 
   // New tests for Phase 02-02
 
-  it('contains ONE clarifying question rule (not 2-turn)', () => {
+  it('contains TWO clarifying questions maximum rule', () => {
     const prompt = buildMurphySystemPrompt();
-    expect(prompt).toContain('ONE clarifying question');
-    expect(prompt).not.toContain('2-turn clarification');
+    expect(prompt).toContain('TWO clarifying questions maximum');
   });
 
   it('contains Language Rules section', () => {
@@ -93,10 +92,10 @@ describe('buildMurphySystemPrompt', () => {
     expect(prompt).toContain('French');
   });
 
-  it('asks for service need in greeting, not caller name', () => {
+  it('uses two-step greeting with name capture first', () => {
     const prompt = buildMurphySystemPrompt();
-    expect(prompt).toContain('What service');
-    expect(prompt).not.toContain('Who am I speaking with');
+    expect(prompt).toContain('Who am I speaking with');
+    expect(prompt).toContain('what kind of service');
   });
 
   it('contains 10-minute call timeout rule', () => {

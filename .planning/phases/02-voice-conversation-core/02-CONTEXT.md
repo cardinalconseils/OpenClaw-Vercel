@@ -1,6 +1,6 @@
 # Phase 2: Voice Conversation Core - Context
 
-**Gathered:** 2026-03-15 (updated)
+**Gathered:** 2026-03-15 (updated x2)
 **Status:** Ready for planning
 
 <domain>
@@ -25,16 +25,17 @@ Answer inbound calls with a greeting, capture user intent from natural speech (s
 - Greeting flow: "Hi, I'm Murphy — an AI assistant from OpenClaw. Who am I speaking with?" -> [name] -> "Hey [name], what kind of service are you looking for?"
 - Ask for caller's name in greeting — use it naturally throughout the call
 - Confirm-and-go for complete requests — echo intent in one phrase, immediately search. "Plumber in Montreal — searching now." No explicit "is that right?" wait
-- Guided narrowing for vague requests — offer 2-3 categories. "What kind of help — plumbing, electrical, cleaning, or something else?"
-- 2-turn clarification max (carried from Phase 1.1) — then transparent best-guess. "Based on what you described, I'll look for a general handyman. If that's not right, just let me know."
+- Open-ended clarification only for vague requests — "What kind of help do you need with your house?" No phone-menu-style guided options. Murphy asks and lets the caller lead, never proactively suggests
+- 2-turn clarification max (carried from Phase 1.1) — then broad search + narrate: "I'll search for general home repair services near you and we'll narrow it down from what I find." Transparent, keeps moving
 - Stop and listen on interruptions — Murphy stops speaking immediately when caller talks over him. Uses Telnyx barge-in detection
 - Gentle nudge after 8s silence — "Still there?" Two nudges before graceful hangup
 - Urgency auto-detection — keywords like "emergency", "flooding", "urgent" trigger faster flow (fewer questions, immediate search with urgency=emergency)
 - Brief empathy + solve for frustrated callers — "That sounds really stressful. Let me find an emergency plumber near you right now."
-- Brief + redirect for off-topic — one-line friendly response then steer back to service finding
+- Off-topic requests: polite redirect — "I only handle finding service providers — plumbers, electricians, and the like. Is there a service provider I can help you find?"
+- Confused callers ("What is this?"): one-sentence explainer — "I'm an AI that finds local service providers for you — plumbers, electricians, that kind of thing. What do you need help with?"
 - Quick echo + go for intent readback — "Electrician in Laval — let me find someone for you." Caller corrects only if wrong
-- Location: Claude's discretion — decide whether to always ask or hint from area code
-- Edge-case requests: Claude's discretion — try searching with caller's own words, fallback gracefully
+- Location: always ask explicitly — "Where are you located?" No area code inference (unreliable with VoIP numbers, people who've moved)
+- Unknown/edge-case service types: search as-is using caller's exact words — if no results, ask caller to describe differently
 - Multi-request handling: Claude's discretion — handle one at a time or queue, whichever feels natural
 
 ### TCPA Consent
@@ -47,7 +48,7 @@ Answer inbound calls with a greeting, capture user intent from natural speech (s
 ### Dead Air & Filler Speech
 - Personality-driven static pool — pre-written 15-20 varied filler phrases. "Let me check on that." "Searching a few spots now." "Give me just a moment." Zero LLM latency
 - Voice only — no artificial audio effects, typing sounds, or hold music. Pure Murphy voice or brief natural silence
-- Updates every 3-4 seconds during waits — never more than ~4s of silence on a phone call
+- Updates every 10 seconds during waits — no silence > 10 seconds (matches success criteria). Varied filler phrases from pool, no repetition back-to-back
 - Concurrent filler + tool calls — TTS filler fires at the same time as the API call. Minimizes perceived latency
 - Action statement before search — "Electrician in Laval — let me find someone for you." Sets caller expectations
 - 10-second escalation threshold — after 10s of filler, escalate: "Taking a bit longer than usual." After 20s, offer alternatives
@@ -56,12 +57,11 @@ Answer inbound calls with a greeting, capture user intent from natural speech (s
 ### Claude's Discretion
 - Exact Telnyx TTS voice selection (warm male, best available)
 - Speaking pace strategy (match caller vs. steady)
-- Location detection approach (always ask vs. area code hint)
-- Edge-case service request handling
-- Multi-request call flow design
-- Filler phrase pool content (15-20 phrases in Murphy's voice)
+- Multi-request call flow design (handle one at a time or queue)
+- Filler phrase pool content (15-20 phrases in Murphy's brief/functional voice)
 - Call state machine design and state transitions
 - STT configuration (language model, silence detection thresholds)
+- When service type is captured but location is missing, ask for location only — one question per turn, no bundling
 
 </decisions>
 

@@ -1,34 +1,31 @@
 /**
- * Centralized voice pipeline configuration constants.
+ * Centralized voice pipeline configuration — Telnyx-native TTS and STT.
  *
- * ElevenLabs voice format for Telnyx speak API: "ElevenLabs.Default.<voice_id>"
- * Adam voice: professional male, warm, narration-grade, French language support.
+ * All voice constants target Telnyx Call Control v2 built-in capabilities.
+ * No external TTS (ElevenLabs) or STT (Deepgram) dependencies.
  */
 
-/** ElevenLabs Adam voice ID — professional male, warm, multilingual */
-export const ADAM_VOICE_ID = 'pNInz6obpgDQGcFmaJgB';
+/** Telnyx KokoroTTS voice — warm American male matching Murphy persona */
+export const TELNYX_VOICE_STRING = 'Telnyx.KokoroTTS.am_adam';
 
-/** Telnyx speak API voice string format for ElevenLabs integration */
-export const ELEVENLABS_VOICE_STRING = `ElevenLabs.Default.${ADAM_VOICE_ID}`;
+/** Telnyx voice settings — slight slowdown for clarity on telephone audio */
+export const TELNYX_VOICE_SETTINGS = { type: 'telnyx' as const, voice_speed: 0.95 };
 
-/** Deepgram STT configuration for ClawdTalk skill-config */
-export const DEEPGRAM_CONFIG = {
-  provider: 'deepgram' as const,
-  model: 'nova-3',
-  language: 'multi',
-  endpointing: 100,
-  punctuate: true,
-  interim_results: false,
+/** Telnyx STT configuration — Whisper-based, English, inbound track only */
+export const TELNYX_STT_CONFIG = {
+  transcription_engine: 'Telnyx' as const,
+  transcription_engine_config: {
+    transcription_engine: 'Telnyx' as const,
+    transcription_model: 'openai/whisper-large-v3-turbo' as const,
+    language: 'en' as const,
+  },
+  transcription_tracks: 'inbound' as const,
 };
 
-/** ElevenLabs TTS configuration */
-export const ELEVENLABS_CONFIG = {
-  provider: 'elevenlabs' as const,
-  model: 'eleven_flash_v2_5',
-  voice_id: ADAM_VOICE_ID,
-};
+/** Silence nudge threshold in milliseconds — fires "Still there?" after 8s */
+export const SILENCE_NUDGE_MS = 8_000;
 
-/** Call timeout in milliseconds — 10 minutes, long enough for multi-step provider search */
+/** Call timeout in milliseconds — 10 minutes */
 export const CALL_TIMEOUT_MS = 10 * 60 * 1000;
 
 /** Session persistence window after disconnect — 30 minutes */
