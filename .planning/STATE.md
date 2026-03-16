@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Not planned yet
-stopped_at: Completed 02-voice-conversation-core-01-PLAN.md
-last_updated: "2026-03-16T00:38:32.026Z"
+stopped_at: Completed 08-telnyx-missions-04-PLAN.md
+last_updated: "2026-03-16T00:39:18.495Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
   total_phases: 9
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 14
-  completed_plans: 12
+  completed_plans: 13
   percent: 0
 ---
 
@@ -64,6 +64,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 08-telnyx-missions P03 | 293s | 2 tasks | 8 files |
 | Phase 02-voice-conversation-core P02 | 141s | 2 tasks | 5 files |
 | Phase 02-voice-conversation-core P01 | 2min | 1 tasks | 6 files |
+| Phase 08-telnyx-missions PP04 | 3min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -111,6 +112,9 @@ Recent decisions affecting current work:
 - [Phase 02-voice-conversation-core]: EN and FR service keyword patterns maintained as separate arrays — clean separation, extensible
 - [Phase 02-voice-conversation-core]: Round-robin counter chosen over Math.random for filler phrases — deterministic rotation guarantees >= 3 unique variants in 20-call pool test
 - [Phase 02-voice-conversation-core]: Test import paths for tests/lib/voice/ use ../../../src/ (3 levels), not ../../../../src/ — path depth matches actual directory nesting
+- [Phase 08-telnyx-missions]: MissionReporter.onProgressEvent is an optional callback wired at runtime by ClawdTalk/voice handlers for flexibility
+- [Phase 08-telnyx-missions]: generateSummary uses 'status-update' task type routing to OpenRouter (Gemini Flash) — fast/cheap for SMS-length summaries
+- [Phase 08-telnyx-missions]: recoverIncompleteMissions re-enqueues both pending and in-progress steps — interrupted steps must retry from scratch
 
 ### Pending Todos
 
@@ -128,6 +132,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T00:38:32.025Z
-Stopped at: Completed 02-voice-conversation-core-01-PLAN.md
+Last session: 2026-03-16T00:39:18.493Z
+Stopped at: Completed 08-telnyx-missions-04-PLAN.md
 Resume file: None
