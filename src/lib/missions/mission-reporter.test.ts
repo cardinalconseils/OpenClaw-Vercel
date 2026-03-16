@@ -145,9 +145,10 @@ describe('MissionReporter', () => {
 
       const messages = mockChat.mock.calls[0][0];
       const userMessage = messages.find((m: { role: string; content: string }) => m.role === 'user');
-      expect(userMessage.content).toContain('2');  // completed count
-      expect(userMessage.content).toContain('1');  // failed count
-      expect(userMessage.content).toContain('3');  // total count
+      expect(userMessage).toBeDefined();
+      expect(userMessage!.content).toContain('2');  // completed count
+      expect(userMessage!.content).toContain('1');  // failed count
+      expect(userMessage!.content).toContain('3');  // total count
     });
 
     it("returns 'Mission not found' for missing mission", async () => {
