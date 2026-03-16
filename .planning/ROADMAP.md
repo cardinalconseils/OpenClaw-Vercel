@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Infrastructure Foundation** - Provision and configure Vercel Sandbox, Telnyx number, device pairing, keep-alive, and 10DLC registration (completed 2026-03-14)
 - [ ] **Phase 1.1: OpenClaw Agent Setup** - Install and configure OpenClaw framework, define agent persona, wire LLM provider, create tool registry, verify agent responds via gateway (INSERTED)
-- [ ] **Phase 2: Voice Conversation Core** - Answer inbound calls, capture user intent from natural speech, maintain clean conversational state
+- [x] **Phase 2: Voice Conversation Core** - Answer inbound calls, capture user intent from natural speech, maintain clean conversational state (completed 2026-03-16)
 - [ ] **Phase 3: Provider Discovery** - Search Google Places and ranked provider sources, narrate results to user
 - [ ] **Phase 4: Outbound Provider Calling** - Dial providers sequentially with live user narration, handle voicemail and busy signals, cascade through ranked list
 - [ ] **Phase 5: Live Call Transfer** - Warm-transfer user to confirmed-available provider via conference bridge, exit cleanly, handle transfer failures
@@ -64,7 +64,7 @@ Plans:
   3. User says something ambiguous ("I need help with my house") and the agent asks one focused clarifying question to extract service type
   4. Agent responses feel immediate — no perceptible silence between user speaking and agent responding (streaming TTS)
   5. Agent speaks a brief filler phrase ("Let me look that up for you") when running a search, so the line never goes silent during tool calls
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 
 Plans:
 - [ ] 02-01-PLAN.md — Call state, greeting constants, filler phrases with TDD tests (VOICE-01, VOICE-03, VOICE-05)
@@ -154,7 +154,7 @@ Phases execute in numeric order: 1 -> 1.1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 |-------|----------------|--------|-----------|
 | 1. Infrastructure Foundation | 3/4 | Gap closure | 2026-03-14 |
 | 1.1. OpenClaw Agent Setup (INSERTED) | 2/3 | In Progress|  |
-| 2. Voice Conversation Core | 0/3 | Planned | - |
+| 2. Voice Conversation Core | 3/3 | Complete   | 2026-03-16 |
 | 3. Provider Discovery | 0/TBD | Not started | - |
 | 4. Outbound Provider Calling | 0/TBD | Not started | - |
 | 5. Live Call Transfer | 0/TBD | Not started | - |
