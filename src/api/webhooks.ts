@@ -16,8 +16,6 @@ import {
   TCPA_CONSENT_DECLINE_ACK,
   SILENCE_NUDGE,
   GRACEFUL_HANGUP,
-  OFF_TOPIC_REDIRECT,
-  CONFUSED_CALLER_EXPLAINER,
 } from '../lib/voice/greeting.js';
 import {
   TELNYX_VOICE_STRING,
@@ -35,10 +33,6 @@ import {
   isIntentComplete,
   getDisambiguationPrompt,
 } from '../lib/ai/intent-extractor.js';
-
-// Make OFF_TOPIC_REDIRECT and CONFUSED_CALLER_EXPLAINER available for future use
-void OFF_TOPIC_REDIRECT;
-void CONFUSED_CALLER_EXPLAINER;
 
 /**
  * Express router for Telnyx webhook events.
@@ -77,19 +71,27 @@ function resetSilenceTimer(callControlId: string): void {
   if (!state) return;
   if (state.silenceNudgeTimer) clearTimeout(state.silenceNudgeTimer);
   const timer = setTimeout(async () => {
-    const current = getCall(callControlId);
-    if (!current) return;
-    if (current.silenceNudgeCount >= 2) {
-      await speak(callControlId, GRACEFUL_HANGUP);
-      setTimeout(async () => {
-        try { await getTelnyxClient().calls.actions.hangup(callControlId, {}); } catch {}
-        endCall(callControlId);
-      }, 3000);
-      return;
+    try {
+      const current = getCall(callControlId);
+      if (!current) return;
+      if (current.silenceNudgeCount >= 2) {
+        await speak(callControlId, GRACEFUL_HANGUP);
+        setTimeout(async () => {
+          try {
+            await getTelnyxClient().calls.actions.hangup(callControlId, {});
+          } catch (err) {
+            console.error(`[webhooks] Failed to hangup call ${callControlId}:`, err);
+          }
+          endCall(callControlId);
+        }, 3000);
+        return;
+      }
+      await speak(callControlId, SILENCE_NUDGE);
+      updateCall(callControlId, { silenceNudgeCount: current.silenceNudgeCount + 1 });
+      resetSilenceTimer(callControlId);
+    } catch (err) {
+      console.error(`[webhooks] Silence timer error for ${callControlId}:`, err);
     }
-    await speak(callControlId, SILENCE_NUDGE);
-    updateCall(callControlId, { silenceNudgeCount: current.silenceNudgeCount + 1 });
-    resetSilenceTimer(callControlId);
   }, SILENCE_NUDGE_MS);
   updateCall(callControlId, {
     silenceNudgeTimer: timer,
@@ -331,6 +333,7 @@ webhookRouter.post(
             }
 
             const state = getCall(callControlId);
+            if (state?.silenceNudgeTimer) clearTimeout(state.silenceNudgeTimer);
             if (state && state.stage !== 'complete') {
               setTimeout(() => endCall(callControlId), SESSION_PERSIST_MS);
               console.log(`[webhooks] Unexpected disconnect, session persists 30 min`);
@@ -347,7 +350,10 @@ webhookRouter.post(
           }
         }
       } catch (err) {
-        console.error('[webhooks] Error processing event async:', err);
+        const event = req.telnyxEvent;
+        const eventType = event?.data?.event_type ?? 'unknown';
+        const callControlId: string = (event?.data?.payload as any)?.call_control_id ?? '';
+        console.error(`[webhooks] Error processing ${eventType} for call ${callControlId}:`, err);
       }
     });
   }

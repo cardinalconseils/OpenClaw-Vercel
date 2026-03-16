@@ -96,6 +96,9 @@ export async function geocodeLocation(
 ): Promise<{ lat: number; lng: number }> {
   const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(location)}&key=${apiKey}`;
   const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`[search] Geocoding API returned ${response.status}: ${await response.text()}`);
+  }
   const json = await response.json() as { results?: Array<{ geometry: { location: { lat: number; lng: number } } }> };
 
   if (!json.results?.length) {
@@ -161,6 +164,11 @@ async function callPlacesApi(
     body: JSON.stringify(body),
   });
 
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`[search] Places API returned ${response.status}: ${errorBody}`);
+  }
+
   const json = await response.json() as { places?: PlaceResult[] };
   const places = json.places ?? [];
 
@@ -197,10 +205,10 @@ function mapPlaceToProvider(place: PlaceResult, callerLat: number, callerLng: nu
 // ---------------------------------------------------------------------------
 
 /**
- * Scores a provider using urgency-aware weighted criteria.
- *
- * Normal weights:   rating 40%, proximity 35%, reviews 15%, openNow 10% (scaled 0.5)
- * Emergency weights: proximity 40%, openNow 30% (scaled 1.5), rating 20%, reviews 10%
+ * Scores a provider 0–100 based on rating, proximity, reviews, and open status.
+ * Normal weights:    ratingScore*0.40 + proximityScore*0.35 + reviewScore*0.15 + openBonus*0.5
+ * Emergency weights: ratingScore*0.20 + proximityScore*0.40 + reviewScore*0.10 + openBonus*1.5
+ * where openBonus = 20 if open now, 0 otherwise
  */
 export function scoreProvider(provider: Provider, urgency: string | undefined): number {
   const ratingScore = (provider.rating / 5) * 100;
@@ -301,7 +309,7 @@ export async function webSearchFallback(
     console.log(`[tools:search] Web fallback returned ${results.length} providers`);
     return results;
   } catch (err) {
-    console.log('[tools:search] Web fallback error:', err);
+    console.error('[tools:search] Web fallback error:', err);
     return [];
   }
 }
@@ -315,9 +323,10 @@ export async function webSearchFallback(
  *
  * 1. Geocodes the caller's location.
  * 2. Queries Places API within 5 km; expands to 25 km if < 3 results.
- * 3. If still < 3 results after radius expansion, falls back to OpenRouter web search.
- * 4. Maps, scores, and sorts providers by urgency-aware ranking.
- * 5. Optionally updates CallState if callControlId is provided.
+ * 3. Maps Google Places results to Provider shape.
+ * 4. If still < 3 results after radius expansion, falls back to OpenRouter web search.
+ * 5. Scores and sorts all providers by urgency-aware ranking.
+ * 6. Optionally updates CallState if callControlId is provided.
  *
  * @throws Error if GOOGLE_MAPS_API_KEY is not set.
  */

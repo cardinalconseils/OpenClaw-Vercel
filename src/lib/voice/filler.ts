@@ -77,16 +77,24 @@ export function startFillerLoop(
 ): FillerLoopHandle {
   let tick = 0;
   // Fire immediately with a filler phrase
-  speakFn(getFillerPhrase(language));
+  speakFn(getFillerPhrase(language)).catch(err => {
+    console.error('[filler] Failed to speak filler:', err);
+  });
 
   const interval = setInterval(() => {
     tick++;
     if (tick === 1) {
-      speakFn(FILLER_ESCALATION_10S);
+      speakFn(FILLER_ESCALATION_10S).catch(err => {
+        console.error('[filler] Failed to speak filler:', err);
+      });
     } else if (tick === 2) {
-      speakFn(FILLER_ESCALATION_20S);
+      speakFn(FILLER_ESCALATION_20S).catch(err => {
+        console.error('[filler] Failed to speak filler:', err);
+      });
     } else {
-      speakFn(getFillerPhrase(language));
+      speakFn(getFillerPhrase(language)).catch(err => {
+        console.error('[filler] Failed to speak filler:', err);
+      });
     }
   }, 10_000);
 
