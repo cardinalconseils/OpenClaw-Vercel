@@ -160,7 +160,7 @@ Phases execute in numeric order: 1 -> 1.1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 |-------|----------------|--------|-----------|
 | 1. Infrastructure Foundation | 3/4 | Gap closure | 2026-03-14 |
 | 1.1. OpenClaw Agent Setup (INSERTED) | 2/3 | In Progress|  |
-| 2. Voice Conversation Core | 3/3 | Complete   | 2026-03-16 |
+| 2. Voice Conversation Core | 3/3 | Complete    | 2026-03-16 |
 | 3. Provider Discovery | 0/3 | Not started | - |
 | 4. Outbound Provider Calling | 0/TBD | Not started | - |
 | 5. Live Call Transfer | 0/TBD | Not started | - |

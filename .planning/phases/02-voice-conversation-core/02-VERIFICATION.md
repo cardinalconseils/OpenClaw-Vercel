@@ -1,21 +1,31 @@
 ---
 phase: 02-voice-conversation-core
-verified: 2026-03-15T20:50:00Z
-status: passed
-score: 13/13 must-haves verified
-re_verification: false
+verified: 2026-03-15T23:00:00Z
+status: human_needed
+score: 9/9 must-haves verified
 human_verification:
-  - test: "Filler phrase before tool dispatch during live call"
-    expected: "When Murphy triggers search_providers or call_provider, a filler phrase is spoken before the tool result returns"
-    why_human: "Tool dispatch (Phase 3) does not exist yet — the filler infrastructure is present and wired, but the 'before tool dispatch' execution path cannot be exercised until Phase 3 is built"
+  - test: "Call the Telnyx number and verify the two-step greeting works end-to-end"
+    expected: "Hear 'Hi, I'm Murphy — an AI assistant from OpenClaw Service Matchmaker. Who am I speaking with?' within 2 seconds, then after giving a name hear a personalised follow-up question"
+    why_human: "Real Telnyx STT/TTS pipeline cannot be exercised in unit tests — KokoroTTS voice, Whisper transcription latency, and actual call audio quality require a live call"
+  - test: "Speak an ambiguous need ('I need help with my house') and verify one focused clarification question is asked, then a second open-ended question if still ambiguous"
+    expected: "First clarification uses getDisambiguationPrompt output; second clarification says 'Could you tell me a bit more about what you need?' with no category suggestions"
+    why_human: "Real STT accuracy and the exact disambiguation prompt text depend on runtime behaviour of extractIntent() against live speech"
+  - test: "Let the line go silent for 10+ seconds and verify the nudge fires"
+    expected: "After 8s of silence hear 'Still there?'; after two ignored nudges hear the graceful hangup phrase and call disconnects"
+    why_human: "setTimeout-based silence detection is mocked in unit tests; real Telnyx call timing and audio-silence detection must be verified on a live call"
+  - test: "Speak 'I need a plumber in Austin' and verify sub-second perceived TTS response"
+    expected: "No perceptible gap between user's last word and Murphy's confirmation reply"
+    why_human: "VOICE-04 streaming TTS latency is a perceptual quality bar that cannot be asserted programmatically"
+  - test: "Verify OFF_TOPIC_REDIRECT fires when caller asks an off-topic question (e.g. 'What is the weather?')"
+    expected: "Murphy says 'I only handle finding service providers — plumbers, electricians, and the like. Is there a service provider I can help you find?'"
+    why_human: "OFF_TOPIC_REDIRECT is imported and available in webhooks.ts but is only void-cast, not yet wired into a dispatch branch. The response will fall through to the default log line rather than speaking the redirect phrase. This is a noted gap against the phase goal but was accepted in Plan 03 acceptance criteria as 'imported and available'. Human should confirm acceptable or flag for a gap-closure plan."
 ---
 
-# Phase 02: Voice Conversation Core — Verification Report
+# Phase 2: Voice Conversation Core Verification Report
 
-**Phase Goal:** An inbound call is answered with a greeting, user speech is captured and transcribed, service intent (type and location) is extracted within two turns, clarifying questions are asked when intent is ambiguous, and responses use streaming TTS with filler speech to avoid dead air.
-
-**Verified:** 2026-03-15T20:50:00Z
-**Status:** PASSED
+**Phase Goal:** An inbound call is answered with a greeting, user speech is captured and transcribed, service intent (type and location) is extracted within two turns, clarifying questions are asked when intent is ambiguous, and responses use streaming TTS with filler speech to avoid dead air
+**Verified:** 2026-03-15T23:00:00Z
+**Status:** human_needed
 **Re-verification:** No — initial verification
 
 ---
@@ -26,106 +36,116 @@ human_verification:
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
-| 1 | Hardcoded greeting contains AI disclosure before first question mark in EN and FR | VERIFIED | `GREETING.en` = "Hi, I'm Murphy — an AI assistant..." and `GREETING.fr` = "...assistant IA..." — AI/IA before "?" confirmed in file |
-| 2 | Call state initializes with defaults and tracks language, stage, intent, and clarification turns | VERIFIED | `CallState` interface exports 7 fields; `initCall` sets language='en', stage='greeting', intent={}, clarificationTurns=0 |
-| 3 | Clarification turn counter stops at 1 — after 1 clarification, stage advances regardless | VERIFIED | `shouldAdvancePastClarification` returns `clarificationTurns >= 1`; webhook enforces this in `call.transcription` handler |
-| 4 | Filler phrases return non-empty strings for both EN and FR with >= 3 variants per language | VERIFIED | 4 variants per language; round-robin counter; 22 tests all green |
-| 5 | Murphy system prompt includes bilingual language rules (respond in caller's language) | VERIFIED | `## Language Rules` section present; "Respond in the same language for the entire call" |
-| 6 | Murphy system prompt enforces ONE clarifying question max (not the old 2-turn limit) | VERIFIED | "ONE clarifying question maximum" present; "2-turn clarification" absent from file |
-| 7 | Intent extractor parses service type and location from natural utterances | VERIFIED | `extractIntent` with 13 EN + 8 FR service patterns, preposition/zip/postal location extraction |
-| 8 | Intent extractor detects urgency keywords (emergency, urgent, ASAP) | VERIFIED | `URGENCY_PATTERNS` regex matches emergency/urgent/ASAP/urgence/immediatement case-insensitively |
-| 9 | Ambiguous input produces a disambiguation response with service category options | VERIFIED | `getDisambiguationPrompt` returns EN/FR prompts; webhook calls it when clarificationTurns===0 and intent is incomplete |
-| 10 | call.initiated answers the call via Telnyx answer command | VERIFIED | `case 'call.initiated'` calls `calls.actions.answer(callControlId, ...)` |
-| 11 | call.answered emits hardcoded greeting TTS via ElevenLabs Adam voice | VERIFIED | `case 'call.answered'` calls `initCall` then `calls.actions.speak` with `GREETING.en` and `ELEVENLABS_VOICE_STRING` |
-| 12 | call.transcription extracts transcript, detects language, parses intent, and handles clarification | VERIFIED | Full pipeline: `detectLanguage` → `extractIntent` → merge intent → `isIntentComplete` → disambiguate or advance |
-| 13 | call.hangup delays cleanup by SESSION_PERSIST_MS for unexpected disconnects | VERIFIED | `setTimeout(() => endCall(callControlId), SESSION_PERSIST_MS)` when `stage !== 'complete'` |
+| 1 | Inbound call answered with greeting within 2s | ✓ VERIFIED | `call.answered` speaks `GREETING_STEP_1` immediately before any await; `startTranscription` follows — `webhooks.ts:132-133` |
+| 2 | User speech captured and transcribed via Telnyx STT | ✓ VERIFIED | `startTranscription(callControlId, TELNYX_STT_CONFIG)` called on `call.answered`; Whisper model `openai/whisper-large-v3-turbo` configured in `voice-config.ts:19` |
+| 3 | Service intent extracted within two turns | ✓ VERIFIED | `extractIntent()` called on each `call.transcription` in `intake` stage; `isIntentComplete()` gates advancement; two-turn cap enforced via `clarificationTurns` counter — `webhooks.ts:186-224` |
+| 4 | Clarifying questions asked when intent is ambiguous | ✓ VERIFIED | `clarificationTurns === 0` fires `getDisambiguationPrompt('en')`; `clarificationTurns === 1` fires open-ended question with no category hints — `webhooks.ts:204-214` |
+| 5 | Responses use Telnyx-native streaming TTS | ✓ VERIFIED | All `speak()` calls use `TELNYX_VOICE_STRING = 'Telnyx.KokoroTTS.am_adam'` and `TELNYX_VOICE_SETTINGS = {type:'telnyx', voice_speed:0.95}`; zero ElevenLabs/Deepgram references in `src/` |
+| 6 | Filler speech used during tool calls to avoid dead air | ✓ VERIFIED | `startFillerLoop(speakFn, 'en')` called when transitioning to `searching` stage — `webhooks.ts:257`; 18-phrase pool with 10s interval and escalation at 10s/20s — `filler.ts:74-96` |
+| 7 | Two-step greeting: name ask then personalised service question | ✓ VERIFIED | `GREETING_STEP_1` asks name; `call.speak.ended` advances to `name_capture`; transcript extracts last word as name; `GREETING_STEP_2(name)` or `GREETING_STEP_2_FALLBACK` spoken — `webhooks.ts:138-183` |
+| 8 | Silence detection fires nudge at 8s, hangup after 2 nudges | ✓ VERIFIED | `resetSilenceTimer()` uses `SILENCE_NUDGE_MS = 8000`; counter tracks nudges; `GRACEFUL_HANGUP` then hangup after `silenceNudgeCount >= 2` — `webhooks.ts:73-96` |
+| 9 | Max-clarification bypass uses broad search pattern, not best-guess | ✓ VERIFIED | `shouldAdvancePastClarification` (threshold `>= 2`) path speaks "general home repair services near..." with no specific service type and no "if that's not right" hedge — `webhooks.ts:215-222` |
 
-**Score:** 13/13 truths verified
+**Score:** 9/9 truths verified (automated)
 
 ---
 
 ### Required Artifacts
 
-| Artifact | Provides | Status | Evidence |
-|----------|----------|--------|----------|
-| `src/lib/voice/greeting.ts` | FCC-compliant bilingual greeting constants | VERIFIED | Exports `GREETING` (Record<'en'\|'fr', string>) and `GREETING_TIMEOUT_MS=2000`; AI disclosure confirmed |
-| `src/lib/voice/call-state.ts` | Per-call in-memory state management | VERIFIED | Exports `CallState` interface + `initCall`, `getCall`, `updateCall`, `endCall`, `detectLanguage`, `shouldAdvancePastClarification` |
-| `src/lib/voice/filler.ts` | Bilingual filler phrase selection | VERIFIED | Exports `getFillerPhrase`; 4-phrase round-robin pool per language |
-| `src/lib/ai/prompts/murphy-system.ts` | Updated Murphy prompt with bilingual + 1-question limit | VERIFIED | Contains "ONE clarifying question", "## Language Rules", "What service can I help you find today?", "10 minutes" |
-| `src/lib/ai/prompts/voice-modifiers.ts` | Voice modifiers with bilingual response directive | VERIFIED | Contains "Respond in the caller's detected language (English or French) for the entire call" |
-| `src/lib/ai/intent-extractor.ts` | Intent extraction from transcripts | VERIFIED | Exports `IntentResult`, `extractIntent`, `getDisambiguationPrompt`, `isIntentComplete` |
-| `src/lib/voice/voice-config.ts` | Centralized voice pipeline constants | VERIFIED | Exports `ADAM_VOICE_ID`, `ELEVENLABS_VOICE_STRING`, `DEEPGRAM_CONFIG`, `ELEVENLABS_CONFIG`, `CALL_TIMEOUT_MS`, `SESSION_PERSIST_MS` |
-| `src/api/webhooks.ts` | Full call lifecycle webhook handler | VERIFIED | Handles `call.initiated`, `call.answered`, `call.transcription`, `call.speak.ended`, `call.hangup` |
-| `.env.example` | Updated env template with Deepgram and ElevenLabs keys | VERIFIED | Contains `DEEPGRAM_API_KEY=`, `ELEVENLABS_API_KEY=`, `TELNYX_ELEVENLABS_KEY_REF=` |
-| `tests/lib/voice/greeting.test.ts` | Greeting compliance tests | VERIFIED | 5 tests — AI disclosure, prefix, timeout |
-| `tests/lib/voice/call-state.test.ts` | Call state lifecycle tests | VERIFIED | 12 tests — initCall, getCall, updateCall, endCall, detectLanguage, shouldAdvancePastClarification |
-| `tests/lib/voice/filler.test.ts` | Filler phrase pool tests | VERIFIED | 5 tests — pool size, non-empty, EN/FR |
-| `tests/lib/ai/intent-extractor.test.ts` | Intent extraction tests | VERIFIED | 13 tests — all behavior cases in EN and FR |
-| `tests/api/webhooks.test.ts` | Webhook lifecycle tests | VERIFIED | 15 tests (6 original + 9 new) covering all lifecycle events |
+| Artifact | Expected | Status | Details |
+|----------|----------|--------|---------|
+| `src/lib/voice/call-state.ts` | Extended CallState with TCPA + silence + name fields | ✓ VERIFIED | All 6 fields present: `callerName`, `smsConsent`, `consentTimestamp`, `consentMethod`, `silenceNudgeTimer`, `silenceNudgeCount`; stage union includes `name_capture` and `consent`; `endCall()` clears timer before delete; `shouldAdvancePastClarification` uses `>= 2` — line 101 |
+| `src/lib/voice/greeting.ts` | Two-step greeting constants + TCPA + off-topic + confused caller | ✓ VERIFIED | Exports: `GREETING_STEP_1`, `GREETING_STEP_2` (function), `GREETING_STEP_2_FALLBACK`, `TCPA_CONSENT_ASK`, `TCPA_CONSENT_DECLINE_ACK`, `SILENCE_NUDGE`, `GRACEFUL_HANGUP`, `OFF_TOPIC_REDIRECT`, `CONFUSED_CALLER_EXPLAINER`; old `GREETING` record removed |
+| `src/lib/voice/filler.ts` | 18-phrase pool + escalation constants + startFillerLoop | ✓ VERIFIED | `FILLERS_EN` has exactly 18 phrases; `FILLER_ESCALATION_10S` contains "longer than usual"; `FILLER_ESCALATION_20S` contains "different approach"; `startFillerLoop` fires immediately then every 10s with escalation |
+| `src/lib/voice/voice-config.ts` | Telnyx-native TTS/STT constants, no ElevenLabs/Deepgram | ✓ VERIFIED | `TELNYX_VOICE_STRING`, `TELNYX_VOICE_SETTINGS`, `TELNYX_STT_CONFIG`, `SILENCE_NUDGE_MS=8000`; zero ElevenLabs/Deepgram/ADAM_VOICE_ID references |
+| `src/lib/ai/prompts/murphy-system.ts` | Murphy prompt with two-step greeting, TCPA, 2-turn max, off-topic, confused caller | ✓ VERIFIED | Prompt contains: "Who am I speaking with", "TWO clarifying questions maximum", "general home repair services", "text recap", "8 seconds", "I only handle finding service providers", "I'm an AI that finds local service providers"; does NOT contain "if that's not right" |
+| `src/api/webhooks.ts` | Full conversation lifecycle webhook handler | ✓ VERIFIED | Handles: `call.initiated`, `call.answered`, `call.speak.ended`, `call.transcription` (5 stages), `call.hangup`; imports all Phase 2 constants |
+| `tests/api/webhooks.test.ts` | Tests for all conversation stages | ✓ VERIFIED | Contains tests for: `name_capture` stage, `GREETING_STEP_1`, `startFillerLoop`, consent parsing, max-clarification bypass, silence timer — 158 tests pass |
 
 ---
 
 ### Key Link Verification
 
-| From | To | Via | Status | Evidence |
-|------|----|-----|--------|----------|
-| `src/api/webhooks.ts` | `src/lib/voice/call-state.ts` | `initCall(` on `call.answered` | VERIFIED | Line 68: `initCall(callControlId, from)` |
-| `src/api/webhooks.ts` | `src/lib/voice/greeting.ts` | `import { GREETING }` | VERIFIED | Line 13: `import { GREETING } from '../lib/voice/greeting.js'` |
-| `src/api/webhooks.ts` | `src/lib/voice/filler.ts` | `getFillerPhrase` on forced advance | VERIFIED | Line 145: `const filler = getFillerPhrase(currentState.language)` |
-| `src/api/webhooks.ts` | `src/lib/voice/voice-config.ts` | `ELEVENLABS_VOICE_STRING` for speak | VERIFIED | Line 15: imported; used in every `calls.actions.speak` call |
-| `src/api/webhooks.ts` | `src/lib/ai/intent-extractor.ts` | `extractIntent` on `call.transcription` | VERIFIED | Line 100: `const extractedIntent = extractIntent(transcript)` |
-| `src/api/webhooks.ts` | `src/lib/voice/call-state.ts` | `detectLanguage` on first transcription | VERIFIED | Line 94: `const detectedLanguage = detectLanguage(words)` |
-| `src/lib/ai/prompts/murphy-system.ts` | `ONE clarifying question` | prompt text | VERIFIED | Line 53 of murphy-system.ts: "ONE clarifying question maximum" |
-| `src/lib/ai/intent-extractor.ts` | `IntentResult` type | `export interface IntentResult` | VERIFIED | Line 9: `export interface IntentResult` |
+| From | To | Via | Status | Details |
+|------|----|-----|--------|---------|
+| `call-state.ts` | `webhooks.ts` | `initCall` populates new fields (callerName, smsConsent, silenceNudgeTimer) | ✓ WIRED | `initCall` called at `call.answered`; `updateCall` sets `callerName`, `smsConsent`, `consentTimestamp`, `consentMethod` in transcript handlers; `silenceNudgeTimer` managed by `resetSilenceTimer()` |
+| `greeting.ts` | `webhooks.ts` | `GREETING_STEP_1` replaces old `GREETING.en` | ✓ WIRED | `GREETING_STEP_1` spoken in `call.answered` handler; `GREETING_STEP_2`/`GREETING_STEP_2_FALLBACK` spoken in `name_capture` handler; `TCPA_CONSENT_ASK` spoken in `intake` and max-clarification handlers |
+| `filler.ts` | `webhooks.ts` | `startFillerLoop` called during searching stage | ✓ WIRED | `startFillerLoop(speakFn, 'en')` called in `consent` stage handler; handle stored in `_fillerLoops` map; `fillerHandle.stop()` called on `call.hangup` |
+| `voice-config.ts` | `webhooks.ts` | `TELNYX_VOICE_STRING` replaces `ELEVENLABS_VOICE_STRING` | ✓ WIRED | `TELNYX_VOICE_STRING` used in `speak()` helper; `TELNYX_STT_CONFIG` passed to `startTranscription`; `SILENCE_NUDGE_MS` used in `resetSilenceTimer` |
+| `voice-config.ts` | `murphy-system.ts` (indirect) | `buildMurphySystemPrompt` called by orchestrator | ✓ WIRED | `buildMurphySystemPrompt` imported and used in `src/lib/ai/orchestrator.ts` (verified via existing test suite) |
+| `greeting.ts` `OFF_TOPIC_REDIRECT` | `webhooks.ts` active dispatch | Called when caller goes off-topic | ⚠️ PARTIAL | Imported and `void`-cast in `webhooks.ts:38-39`; not wired into an active dispatch branch. Will not fire during a real call. Plan 03 acceptance criteria only required "imported and available" — this is an architectural stub for Phase 3 wiring. |
 
 ---
 
 ### Requirements Coverage
 
-| Requirement | Source Plan(s) | Description | Status | Evidence |
-|-------------|---------------|-------------|--------|----------|
-| VOICE-01 | 02-01, 02-03 | User calls Telnyx number and agent answers with a greeting | SATISFIED | `call.initiated` answers via `calls.actions.answer`; `call.answered` speaks `GREETING.en` via ElevenLabs Adam |
-| VOICE-02 | 02-02, 02-03 | Agent captures user intent from natural speech (service type, location, urgency) | SATISFIED | `extractIntent` with 21 service patterns + location + urgency; merged into `CallState.intent` on every transcription |
-| VOICE-03 | 02-01, 02-02, 02-03 | Agent asks smart clarifying questions when intent is ambiguous | SATISFIED | `getDisambiguationPrompt` emitted when `clarificationTurns===0` and `isIntentComplete` is false; hard cap at 1 via `shouldAdvancePastClarification` |
-| VOICE-04 | 02-02, 02-03 | Agent responds with sub-second perceived latency (streaming TTS) | SATISFIED (infrastructure) | ElevenLabs Adam via Telnyx `calls.actions.speak`; filler phrases prevent dead air while backend processes; true streaming TTS configuration present in `ELEVENLABS_CONFIG` (eleven_flash_v2_5) |
-| VOICE-05 | 02-01, 02-03 | Agent uses filler speech during tool calls to avoid dead air | SATISFIED (infrastructure) | `getFillerPhrase` imported and used in forced-advance branch; filler spoken before advancing to searching; tool dispatch (Phase 3) will use this same infrastructure |
+| Requirement | Source Plan | Description | Status | Evidence |
+|-------------|------------|-------------|--------|----------|
+| VOICE-01 | 02-01, 02-03 | User calls Telnyx number and agent answers with a greeting | ✓ SATISFIED | `call.answered` speaks `GREETING_STEP_1` via `TELNYX_VOICE_STRING`; `startTranscription` with Telnyx Whisper STT starts immediately |
+| VOICE-02 | 02-02, 02-03 | Agent captures user intent from natural speech (service type, location, urgency) | ✓ SATISFIED | `extractIntent()` in `intake` stage extracts `serviceType`, `location`, `urgency`; `isIntentComplete()` checks completeness; Murphy system prompt instructs intent capture |
+| VOICE-03 | 02-01, 02-02, 02-03 | Agent asks smart clarifying questions when intent is ambiguous | ✓ SATISFIED | Clarification turn 0 uses `getDisambiguationPrompt`; turn 1 uses open-ended "Could you tell me a bit more..."; `shouldAdvancePastClarification` threshold `>= 2` enforced |
+| VOICE-04 | 02-02, 02-03 | Agent responds with sub-second perceived latency (streaming TTS) | ? NEEDS HUMAN | `TELNYX_VOICE_STRING = 'Telnyx.KokoroTTS.am_adam'` with KokoroTTS is configured for streaming; actual perceived latency requires a live call |
+| VOICE-05 | 02-01, 02-03 | Agent uses filler speech during tool calls to avoid dead air | ✓ SATISFIED | `startFillerLoop` fires immediately with a filler, then every 10s; 18-phrase pool; escalation at 10s/20s marks |
 
-No orphaned requirements. All five VOICE requirements are claimed by at least one plan and have implementation evidence.
+**Orphaned requirements:** None. All five VOICE-0x IDs appear in plan frontmatter and are accounted for. No additional Phase 2 requirements exist in REQUIREMENTS.md traceability table.
 
 ---
 
 ### Anti-Patterns Found
 
-No anti-patterns detected across all 8 modified source files. No TODO/FIXME/HACK/placeholder comments. No stub implementations (empty returns, console-only handlers). TypeScript compilation exits 0 with no errors.
+| File | Line | Pattern | Severity | Impact |
+|------|------|---------|----------|--------|
+| `src/api/webhooks.ts` | 37-39 | `void OFF_TOPIC_REDIRECT; void CONFUSED_CALLER_EXPLAINER;` — imported but not dispatched | ⚠️ Warning | Off-topic callers will fall through to the default log line rather than hearing the redirect phrase. Not a blocker per Plan 03 acceptance criteria (required only "imported and available"), but the feature is not live. |
+| `src/api/webhooks.ts` | 260 | `// Phase 3: executeSearchTool(callControlId, state.intent)` — comment-only stub | ℹ️ Info | Expected — Phase 3 (provider search) is the next phase. Filler loop starts but search never fires. No impact on Phase 2 goal. |
 
 ---
 
 ### Human Verification Required
 
-#### 1. Filler Phrase Before Tool Dispatch (Pre-Phase 3 Validation)
+#### 1. Two-Step Greeting — Live Call
 
-**Test:** After Phase 3 provider search tools are wired, trigger a call where intent is complete (service + location captured). Observe whether Murphy speaks a filler phrase ("Let me look that up for you." or French equivalent) before the search result arrives.
+**Test:** Call the configured Telnyx number. Wait for the call to connect.
+**Expected:** Within 2 seconds hear "Hi, I'm Murphy — an AI assistant from OpenClaw Service Matchmaker. Who am I speaking with?" — then after answering with a name hear the personalised service question using that name.
+**Why human:** KokoroTTS voice quality, actual latency of Telnyx STT/TTS pipeline, and microphone/codec interaction cannot be unit-tested.
 
-**Expected:** A filler phrase is spoken immediately after intent confirmation, before `search_providers` returns its result — preventing dead air during the search latency window.
+#### 2. Intent Capture in Two Turns — Live Call
 
-**Why human:** Tool dispatch (`search_providers`, `call_provider`) does not exist in Phase 2. The filler infrastructure (`getFillerPhrase`, `getFillerPhrase` imported in `webhooks.ts`) is in place and wired for the forced-advance path, but the "before tool dispatch" execution path requires Phase 3 tools to exercise. This must be validated when Phase 3 is complete.
+**Test:** Say something ambiguous ("I need help around the house") and observe the clarification exchange.
+**Expected:** Murphy asks one focused clarification question. If still ambiguous after two tries, Murphy says "I'll search for general home repair services near your area and we'll narrow it down from what I find."
+**Why human:** `extractIntent()` is a rule-based module but its accuracy against real speech depends on STT transcription quality.
+
+#### 3. Silence Detection — Live Call
+
+**Test:** After giving a name, stay silent for 10+ seconds.
+**Expected:** After 8s hear "Still there?". Ignore it. After another 8s hear it again. Ignore again. Murphy speaks the graceful hangup and the call ends.
+**Why human:** `setTimeout`-based silence detection is fully mocked in unit tests. Real call timing and audio silence must be verified.
+
+#### 4. Streaming TTS Latency — VOICE-04
+
+**Test:** Say a clear intent ("I need a plumber in Austin"). Time from end of utterance to Murphy's confirmation reply.
+**Expected:** No perceptible gap — feels immediate to the caller (sub-second perceived latency).
+**Why human:** VOICE-04 is a perceptual quality bar. Automated tests assert the speak call fires but cannot measure human-perceptible latency.
+
+#### 5. Off-Topic Redirect — Currently Not Active
+
+**Test:** After the greeting, say "What is the weather in Paris?"
+**Expected per phase goal:** Murphy says "I only handle finding service providers — plumbers, electricians, and the like. Is there a service provider I can help you find?"
+**Actual current behaviour:** Murphy will log "Transcription processed" and stay silent (falls through to the default log line). `OFF_TOPIC_REDIRECT` is imported but not dispatched in any branch.
+**Why human:** This gap requires human confirmation of acceptable scope — Plan 03 acceptance criteria only required the constant to be imported. If the phase goal requires active off-topic dispatch, a gap-closure plan is needed.
 
 ---
 
-## Summary
+### Summary
 
-Phase 2 goal is fully achieved. All 13 observable truths are VERIFIED by direct code inspection. All 14 artifacts exist and are substantive. All 8 key links are wired. All 5 VOICE requirements (VOICE-01 through VOICE-05) have concrete implementation evidence.
+Phase 2 automated implementation is solid: all foundational state, constants, voice config, Murphy system prompt, and webhook lifecycle are correctly implemented and tested (158 tests, 0 TypeScript errors). The conversation flow from greeting through name capture, intent extraction, two-turn clarification, TCPA consent, and filler loop is fully wired and substantive.
 
-The 72 tests across 7 test files all pass. TypeScript compiles cleanly with 0 errors. No anti-patterns were found.
+Two items require human validation before the phase is fully closed:
 
-The single human verification item is a forward-looking concern about filler-before-tool-dispatch, which requires Phase 3 tooling to exercise and does not block Phase 2 goal achievement — the infrastructure (filler module, import in webhooks, ElevenLabs voice config) is ready for Phase 3 to hook into.
+1. **VOICE-04 streaming latency** — cannot be measured programmatically. Architecture (KokoroTTS via Telnyx native) is correct but live call quality is the real test.
 
-Notable implementation deviations from plan that were auto-corrected:
-- Telnyx SDK v6 uses `calls.actions.answer` / `calls.actions.speak` (not `calls.answer` / `calls.speak`)
-- Filler uses round-robin counter instead of `Math.random` for deterministic test coverage
-- Test import depth corrected from 4 levels to 3 levels for `tests/lib/voice/`
+2. **OFF_TOPIC_REDIRECT active dispatch** — the constant is imported and defined correctly, but `webhooks.ts` does not dispatch to it in any branch. The Plan 03 acceptance criteria only required "imported and available," so this was within scope. However, the phase goal states "clarifying questions are asked when intent is ambiguous" which implies graceful off-topic handling. Human confirmation is needed on whether the void-cast constitutes acceptable deferred wiring or requires a gap-closure plan.
 
 ---
 
-_Verified: 2026-03-15T20:50:00Z_
+_Verified: 2026-03-15T23:00:00Z_
 _Verifier: Claude (gsd-verifier)_
