@@ -26,7 +26,7 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Provider Search
 
 - [x] **SRCH-01**: Agent searches Google Places API for providers matching service type and location
-- [ ] **SRCH-02**: Agent performs web search as fallback when Google Places has gaps
+- [x] **SRCH-02**: Agent performs web search as fallback when Google Places has gaps
 - [x] **SRCH-03**: Agent queries custom provider directory for curated/vetted providers
 - [x] **SRCH-04**: Agent ranks providers by ratings, reviews, proximity, and hours of operation
 - [x] **SRCH-05**: Agent detects urgency keywords and re-ranks for same-day/emergency availability
@@ -126,7 +126,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | VOICE-04 | Phase 2 | Complete |
 | VOICE-05 | Phase 2 | Complete |
 | SRCH-01 | Phase 3 | Complete |
-| SRCH-02 | Phase 3 | Pending |
+| SRCH-02 | Phase 3 | Complete |
 | SRCH-03 | Phase 3 | Complete |
 | SRCH-04 | Phase 3 | Complete |
 | SRCH-05 | Phase 3 | Complete |
