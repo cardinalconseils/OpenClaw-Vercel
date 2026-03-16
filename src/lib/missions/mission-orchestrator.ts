@@ -14,32 +14,47 @@ import { getSupabaseClient } from '../db/supabase-client.js';
  */
 export async function recoverIncompleteMissions(): Promise<number> {
   const client = getSupabaseClient();
-  const { data: incompleteMissions } = await client
+  const { data: incompleteMissions, error } = await client
     .from('missions')
     .select('id')
     .eq('status', 'executing');
+
+  if (error) {
+    throw new Error(`[missions:orchestrator] Failed to query incomplete missions: ${error.message}`);
+  }
 
   if (!incompleteMissions || incompleteMissions.length === 0) {
     console.log('[missions:orchestrator] No incomplete missions to recover');
     return 0;
   }
 
+  let recovered = 0;
   for (const mission of incompleteMissions) {
     const missionId = (mission as { id: string }).id;
-    const events = await getMissionEvents(missionId);
+    try {
+      const events = await getMissionEvents(missionId);
 
-    // Re-enqueue steps that are pending or were interrupted mid-flight (in-progress)
-    const pendingEvents = events.filter(
-      (e) => e.status === 'pending' || e.status === 'in-progress',
-    );
+      // Re-enqueue steps that are pending or were interrupted mid-flight (in-progress)
+      const pendingEvents = events.filter(
+        (e) => e.status === 'pending' || e.status === 'in-progress',
+      );
 
-    await missionScheduler.enqueue(missionId, pendingEvents);
-    console.log(
-      `[missions:orchestrator] Recovered mission ${missionId} with ${pendingEvents.length} pending steps`,
-    );
+      await missionScheduler.enqueue(missionId, pendingEvents);
+      console.log(
+        `[missions:orchestrator] Recovered mission ${missionId} with ${pendingEvents.length} pending steps`,
+      );
+      recovered++;
+    } catch (err) {
+      console.error(`[missions:orchestrator] Failed to recover mission ${missionId}:`, err);
+      try {
+        await missionEngine.fail(missionId, `Recovery failed: ${err instanceof Error ? err.message : String(err)}`);
+      } catch (failErr) {
+        console.error(`[missions:orchestrator] Could not mark mission ${missionId} as failed:`, failErr);
+      }
+    }
   }
 
-  return incompleteMissions.length;
+  return recovered;
 }
 
 /**
@@ -58,8 +73,8 @@ export async function initMissions(): Promise<void> {
     const detail = result.error
       ? `Failed: ${result.error}`
       : `Completed: ${JSON.stringify(result).slice(0, 100)}`;
-    // Note: full progress reporting requires missionId context
-    // which the scheduler passes via the enqueue association
+    // Note: onStepComplete receives only stepId — missionId is not passed.
+    // Full progress reporting would require extending the callback signature.
     console.log(`[missions:orchestrator] Step ${stepId} complete: ${detail}`);
   };
 
@@ -76,7 +91,7 @@ export async function initMissions(): Promise<void> {
       console.error(`[missions:orchestrator] Failed to complete mission ${missionId}:`, err);
       await missionEngine.fail(
         missionId,
-        `Summary generation failed: ${(err as Error).message}`,
+        'Mission could not be completed — please try again.',
       );
     }
   };

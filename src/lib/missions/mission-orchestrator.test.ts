@@ -123,7 +123,7 @@ describe('MissionOrchestrator', () => {
 
       expect(mockMissionEngine.fail).toHaveBeenCalledWith(
         'mission-123',
-        expect.stringContaining('LLM timeout'),
+        'Mission could not be completed — please try again.',
       );
       expect(mockMissionEngine.complete).not.toHaveBeenCalled();
     });

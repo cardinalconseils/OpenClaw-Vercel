@@ -73,14 +73,14 @@ export function parseMissionSteps(raw: string): PlannedStep[] {
   let parsed: unknown;
   try {
     parsed = JSON.parse(jsonString);
-  } catch {
-    console.warn('[mission-planner] Failed to parse LLM JSON response:', raw.slice(0, 200));
-    return [];
+  } catch (err) {
+    throw new Error(
+      `[mission-planner] LLM returned unparseable JSON: ${err instanceof Error ? err.message : String(err)}`,
+    );
   }
 
   if (!Array.isArray(parsed)) {
-    console.warn('[mission-planner] LLM response was not an array');
-    return [];
+    throw new Error('[mission-planner] LLM response was not a JSON array');
   }
 
   const steps: PlannedStep[] = [];
@@ -124,7 +124,7 @@ export function parseMissionSteps(raw: string): PlannedStep[] {
  *
  * @param description - Natural language mission description from the user.
  * @returns Array of planned steps sorted by order (search steps first).
- * @throws Error if description is empty.
+ * @throws Error if description is empty, LLM call fails, or planning produces zero steps.
  */
 export async function planMission(description: string): Promise<PlannedStep[]> {
   if (!description || description.trim().length === 0) {
@@ -152,6 +152,10 @@ export async function planMission(description: string): Promise<PlannedStep[]> {
 
   // Cap at maximum steps per mission
   const capped = steps.slice(0, MAX_STEPS_PER_MISSION);
+
+  if (capped.length === 0) {
+    throw new Error('[mission-planner] Planning produced zero valid steps — mission cannot execute');
+  }
 
   console.log(`[mission-planner] Planned ${capped.length} steps`);
   return capped;

@@ -79,7 +79,7 @@ export function detectLanguage(
 /**
  * Returns true if the call has already used its one clarification turn.
  *
- * Per CONTEXT.md: maximum one clarifying question per call. If this returns
+ * Maximum one clarifying question per call (Phase 2 design decision). If this returns
  * true, the orchestrator must proceed to search with best-available intent
  * rather than asking another question.
  */

@@ -28,7 +28,7 @@ export const ELEVENLABS_CONFIG = {
   voice_id: ADAM_VOICE_ID,
 };
 
-/** Call timeout in milliseconds — 10 minutes per CONTEXT.md decision */
+/** Call timeout in milliseconds — 10 minutes, long enough for multi-step provider search */
 export const CALL_TIMEOUT_MS = 10 * 60 * 1000;
 
 /** Session persistence window after disconnect — 30 minutes */

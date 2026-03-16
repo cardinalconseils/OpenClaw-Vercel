@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import express from 'express';
 import { telnyxWebhookVerifier } from '../lib/voice/webhook-verify.js';
-import { chat } from '../lib/ai/orchestrator.js';
 import {
   initCall,
   getCall,
@@ -66,11 +65,11 @@ webhookRouter.post(
           case 'call.answered': {
             const from: string = (payload as any).from ?? 'unknown';
             initCall(callControlId, from);
-            console.log(`[webhooks] Greeting emitted for ${callControlId}`);
             await getTelnyxClient().calls.actions.speak(callControlId, {
-              payload: GREETING.en,
+              payload: GREETING.en,  // Always English on first contact — language detected after first transcript
               voice: ELEVENLABS_VOICE_STRING,
             });
+            console.log(`[webhooks] Greeting emitted for ${callControlId}`);
             break;
           }
 
@@ -117,7 +116,6 @@ webhookRouter.post(
 
             if (isIntentComplete({ serviceType: mergedIntent.serviceType, location: mergedIntent.location })) {
               // Intent complete — advance to searching
-              updateCall(callControlId, { stage: 'searching' });
               const lang = currentState.language;
               const confirmationText =
                 lang === 'fr'
@@ -128,6 +126,7 @@ webhookRouter.post(
                 payload: confirmationText,
                 voice: ELEVENLABS_VOICE_STRING,
               });
+              updateCall(callControlId, { stage: 'searching' });
             } else if (currentState.clarificationTurns === 0) {
               // First clarification opportunity — ask disambiguation
               const disambig = getDisambiguationPrompt(currentState.language);
@@ -141,12 +140,12 @@ webhookRouter.post(
               console.log(`[webhooks] Asking clarification question`);
             } else if (shouldAdvancePastClarification(currentState)) {
               // Max clarifications reached — force advance with partial intent
-              updateCall(callControlId, { stage: 'searching' });
               const filler = getFillerPhrase(currentState.language);
               await getTelnyxClient().calls.actions.speak(callControlId, {
                 payload: filler,
                 voice: ELEVENLABS_VOICE_STRING,
               });
+              updateCall(callControlId, { stage: 'searching' });
               console.log(
                 `[webhooks] Max clarifications reached, advancing with partial intent`
               );
@@ -188,10 +187,7 @@ webhookRouter.post(
           }
 
           default: {
-            // Log but do not invoke orchestrator for unhandled event types
             console.log(`[webhooks] Unhandled event: ${eventType}`);
-            // Keep chat() available for future use — referenced here to avoid unused import lint error
-            void chat;
             break;
           }
         }

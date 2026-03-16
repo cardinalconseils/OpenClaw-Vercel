@@ -23,9 +23,9 @@ const STEP_LIMITER_MAP: Record<MissionStepType, TokenBucketRateLimiter | null> =
 
 /**
  * Build tool params from a mission step based on its type.
- * - search: { service_type, location }
- * - call:   { phone_number, provider_name }
- * - sms:    { to, message }
+ * - search: { service_type: step.context (service category), location: step.target (geographic query) }
+ * - call:   { phone_number: step.target, provider_name: step.context }
+ * - sms:    { to: step.target, message: step.context }
  */
 function buildToolParams(step: MissionStep): Record<string, unknown> {
   switch (step.type) {
@@ -57,10 +57,10 @@ export class MissionScheduler {
   private processing = false;
 
   /** Optional callback invoked after each step completes (or fails). */
-  onStepComplete?: (stepId: string, result: Record<string, unknown>) => void;
+  onStepComplete?: (stepId: string, result: Record<string, unknown>) => Promise<void> | void;
 
   /** Optional callback invoked when all steps for a mission have been processed. */
-  onMissionComplete?: (missionId: string) => void;
+  onMissionComplete?: (missionId: string) => Promise<void> | void;
 
   /**
    * Add steps to the queue and start processing if not already running.
@@ -100,7 +100,11 @@ export class MissionScheduler {
     for (const missionId of processedMissions) {
       const stillQueued = this.queue.some((q) => q.missionId === missionId);
       if (!stillQueued) {
-        this.onMissionComplete?.(missionId);
+        try {
+          await this.onMissionComplete?.(missionId);
+        } catch (err) {
+          console.error(`[missions:scheduler] onMissionComplete callback failed for ${missionId}:`, err);
+        }
       }
     }
   }
@@ -137,7 +141,11 @@ export class MissionScheduler {
       });
     }
 
-    this.onStepComplete?.(step.id, result);
+    try {
+      await this.onStepComplete?.(step.id, result);
+    } catch (err) {
+      console.error(`[missions:scheduler] onStepComplete callback failed for step ${step.id}:`, err);
+    }
   }
 
   /**

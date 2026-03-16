@@ -39,9 +39,12 @@ export async function createMissionHandler(params: CreateMissionParams): Promise
     const steps = await missionEngine.plan(missionId);
     await missionEngine.start(missionId);
 
-    // Fetch persisted events and enqueue for execution
+    // Fetch persisted events and enqueue for background execution
     const events = await getMissionEvents(missionId);
-    void missionScheduler.enqueue(missionId, events);
+    missionScheduler.enqueue(missionId, events).catch((err) => {
+      console.error(`[tools:missions] Failed to enqueue mission ${missionId}:`, err);
+      void missionEngine.fail(missionId, `Scheduling failed: ${err instanceof Error ? err.message : String(err)}`);
+    });
 
     console.log(`[tools:missions] Mission ${missionId} executing with ${steps.length} steps`);
 
@@ -71,6 +74,7 @@ export async function createMissionHandler(params: CreateMissionParams): Promise
 
 interface GetMissionStatusParams {
   mission_id: string;
+  userId?: string;
 }
 
 interface GetMissionStatusResult {
@@ -86,33 +90,59 @@ interface GetMissionStatusResult {
  * Tool handler for get_mission_status.
  *
  * Retrieves the current mission status and step completion counts.
+ * Validates ownership via userId to prevent cross-user data access.
  */
 export async function getMissionStatusHandler(
   params: GetMissionStatusParams,
 ): Promise<GetMissionStatusResult> {
-  const mission = await missionEngine.getStatus(params.mission_id);
+  try {
+    const mission = await missionEngine.getStatus(params.mission_id);
 
-  if (!mission) {
+    if (!mission) {
+      return {
+        missionId: params.mission_id,
+        status: 'not_found',
+        description: '',
+        stepsTotal: 0,
+        stepsCompleted: 0,
+        stepsFailed: 0,
+      };
+    }
+
+    // Ownership check — prevent cross-user data access (IDOR)
+    if (params.userId && mission.userId !== params.userId) {
+      return {
+        missionId: params.mission_id,
+        status: 'not_found',
+        description: '',
+        stepsTotal: 0,
+        stepsCompleted: 0,
+        stepsFailed: 0,
+      };
+    }
+
+    const events = await getMissionEvents(params.mission_id);
+    const stepsCompleted = events.filter((e) => e.status === 'completed').length;
+    const stepsFailed = events.filter((e) => e.status === 'failed').length;
+
+    return {
+      missionId: mission.id,
+      status: mission.status,
+      description: mission.description,
+      stepsTotal: events.length,
+      stepsCompleted,
+      stepsFailed,
+    };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`[tools:missions] getMissionStatusHandler failed: ${message}`);
     return {
       missionId: params.mission_id,
-      status: 'not_found',
+      status: 'error',
       description: '',
       stepsTotal: 0,
       stepsCompleted: 0,
       stepsFailed: 0,
     };
   }
-
-  const events = await getMissionEvents(params.mission_id);
-  const stepsCompleted = events.filter((e) => e.status === 'completed').length;
-  const stepsFailed = events.filter((e) => e.status === 'failed').length;
-
-  return {
-    missionId: mission.id,
-    status: mission.status,
-    description: mission.description,
-    stepsTotal: events.length,
-    stepsCompleted,
-    stepsFailed,
-  };
 }

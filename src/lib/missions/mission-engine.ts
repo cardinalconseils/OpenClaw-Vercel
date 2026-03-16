@@ -38,7 +38,7 @@ function assertTransition(current: MissionStatus, target: MissionStatus): void {
  * - plan(): Decompose description via LLM into steps, persist events
  * - start(): Transition from planned to executing
  * - complete(): Mark mission done with timestamp
- * - fail(): Mark mission failed (allowed from any state)
+ * - fail(): Mark mission failed (any non-terminal state; no-ops on completed/failed)
  * - pause(): Suspend an executing mission
  * - resume(): Resume a paused mission
  * - getStatus(): Retrieve current mission state
@@ -139,9 +139,20 @@ export class MissionEngine {
   }
 
   /**
-   * Mark a mission as failed. Can be called from any state.
+   * Mark a mission as failed. Skips transition guard intentionally — failure
+   * can interrupt any non-terminal state. No-ops on already-completed or
+   * already-failed missions and on unknown IDs.
    */
   async fail(missionId: string, reason: string): Promise<void> {
+    const mission = await getMission(missionId);
+    if (!mission) {
+      console.error(`[mission-engine] fail() called for unknown mission ${missionId} — reason: ${reason}`);
+      return;
+    }
+    if (mission.status === 'completed' || mission.status === 'failed') {
+      console.log(`[mission-engine] Mission ${missionId} already ${mission.status}, skipping fail`);
+      return;
+    }
     await updateMissionStatus(missionId, 'failed', { summary: reason });
     console.log(`[mission-engine] Mission ${missionId} failed: ${reason}`);
   }

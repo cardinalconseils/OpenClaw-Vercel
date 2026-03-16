@@ -1,6 +1,6 @@
-import { searchProviders } from './handlers/search';
-import { callProvider, transferCall } from './handlers/dispatch';
-import { sendSms } from './handlers/sms';
+import { searchProviders } from './handlers/search.js';
+import { callProvider, transferCall } from './handlers/dispatch.js';
+import { sendSms } from './handlers/sms.js';
 import { createMissionHandler, getMissionStatusHandler } from './handlers/missions.js';
 
 interface ToolDefinition {
