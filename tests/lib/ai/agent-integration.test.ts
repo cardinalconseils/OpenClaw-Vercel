@@ -8,6 +8,24 @@ vi.mock('../../../src/lib/voice/telnyx-client.js', () => ({
       unwrap: vi.fn(),
     },
   },
+  getTelnyxClient: vi.fn(),
+}));
+
+// Mock call-state to avoid state leakage between tests
+vi.mock('../../../src/lib/voice/call-state.js', () => ({
+  initCall: vi.fn(),
+  getCall: vi.fn().mockReturnValue(undefined),
+  updateCall: vi.fn(),
+  endCall: vi.fn(),
+  detectLanguage: vi.fn().mockReturnValue('en'),
+  shouldAdvancePastClarification: vi.fn().mockReturnValue(false),
+}));
+
+// Mock intent-extractor
+vi.mock('../../../src/lib/ai/intent-extractor.js', () => ({
+  extractIntent: vi.fn().mockReturnValue({ serviceType: undefined, location: undefined, urgency: 'normal', isComplete: false }),
+  isIntentComplete: vi.fn().mockReturnValue(false),
+  getDisambiguationPrompt: vi.fn().mockReturnValue('What kind of help?'),
 }));
 
 // Mock the orchestrator to prevent real LLM calls in tests
@@ -15,12 +33,19 @@ vi.mock('../../../src/lib/ai/orchestrator.js', () => ({
   chat: vi.fn().mockResolvedValue('Hello! I am Murphy, an AI assistant from OpenClaw Service Matchmaker.'),
 }));
 
-import { telnyxClient } from '../../../src/lib/voice/telnyx-client.js';
+import { telnyxClient, getTelnyxClient } from '../../../src/lib/voice/telnyx-client.js';
 import { chat } from '../../../src/lib/ai/orchestrator.js';
 import { app } from '../../../src/server.js';
 
 const mockUnwrap = vi.mocked(telnyxClient.webhooks.unwrap);
+const mockGetTelnyxClient = vi.mocked(getTelnyxClient);
 const mockChat = vi.mocked(chat);
+
+const mockActions = {
+  answer: vi.fn().mockResolvedValue({}),
+  speak: vi.fn().mockResolvedValue({}),
+};
+const mockCalls = { actions: mockActions };
 
 const makePayload = (eventType: string, from = '+15550001234') =>
   JSON.stringify({
@@ -46,14 +71,17 @@ describe('Webhook-to-orchestrator integration', () => {
   });
 
   beforeEach(() => {
-    mockChat.mockClear();
+    vi.clearAllMocks();
+    mockGetTelnyxClient.mockReturnValue({ calls: mockCalls } as any);
+    mockActions.answer.mockResolvedValue({});
+    mockActions.speak.mockResolvedValue({});
   });
 
   afterAll(() => {
     vi.restoreAllMocks();
   });
 
-  it('POST /webhooks/telnyx with call.initiated event returns 200 and invokes orchestrator', async () => {
+  it('POST /webhooks/telnyx with call.initiated event returns 200 and answers the call', async () => {
     const from = '+15550001234';
     mockUnwrap.mockResolvedValueOnce({
       data: {
@@ -75,19 +103,12 @@ describe('Webhook-to-orchestrator integration', () => {
     // Wait for setImmediate to fire
     await new Promise((resolve) => setTimeout(resolve, 50));
 
-    expect(mockChat).toHaveBeenCalledOnce();
-    expect(mockChat).toHaveBeenCalledWith(
-      expect.arrayContaining([
-        expect.objectContaining({
-          role: 'user',
-          content: expect.stringContaining(from),
-        }),
-      ]),
-      'greeting'
-    );
+    // call.initiated now answers the call via Telnyx SDK (not chat())
+    expect(mockActions.answer).toHaveBeenCalledWith('cc-123', expect.any(Object));
+    expect(mockChat).not.toHaveBeenCalled();
   });
 
-  it('POST /webhooks/telnyx with call.answered event returns 200 without invoking orchestrator', async () => {
+  it('POST /webhooks/telnyx with call.answered event returns 200 and speaks greeting', async () => {
     mockUnwrap.mockResolvedValueOnce({
       data: {
         event_type: 'call.answered',
@@ -107,6 +128,8 @@ describe('Webhook-to-orchestrator integration', () => {
     // Wait for setImmediate to fire
     await new Promise((resolve) => setTimeout(resolve, 50));
 
+    // call.answered speaks the greeting (not chat())
+    expect(mockActions.speak).toHaveBeenCalled();
     expect(mockChat).not.toHaveBeenCalled();
   });
 
