@@ -21,6 +21,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 6: Post-Call SMS** - Send SMS recap with outcome, provider info, and tip link; persist call record
 - [ ] **Phase 7: Web Dashboard** - Serve read-only call history by phone number from Vercel Sandbox
 - [ ] **Phase 8: Telnyx Missions** - Create and execute batch missions (multi-call campaigns, SMS surveys, provider research) via natural language through any connected channel
+- [ ] **Phase 9: Frontend Website** - Next.js SaaS frontend with dark modern landing page, Supabase Auth, authenticated dashboard (call history, missions, analytics), settings, and billing
 
 ## Phase Details
 
@@ -155,10 +156,24 @@ Plans:
 - [x] 08-04-PLAN.md — Mission reporter (progress events, summaries) and orchestrator wiring (MISSION-04, MISSION-05)
 - [ ] 08-05-PLAN.md — Gap closure: wire initMissions() into server.ts startup sequence (MISSION-04, MISSION-05, MISSION-06)
 
+### Phase 9: Frontend Website
+**Goal**: A polished Next.js frontend at murphy.help with a dark, modern SaaS landing page explaining the service, Supabase Auth for user accounts, an authenticated dashboard showing call history/missions/analytics, and settings/billing pages — deployed to Vercel alongside the existing Express backend
+**Depends on**: Phase 1 (backend running), Supabase configured
+**Requirements**: WEB-01, WEB-02, WEB-03, WEB-04, WEB-05, WEB-06, WEB-07
+**Success Criteria** (what must be TRUE):
+  1. Visiting murphy.help shows a beautiful dark-themed landing page with hero, features, social proof, and a CTA to call the number
+  2. User can sign up / log in via Supabase Auth (email + Google OAuth) and land on their personal dashboard
+  3. Dashboard shows the user's call history with dates, service types, providers contacted, and outcomes — pulled from Supabase
+  4. Dashboard shows active and completed missions with real-time status updates
+  5. Settings page allows users to update profile, notification preferences, and manage their account
+  6. The frontend and Express backend coexist on the same Vercel deployment without routing conflicts
+  7. All pages are responsive and performant (Lighthouse score > 90)
+**Plans**: TBD
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 1.1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
+Phases execute in numeric order: 1 -> 1.1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -171,3 +186,4 @@ Phases execute in numeric order: 1 -> 1.1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 | 6. Post-Call SMS | 0/TBD | Not started | - |
 | 7. Web Dashboard | 0/TBD | Not started | - |
 | 8. Telnyx Missions | 4/5 | Gap closure |  |
+| 9. Frontend Website | 0/TBD | Not started | - |
