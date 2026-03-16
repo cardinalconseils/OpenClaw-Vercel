@@ -340,6 +340,7 @@ describe('handleProviderHangup', () => {
 
 describe('tryNextProvider', () => {
   it('speaks NO_MATCH_MESSAGE and sets stage=complete when index >= MAX_CASCADE_PROVIDERS (4)', async () => {
+    mockGetCall.mockReset();
     mockGetCall.mockReturnValue({
       ...mockState,
       currentProviderIndex: 4,
@@ -348,7 +349,7 @@ describe('tryNextProvider', () => {
 
     await tryNextProvider('user-ccid');
 
-    expect(mockSpeak).toHaveBeenCalledWith('user-ccid', NO_MATCH_MESSAGE);
+    expect(mockSpeak).toHaveBeenCalledWith('user-ccid', expect.objectContaining({ payload: NO_MATCH_MESSAGE }));
     expect(mockUpdateCall).toHaveBeenCalledWith('user-ccid', { stage: 'complete' });
   });
 
@@ -361,7 +362,7 @@ describe('tryNextProvider', () => {
 
     await tryNextProvider('user-ccid');
 
-    expect(mockSpeak).toHaveBeenCalledWith('user-ccid', NO_MATCH_MESSAGE);
+    expect(mockSpeak).toHaveBeenCalledWith('user-ccid', expect.objectContaining({ payload: NO_MATCH_MESSAGE }));
   });
 
   it('dials next provider when index is within bounds', async () => {
@@ -389,7 +390,7 @@ describe('startOutboundCascade', () => {
 
     await startOutboundCascade('user-ccid');
 
-    expect(mockSpeak).toHaveBeenCalledWith('user-ccid', NO_MATCH_MESSAGE);
+    expect(mockSpeak).toHaveBeenCalledWith('user-ccid', expect.objectContaining({ payload: NO_MATCH_MESSAGE }));
     expect(mockUpdateCall).toHaveBeenCalledWith('user-ccid', { stage: 'complete' });
   });
 
@@ -398,7 +399,7 @@ describe('startOutboundCascade', () => {
 
     await startOutboundCascade('user-ccid');
 
-    expect(mockSpeak).toHaveBeenCalledWith('user-ccid', NO_MATCH_MESSAGE);
+    expect(mockSpeak).toHaveBeenCalledWith('user-ccid', expect.objectContaining({ payload: NO_MATCH_MESSAGE }));
     expect(mockUpdateCall).toHaveBeenCalledWith('user-ccid', { stage: 'complete' });
   });
 
