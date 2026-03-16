@@ -316,6 +316,8 @@ describe('POST /webhooks/telnyx', () => {
       consentMethod: undefined,
       silenceNudgeTimer: undefined,
       silenceNudgeCount: 0,
+      providers: [],
+      currentProviderIndex: 0,
     });
 
     const body = makePayload('call.speak.ended');
@@ -345,6 +347,8 @@ describe('POST /webhooks/telnyx', () => {
       consentMethod: undefined,
       silenceNudgeTimer: undefined,
       silenceNudgeCount: 0,
+      providers: [],
+      currentProviderIndex: 0,
     });
 
     const body = makePayload('call.transcription', {
@@ -376,6 +380,8 @@ describe('POST /webhooks/telnyx', () => {
       consentMethod: undefined,
       silenceNudgeTimer: undefined,
       silenceNudgeCount: 0,
+      providers: [],
+      currentProviderIndex: 0,
     });
 
     const body = makePayload('call.transcription', {
@@ -416,6 +422,8 @@ describe('POST /webhooks/telnyx', () => {
       consentMethod: undefined,
       silenceNudgeTimer: undefined,
       silenceNudgeCount: 0,
+      providers: [],
+      currentProviderIndex: 0,
     });
 
     const body = makePayload('call.transcription', {
@@ -451,6 +459,8 @@ describe('POST /webhooks/telnyx', () => {
       consentMethod: undefined,
       silenceNudgeTimer: undefined,
       silenceNudgeCount: 0,
+      providers: [],
+      currentProviderIndex: 0,
     });
     vi.mocked(extractIntent).mockReturnValue({
       serviceType: 'plumber',
@@ -497,6 +507,8 @@ describe('POST /webhooks/telnyx', () => {
       consentMethod: undefined,
       silenceNudgeTimer: undefined,
       silenceNudgeCount: 0,
+      providers: [],
+      currentProviderIndex: 0,
     });
     vi.mocked(isIntentComplete).mockReturnValue(false);
     vi.mocked(shouldAdvancePastClarification).mockReturnValue(false);
@@ -533,6 +545,8 @@ describe('POST /webhooks/telnyx', () => {
       consentMethod: undefined,
       silenceNudgeTimer: undefined,
       silenceNudgeCount: 0,
+      providers: [],
+      currentProviderIndex: 0,
     });
     vi.mocked(isIntentComplete).mockReturnValue(false);
     vi.mocked(shouldAdvancePastClarification).mockReturnValue(false);
@@ -573,6 +587,8 @@ describe('POST /webhooks/telnyx', () => {
       consentMethod: undefined,
       silenceNudgeTimer: undefined,
       silenceNudgeCount: 0,
+      providers: [],
+      currentProviderIndex: 0,
     });
 
     const body = makePayload('call.transcription', {
@@ -613,6 +629,8 @@ describe('POST /webhooks/telnyx', () => {
       consentMethod: undefined,
       silenceNudgeTimer: undefined,
       silenceNudgeCount: 0,
+      providers: [],
+      currentProviderIndex: 0,
     });
 
     const body = makePayload('call.transcription', {
@@ -648,6 +666,8 @@ describe('POST /webhooks/telnyx', () => {
       consentMethod: undefined,
       silenceNudgeTimer: undefined,
       silenceNudgeCount: 0,
+      providers: [],
+      currentProviderIndex: 0,
     });
 
     const body = makePayload('call.transcription', {
@@ -679,6 +699,8 @@ describe('POST /webhooks/telnyx', () => {
       consentMethod: undefined,
       silenceNudgeTimer: undefined,
       silenceNudgeCount: 0,
+      providers: [],
+      currentProviderIndex: 0,
     });
     vi.mocked(isIntentComplete).mockReturnValue(false);
     vi.mocked(shouldAdvancePastClarification).mockReturnValue(true);
@@ -717,6 +739,8 @@ describe('POST /webhooks/telnyx', () => {
       consentMethod: undefined,
       silenceNudgeTimer: undefined,
       silenceNudgeCount: 0,
+      providers: [],
+      currentProviderIndex: 0,
     });
     vi.mocked(isIntentComplete).mockReturnValue(false);
     vi.mocked(shouldAdvancePastClarification).mockReturnValue(true);
@@ -750,6 +774,8 @@ describe('POST /webhooks/telnyx', () => {
       consentMethod: undefined,
       silenceNudgeTimer: undefined,
       silenceNudgeCount: 0,
+      providers: [],
+      currentProviderIndex: 0,
     });
     vi.mocked(isIntentComplete).mockReturnValue(false);
     vi.mocked(shouldAdvancePastClarification).mockReturnValue(true);
@@ -784,6 +810,8 @@ describe('POST /webhooks/telnyx', () => {
       consentMethod: undefined,
       silenceNudgeTimer: undefined,
       silenceNudgeCount: 0,
+      providers: [],
+      currentProviderIndex: 0,
     });
 
     const body = makePayload('call.transcription', {
@@ -818,6 +846,8 @@ describe('POST /webhooks/telnyx', () => {
       consentMethod: undefined,
       silenceNudgeTimer: undefined,
       silenceNudgeCount: 0,
+      providers: [],
+      currentProviderIndex: 0,
     });
 
     const consentBody = makePayload('call.transcription', {
@@ -846,6 +876,8 @@ describe('POST /webhooks/telnyx', () => {
       consentMethod: undefined,
       silenceNudgeTimer: undefined,
       silenceNudgeCount: 0,
+      providers: [],
+      currentProviderIndex: 0,
     });
     vi.mocked(extractIntent).mockReturnValue({
       serviceType: 'plumber',
@@ -888,6 +920,8 @@ describe('POST /webhooks/telnyx', () => {
       consentMethod: undefined,
       silenceNudgeTimer: undefined,
       silenceNudgeCount: 0,
+      providers: [],
+      currentProviderIndex: 0,
     });
     vi.mocked(extractIntent).mockReturnValue({
       serviceType: undefined,
@@ -935,6 +969,8 @@ describe('POST /webhooks/telnyx', () => {
       consentMethod: undefined,
       silenceNudgeTimer: undefined,
       silenceNudgeCount: 0,
+      providers: [],
+      currentProviderIndex: 0,
     });
 
     // Capture the setTimeout callback so we can invoke it manually
@@ -982,6 +1018,8 @@ describe('POST /webhooks/telnyx', () => {
       consentMethod: undefined,
       silenceNudgeTimer: undefined,
       silenceNudgeCount: 0,
+      providers: [],
+      currentProviderIndex: 0,
     });
 
     const body = makePayload('call.hangup');

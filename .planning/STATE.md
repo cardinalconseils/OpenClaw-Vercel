@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Not planned yet
-stopped_at: "Checkpoint: Task 3 human-verify — 03-provider-discovery/03-03-PLAN.md"
-last_updated: "2026-03-16T03:21:13.634Z"
+stopped_at: Completed 03-provider-discovery/03-03-PLAN.md — awaiting human-verify checkpoint for Task 3
+last_updated: "2026-03-16T03:22:39.110Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
   total_phases: 9
@@ -75,6 +75,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 03-provider-discovery P02 | 2min | 1 tasks | 2 files |
 | Phase 03-provider-discovery P01 | 6min | 1 tasks | 4 files |
 | Phase 03-provider-discovery P03 | 4min | 2 tasks | 3 files |
+| Phase 03-provider-discovery P03 | 286s | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -153,6 +154,8 @@ Recent decisions affecting current work:
 - [Phase 03-provider-discovery]: Type-only import of Provider in call-state.ts — no runtime circular dependency
 - [Phase 03-provider-discovery]: webSearchFallback uses two-layer error safety: outer catch for API errors, inner catch for JSON parse failures
 - [Phase 03-provider-discovery]: Stage guard (searching|complete) added at top of call.transcription to prevent re-triggering search
+- [Phase 03-provider-discovery]: stopFillerLoop/searchProviders/narration mocks added to webhook tests — real API dependencies must always be mocked in webhook integration tests
+- [Phase 03-provider-discovery]: _fillerLoops.delete(callControlId) called after stopFillerLoop in all consent handler paths to prevent stale handles on hangup
 
 ### Pending Todos
 
@@ -170,6 +173,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T03:21:13.632Z
-Stopped at: Checkpoint: Task 3 human-verify — 03-provider-discovery/03-03-PLAN.md
+Last session: 2026-03-16T03:22:39.107Z
+Stopped at: Completed 03-provider-discovery/03-03-PLAN.md — awaiting human-verify checkpoint for Task 3
 Resume file: None

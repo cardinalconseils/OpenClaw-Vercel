@@ -76,6 +76,7 @@ Each task was committed atomically:
 
 1. **Task 1: OpenRouter web search fallback in search.ts** - `22f9453` (feat)
 2. **Task 2: Wire search + filler + narration into webhook handler** - `f25cda1` (feat)
+3. **Task 2 (test fix): Update webhook tests for new search + filler flow** - `833e061` (fix)
 
 Task 3 (human-verify: live phone call) — awaiting checkpoint.
 
@@ -83,6 +84,7 @@ Task 3 (human-verify: live phone call) — awaiting checkpoint.
 - `src/lib/tools/handlers/search.ts` - Added `webSearchFallback()`, updated `searchProviders()` to call it on sparse results
 - `src/lib/tools/handlers/search.test.ts` - Added 16 tests for web fallback (webSearchFallback suite + searchProviders web fallback integration suite)
 - `src/api/webhooks.ts` - Added stopFillerLoop/searchProviders/narration imports, stage guard, full search-narrate flow in consent handler
+- `tests/api/webhooks.test.ts` - Added stopFillerLoop/searchProviders/narration mocks, updated Test 23 to match new flow
 
 ## Decisions Made
 - `webSearchFallback` outer try/catch catches API errors (returns `[]`); inner try/catch catches JSON parse failures specifically — two-layer error safety
@@ -95,7 +97,7 @@ Task 3 (human-verify: live phone call) — awaiting checkpoint.
 None - plan executed exactly as written.
 
 ## Issues Encountered
-None — existing webhook tests (345 total across 33 files) all passed without modification. The `searchProviders` call fails silently in test environment (no API key) via the catch block, which is correct behavior.
+After wiring the search + filler + narration flow, `stopFillerLoop` was missing from the filler.js mock in the webhook test file, causing a silent error in the consent handler during tests. Additionally, `searchProviders` and narration functions were not mocked, causing real API calls to fail silently. Fixed by adding proper mocks and updating Test 23 to verify the new behavior (filler stopped by consent handler after search, not by hangup).
 
 ## User Setup Required
 - `GOOGLE_MAPS_API_KEY` must be set to a key with Places API + Geocoding API enabled for search to succeed
@@ -115,5 +117,7 @@ None — existing webhook tests (345 total across 33 files) all passed without m
 - src/lib/tools/handlers/search.ts: FOUND
 - src/lib/tools/handlers/search.test.ts: FOUND
 - src/api/webhooks.ts: FOUND
+- tests/api/webhooks.test.ts: FOUND
 - Commit 22f9453: FOUND
 - Commit f25cda1: FOUND
+- Commit 833e061: FOUND
