@@ -53,8 +53,8 @@ import {
   isIntentComplete,
   getDisambiguationPrompt,
 } from '../../src/lib/ai/intent-extractor.js';
-import { GREETING } from '../../src/lib/voice/greeting.js';
-import { ELEVENLABS_VOICE_STRING, SESSION_PERSIST_MS } from '../../src/lib/voice/voice-config.js';
+import { GREETING_STEP_1 } from '../../src/lib/voice/greeting.js';
+import { SESSION_PERSIST_MS } from '../../src/lib/voice/voice-config.js';
 import { app } from '../../src/server.js';
 
 const mockUnwrap = vi.mocked(telnyxClient.webhooks.unwrap);
@@ -250,8 +250,7 @@ describe('POST /webhooks/telnyx', () => {
     expect(mockActions.speak).toHaveBeenCalledWith(
       'cc-123',
       expect.objectContaining({
-        payload: GREETING.en,
-        voice: ELEVENLABS_VOICE_STRING,
+        payload: GREETING_STEP_1,
       })
     );
   });
@@ -265,6 +264,12 @@ describe('POST /webhooks/telnyx', () => {
       intent: {},
       clarificationTurns: 0,
       startedAt: new Date(),
+      callerName: undefined,
+      smsConsent: undefined,
+      consentTimestamp: undefined,
+      consentMethod: undefined,
+      silenceNudgeTimer: undefined,
+      silenceNudgeCount: 0,
     });
     vi.mocked(extractIntent).mockReturnValue({
       serviceType: 'plumber',
@@ -301,6 +306,12 @@ describe('POST /webhooks/telnyx', () => {
       intent: {},
       clarificationTurns: 0,
       startedAt: new Date(),
+      callerName: undefined,
+      smsConsent: undefined,
+      consentTimestamp: undefined,
+      consentMethod: undefined,
+      silenceNudgeTimer: undefined,
+      silenceNudgeCount: 0,
     });
     vi.mocked(extractIntent).mockReturnValue({
       serviceType: undefined,
@@ -342,6 +353,12 @@ describe('POST /webhooks/telnyx', () => {
       intent: {},
       clarificationTurns: 1,
       startedAt: new Date(),
+      callerName: undefined,
+      smsConsent: undefined,
+      consentTimestamp: undefined,
+      consentMethod: undefined,
+      silenceNudgeTimer: undefined,
+      silenceNudgeCount: 0,
     });
     vi.mocked(extractIntent).mockReturnValue({
       serviceType: undefined,
@@ -378,6 +395,12 @@ describe('POST /webhooks/telnyx', () => {
       intent: {},
       clarificationTurns: 0,
       startedAt: new Date(),
+      callerName: undefined,
+      smsConsent: undefined,
+      consentTimestamp: undefined,
+      consentMethod: undefined,
+      silenceNudgeTimer: undefined,
+      silenceNudgeCount: 0,
     });
     vi.mocked(detectLanguage).mockReturnValue('fr');
     vi.mocked(extractIntent).mockReturnValue({
@@ -417,6 +440,12 @@ describe('POST /webhooks/telnyx', () => {
       intent: {},
       clarificationTurns: 0,
       startedAt: new Date(),
+      callerName: undefined,
+      smsConsent: undefined,
+      consentTimestamp: undefined,
+      consentMethod: undefined,
+      silenceNudgeTimer: undefined,
+      silenceNudgeCount: 0,
     });
 
     // Capture the setTimeout callback so we can invoke it manually
@@ -458,6 +487,12 @@ describe('POST /webhooks/telnyx', () => {
       intent: {},
       clarificationTurns: 0,
       startedAt: new Date(),
+      callerName: undefined,
+      smsConsent: undefined,
+      consentTimestamp: undefined,
+      consentMethod: undefined,
+      silenceNudgeTimer: undefined,
+      silenceNudgeCount: 0,
     });
 
     const body = makePayload('call.hangup');

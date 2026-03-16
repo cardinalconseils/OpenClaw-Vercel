@@ -9,7 +9,7 @@ import {
   detectLanguage,
   shouldAdvancePastClarification,
 } from '../lib/voice/call-state.js';
-import { GREETING } from '../lib/voice/greeting.js';
+import { GREETING_STEP_1 } from '../lib/voice/greeting.js';
 import { getFillerPhrase } from '../lib/voice/filler.js';
 import { ELEVENLABS_VOICE_STRING, SESSION_PERSIST_MS } from '../lib/voice/voice-config.js';
 import { getTelnyxClient } from '../lib/voice/telnyx-client.js';
@@ -66,7 +66,7 @@ webhookRouter.post(
             const from: string = (payload as any).from ?? 'unknown';
             initCall(callControlId, from);
             await getTelnyxClient().calls.actions.speak(callControlId, {
-              payload: GREETING.en,  // Always English on first contact — language detected after first transcript
+              payload: GREETING_STEP_1,  // Always English on first contact — language detected after first transcript
               voice: ELEVENLABS_VOICE_STRING,
             });
             console.log(`[webhooks] Greeting emitted for ${callControlId}`);
