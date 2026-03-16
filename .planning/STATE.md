@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Not planned yet
-stopped_at: Phase 3 context gathered
-last_updated: "2026-03-16T02:42:54.622Z"
+stopped_at: Completed 02-02-PLAN.md
+last_updated: "2026-03-16T02:45:06.175Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
   total_phases: 9
   completed_phases: 3
   total_plans: 15
-  completed_plans: 12
+  completed_plans: 13
   percent: 0
 ---
 
@@ -68,6 +68,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 02-voice-conversation-core P03 | 308s | 2 tasks | 5 files |
 | Phase 02-voice-conversation-core PP03 | 308s | 3 tasks | 5 files |
 | Phase 08-telnyx-missions P05 | 3min | 1 tasks | 2 files |
+| Phase 02-voice-conversation-core P02 | 118s | 1 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -122,6 +123,11 @@ Recent decisions affecting current work:
 - [Phase 02-voice-conversation-core]: setTimeout spy approach used for session persistence test — vi.useFakeTimers can't retroactively control timers registered before switch
 - [Phase 08-telnyx-missions]: Structural test uses __dirname + readFileSync to assert import/await presence — avoids gateway startup, compatible with NodeNext CJS
 - [Phase 08-telnyx-missions]: initMissions() called AFTER gateway health guard, BEFORE startServer() — ensures DB connectivity before mission recovery
+- [Phase 02-voice-conversation-core]: TELNYX_VOICE_STRING = 'Telnyx.KokoroTTS.am_adam' — Telnyx-native KokoroTTS replaces ElevenLabs for telephony TTS
+- [Phase 02-voice-conversation-core]: TWO clarifying questions maximum with broad search + narrate bypass — no hedge phrase per user decision
+- [Phase 02-voice-conversation-core]: Two-step greeting: AI identity first ('Who am I speaking with?'), then name-addressed service question
+- [Phase 02-voice-conversation-core]: TCPA consent requested via SMS recap question before searching — optional, never pressured
+- [Phase 02-voice-conversation-core]: webhooks.ts ELEVENLABS_VOICE_STRING import deferred to Plan 03
 
 ### Pending Todos
 
@@ -139,6 +145,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T02:42:54.619Z
-Stopped at: Phase 3 context gathered
-Resume file: .planning/phases/03-provider-discovery/03-CONTEXT.md
+Last session: 2026-03-16T02:44:57.472Z
+Stopped at: Completed 02-02-PLAN.md
+Resume file: None
