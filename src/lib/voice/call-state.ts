@@ -16,7 +16,7 @@ export interface CallState {
   callControlId: string;
   callerPhone: string;
   language: 'en' | 'fr';
-  stage: 'greeting' | 'name_capture' | 'intake' | 'consent' | 'searching' | 'complete';
+  stage: 'greeting' | 'name_capture' | 'intake' | 'consent' | 'searching' | 'calling' | 'complete';
   intent: Partial<{ serviceType: string; location: string; urgency: string }>;
   clarificationTurns: number;
   startedAt: Date;
@@ -28,6 +28,7 @@ export interface CallState {
   silenceNudgeCount: number;
   providers: Provider[];
   currentProviderIndex: number;
+  providerCallControlId: string | undefined;
 }
 
 const _calls = new Map<string, CallState>();
@@ -53,6 +54,7 @@ export function initCall(callControlId: string, callerPhone: string): CallState 
     silenceNudgeCount: 0,
     providers: [],
     currentProviderIndex: 0,
+    providerCallControlId: undefined,
   };
   _calls.set(callControlId, state);
   return state;
