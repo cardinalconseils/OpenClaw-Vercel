@@ -98,7 +98,7 @@ Plans:
   3. When a provider's line goes to voicemail, agent detects this and automatically moves to the next provider — user hears "They weren't available, trying the next one"
   4. Agent confirms with the provider that they are available for the specific job before declaring a match
   5. After four providers have been tried without a live connection, agent stops dialing and tells the user it has exhausted its list
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 
 Plans:
 - [ ] 04-01-PLAN.md — Outbound-caller module with cascade loop, AMD, narration timer, SMS pre-notification, availability parsing (CALL-01, CALL-02, CALL-03, CALL-04, CALL-05, CALL-06, CALL-07)
@@ -166,7 +166,7 @@ Phases execute in numeric order: 1 -> 1.1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 | 1.1. OpenClaw Agent Setup (INSERTED) | 2/3 | In Progress|  |
 | 2. Voice Conversation Core | 3/3 | Complete    | 2026-03-16 |
 | 3. Provider Discovery | 2/3 | Complete    | 2026-03-16 |
-| 4. Outbound Provider Calling | 0/2 | Planned | - |
+| 4. Outbound Provider Calling | 1/2 | In Progress|  |
 | 5. Live Call Transfer | 0/TBD | Not started | - |
 | 6. Post-Call SMS | 0/TBD | Not started | - |
 | 7. Web Dashboard | 0/TBD | Not started | - |

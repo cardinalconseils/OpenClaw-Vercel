@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Not planned yet
-stopped_at: Completed 03-provider-discovery/03-03-PLAN.md
-last_updated: "2026-03-16T12:46:14.805Z"
+stopped_at: Completed 04-outbound-provider-calling/04-01-PLAN.md
+last_updated: "2026-03-16T19:52:00.210Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
   total_phases: 9
   completed_phases: 5
-  total_plans: 18
-  completed_plans: 18
+  total_plans: 20
+  completed_plans: 19
   percent: 0
 ---
 
@@ -78,6 +78,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 03-provider-discovery P03 | 286s | 2 tasks | 4 files |
 | Phase 03-provider-discovery P03 | 15min | 3 tasks | 4 files |
 | Phase 03-provider-discovery P03 | 15min | 3 tasks | 3 files |
+| Phase 04-outbound-provider-calling P01 | 291s | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -164,6 +165,9 @@ Recent decisions affecting current work:
 - [Phase 03-provider-discovery]: webSearchFallback uses two-layer error safety: outer catch for API errors, inner catch for JSON parse failures
 - [Phase 03-provider-discovery]: Stage guard (searching|complete) added at top of call.transcription to prevent re-triggering search
 - [Phase 03-provider-discovery]: stopFillerLoop/searchProviders/narration mocks added to webhook tests — real API dependencies must always be mocked in webhook integration tests
+- [Phase 04-outbound-provider-calling]: PROVIDER_RING_TIMEOUT_MS=25_000 (25s, ~5 rings) — locked cascade timeout per plan spec
+- [Phase 04-outbound-provider-calling]: AI_INTRO required as first utterance on provider answer — CA SB-1001/FCC automated call disclosure
+- [Phase 04-outbound-provider-calling]: sendProviderSms is non-fatal — SMS failure logs and continues to dial
 
 ### Pending Todos
 
@@ -181,6 +185,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T03:25:25.209Z
-Stopped at: Completed 03-provider-discovery/03-03-PLAN.md
+Last session: 2026-03-16T19:52:00.208Z
+Stopped at: Completed 04-outbound-provider-calling/04-01-PLAN.md
 Resume file: None
