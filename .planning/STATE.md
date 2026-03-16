@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Not planned yet
-stopped_at: Completed 09-frontend-website-01-PLAN.md
-last_updated: "2026-03-16T23:35:06.837Z"
+stopped_at: "Checkpoint 09-02 Task 3: awaiting visual verification of landing page"
+last_updated: "2026-03-16T23:39:54.097Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
   total_phases: 10
   completed_phases: 6
   total_plans: 26
-  completed_plans: 22
+  completed_plans: 23
   percent: 0
 ---
 
@@ -84,6 +84,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 04-outbound-provider-calling PP02 | 193s | 2 tasks | 4 files |
 | Phase 09-frontend-website PP00 | 5min | 2 tasks | 9 files |
 | Phase 09-frontend-website P01 | 338s | 3 tasks | 20 files |
+| Phase 09-frontend-website P02 | 135s | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -189,6 +190,8 @@ Recent decisions affecting current work:
 - [Phase 09-frontend-website]: vercel.json builds+routes replaces catch-all rewrites — Express owns /webhooks/*, /health, /api/*; Next.js catches all other routes
 - [Phase 09-frontend-website]: sonner replaces deprecated toast component in shadcn v4
 - [Phase 09-frontend-website]: turbopack.root set in next.config.ts to resolve dual-lockfile warning from nested frontend/package-lock.json
+- [Phase 09-frontend-website]: NavBar uses plain Next.js Link for Sign In (not Button asChild) — @base-ui/react Button does not support asChild prop
+- [Phase 09-frontend-website]: VoiceWave uses inline <style> tag with @media (prefers-reduced-motion: reduce) — CSS disables animation at browser level
 
 ### Pending Todos
 
@@ -206,6 +209,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T23:35:06.834Z
-Stopped at: Completed 09-frontend-website-01-PLAN.md
+Last session: 2026-03-16T23:39:54.095Z
+Stopped at: Checkpoint 09-02 Task 3: awaiting visual verification of landing page
 Resume file: None
