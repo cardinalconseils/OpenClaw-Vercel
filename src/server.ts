@@ -2,6 +2,7 @@ import express from 'express';
 import { webhookRouter } from './api/webhooks.js';
 import { GatewayManager } from './startup/gateway-manager.js';
 import { startKeepAlive, stopKeepAlive } from './startup/keepalive.js';
+import { initMissions } from './lib/missions/mission-orchestrator.js';
 
 /**
  * Express v5 application instance.
@@ -79,6 +80,10 @@ if (isDirectExecution) {
       console.error('[server] ERROR: Gateway failed to become healthy after 30s — exiting');
       process.exit(1);
     }
+
+    // Initialize mission system — wire callbacks and recover incomplete missions
+    await initMissions();
+    console.log('[server] Mission system initialized');
 
     // Bind Express on port 18790
     const server = startServer();

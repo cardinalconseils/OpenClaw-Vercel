@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
-import { join } from 'path';
+import { resolve } from 'path';
 
 /**
  * Structural tests for src/server.ts — verify mission system wiring exists.
@@ -9,7 +9,7 @@ import { join } from 'path';
  * and call are present. This avoids spinning up the full server/gateway.
  */
 
-const serverSource = readFileSync(join(import.meta.dirname, 'server.ts'), 'utf-8');
+const serverSource = readFileSync(resolve(__dirname, 'server.ts'), 'utf-8');
 
 describe('server.ts — mission system wiring', () => {
   it('imports initMissions from mission-orchestrator', () => {
