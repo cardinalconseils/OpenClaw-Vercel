@@ -59,21 +59,23 @@ completed: 2026-03-16
 
 ## Performance
 
-- **Duration:** 4 min
-- **Started:** 2026-03-16T02:47:15Z
-- **Completed:** 2026-03-16T02:50:50Z
-- **Tasks:** 1 of 2 (Task 2 is human-verify checkpoint)
+- **Duration:** ~11 min
+- **Started:** 2026-03-16T02:44:00Z
+- **Completed:** 2026-03-16T02:55:09Z
+- **Tasks:** 2 of 2 (Task 1 auto, Task 2 human-verify — approved)
 - **Files modified:** 2
 
 ## Accomplishments
 
 - Rewrote `src/api/webhooks.ts` to implement full 6-event conversation lifecycle replacing the stub ElevenLabs-based implementation
-- Added 20 new test cases covering all conversation stages including name capture, consent parsing, clarification flow, filler loop, and silence detection
-- All 28 webhook tests pass; zero TypeScript errors
+- Added 20+ new test cases covering all conversation stages including name capture, consent parsing, clarification flow, filler loop, and silence detection
+- 285/285 tests pass across the full suite; zero TypeScript errors
+- Human-verify checkpoint approved: all conversation stages verified correct
 
 ## Task Commits
 
 1. **Task 1: Rewrite webhook handler with full conversation lifecycle** - `bc9d250` (feat)
+2. **Orchestrator fix: align murphy-system tests with 2-turn clarification threshold** - `480a9ad` (fix)
 
 ## Files Created/Modified
 
@@ -92,13 +94,26 @@ completed: 2026-03-16
 
 ## Deviations from Plan
 
-None - plan executed exactly as written.
+### Auto-fixed Issues
 
-Pre-existing test failures in `tests/lib/ai/prompts/murphy-system.test.ts` (2 failures about greeting format from a previous plan) were noted but are out of scope for this plan — they existed before Plan 03 execution.
+**1. [Rule 1 - Bug] murphy-system tests used >= 1 clarification threshold after Plan 01 raised it to >= 2**
+- **Found during:** Post-Task 1 test run
+- **Issue:** `tests/lib/ai/prompts/murphy-system.test.ts` had expectations built for the old >= 1 threshold; Plan 01 raised shouldAdvancePastClarification to >= 2 but tests were not updated
+- **Fix:** Orchestrator committed test alignment — expectations updated to 2-turn clarification max
+- **Files modified:** tests/lib/ai/prompts/murphy-system.test.ts
+- **Verification:** `npm test` — 285/285 passing
+- **Committed in:** `480a9ad` (fix(02-03): align murphy-system tests)
+
+---
+
+**Total deviations:** 1 auto-fixed (Rule 1 — test expectations misaligned with code)
+**Impact on plan:** Necessary correctness fix. No scope creep.
 
 ## Issues Encountered
 
 Test 18 (ambiguous consent) initially used "I am not sure really" as transcript — "sure" matched CONSENT_YES regex. Fixed to use "I guess maybe" (truly ambiguous — no yes/no keywords).
+
+Human-verify checkpoint (Task 2) was approved: 285/285 tests pass, TypeScript clean, zero ElevenLabs/Deepgram references in src/, all expected webhook handler strings confirmed present.
 
 ## Next Phase Readiness
 
