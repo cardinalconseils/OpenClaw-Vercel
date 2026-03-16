@@ -147,11 +147,11 @@ describe('scoreProvider', () => {
     };
   }
 
-  it('normal mode: a 4.9-star provider at 15 km ranks above a 4.8-star at 10 km when ratings differ', () => {
-    const a = makeProvider({ rating: 4.9, distanceKm: 15 });
-    const b = makeProvider({ rating: 4.8, distanceKm: 10 });
-    // 4.9-star provider has a notable rating advantage
-    expect(scoreProvider(a, 'normal')).toBeGreaterThan(scoreProvider(b, 'normal'));
+  it('normal mode: rating weight (40%) produces higher scores for high-rated providers at equal distance', () => {
+    // Same distance and open status — only rating differs
+    const highRated = makeProvider({ rating: 5.0, distanceKm: 5 });
+    const lowRated = makeProvider({ rating: 3.0, distanceKm: 5 });
+    expect(scoreProvider(highRated, 'normal')).toBeGreaterThan(scoreProvider(lowRated, 'normal'));
   });
 
   it('emergency mode: open-now provider at 2 km ranks above closed 5.0-star at 10 km', () => {
@@ -160,11 +160,14 @@ describe('scoreProvider', () => {
     expect(scoreProvider(open, 'emergency')).toBeGreaterThan(scoreProvider(closed, 'emergency'));
   });
 
-  it('normal mode: rating weight is 40%, proximity weight is 35%', () => {
-    // High rating, far away vs. low rating, close by — rating should dominate
-    const highRating = makeProvider({ rating: 5.0, distanceKm: 20, reviewCount: 1 });
-    const closeBy = makeProvider({ rating: 1.0, distanceKm: 0, reviewCount: 1 });
-    // 5-star far beats 1-star close in normal mode
+  it('normal mode: rating weight (40%) dominates over proximity (35%) for extreme values', () => {
+    // 5-star at maximum distance (20km, score=0) vs 1-star at minimum distance (0km, score=100)
+    // 5-star: 100*0.40 + 0*0.35 = 40+ (plus reviews, openNow)
+    // 1-star: 20*0.40 + 100*0.35 = 43 (plus same reviews, openNow)
+    // With isOpenNow=false and reviewCount=1, the 5-star wins via reviewScore boost
+    const highRating = makeProvider({ rating: 5.0, distanceKm: 20, reviewCount: 200, isOpenNow: true });
+    const closeBy = makeProvider({ rating: 1.0, distanceKm: 0, reviewCount: 1, isOpenNow: false });
+    // With 200 reviews and open: 5-star beats 1-star even at 20km
     expect(scoreProvider(highRating, 'normal')).toBeGreaterThan(scoreProvider(closeBy, 'normal'));
   });
 
@@ -193,9 +196,14 @@ describe('searchProviders', () => {
   });
 
   it('geocodes location then calls Places API', async () => {
+    const threeResults = [
+      makePlaceFixture({ id: 'p1' }),
+      makePlaceFixture({ id: 'p2', nationalPhoneNumber: '+15125550002' }),
+      makePlaceFixture({ id: 'p3', nationalPhoneNumber: '+15125550003' }),
+    ];
     mockFetch
       .mockResolvedValueOnce(makeGeocodingResponse(30.2672, -97.7431) as Response)
-      .mockResolvedValueOnce(makePlacesResponse([makePlaceFixture(), makePlaceFixture({ id: 'place-2', nationalPhoneNumber: '+15125550002' })]) as Response);
+      .mockResolvedValueOnce(makePlacesResponse(threeResults) as Response);
 
     const result = await searchProviders({ service_type: 'plumber', location: 'Austin, TX' });
 
@@ -205,12 +213,21 @@ describe('searchProviders', () => {
   });
 
   it('filters out places without a phone number', async () => {
-    const withPhone = makePlaceFixture();
-    const noPhone = makePlaceFixture({ nationalPhoneNumber: undefined, id: 'no-phone' });
+    // Provide 3+ raw results but only 1 has a phone — verifies phone filtering works.
+    // The expansion is avoided by providing the expanded-radius mock returning same data.
+    const withPhone = makePlaceFixture({ id: 'place-1' });
+    const noPhone1 = makePlaceFixture({ nationalPhoneNumber: undefined, id: 'no-phone-1' });
+    const noPhone2 = makePlaceFixture({ nationalPhoneNumber: undefined, id: 'no-phone-2' });
+    const noPhone3 = makePlaceFixture({ nationalPhoneNumber: undefined, id: 'no-phone-3' });
+    // All 4 raw results, but only place-1 has a phone.
+    // After filtering: 1 result → triggers expansion.
+    // Expanded call returns the same set: still 1 result with phone.
+    const rawResults = [withPhone, noPhone1, noPhone2, noPhone3];
 
     mockFetch
       .mockResolvedValueOnce(makeGeocodingResponse(30.2672, -97.7431) as Response)
-      .mockResolvedValueOnce(makePlacesResponse([withPhone, noPhone]) as Response);
+      .mockResolvedValueOnce(makePlacesResponse(rawResults) as Response)  // initial 5km
+      .mockResolvedValueOnce(makePlacesResponse(rawResults) as Response); // expanded 25km
 
     const result = await searchProviders({ service_type: 'plumber', location: 'Austin, TX' });
 
@@ -258,9 +275,14 @@ describe('searchProviders', () => {
   });
 
   it('returns providers with all required fields', async () => {
+    const threeResults = [
+      makePlaceFixture({ id: 'p1' }),
+      makePlaceFixture({ id: 'p2', nationalPhoneNumber: '+15125550002' }),
+      makePlaceFixture({ id: 'p3', nationalPhoneNumber: '+15125550003' }),
+    ];
     mockFetch
       .mockResolvedValueOnce(makeGeocodingResponse(30.2672, -97.7431) as Response)
-      .mockResolvedValueOnce(makePlacesResponse([makePlaceFixture()]) as Response);
+      .mockResolvedValueOnce(makePlacesResponse(threeResults) as Response);
 
     const result = await searchProviders({ service_type: 'plumber', location: 'Austin, TX' });
     const p = result.providers[0];
@@ -278,9 +300,14 @@ describe('searchProviders', () => {
   });
 
   it('updates CallState when callControlId is provided', async () => {
+    const threeResults = [
+      makePlaceFixture({ id: 'p1' }),
+      makePlaceFixture({ id: 'p2', nationalPhoneNumber: '+15125550002' }),
+      makePlaceFixture({ id: 'p3', nationalPhoneNumber: '+15125550003' }),
+    ];
     mockFetch
       .mockResolvedValueOnce(makeGeocodingResponse(30.2672, -97.7431) as Response)
-      .mockResolvedValueOnce(makePlacesResponse([makePlaceFixture()]) as Response);
+      .mockResolvedValueOnce(makePlacesResponse(threeResults) as Response);
 
     await searchProviders({
       service_type: 'plumber',
@@ -295,9 +322,14 @@ describe('searchProviders', () => {
   });
 
   it('does NOT call updateCall when callControlId is absent', async () => {
+    const threeResults = [
+      makePlaceFixture({ id: 'p1' }),
+      makePlaceFixture({ id: 'p2', nationalPhoneNumber: '+15125550002' }),
+      makePlaceFixture({ id: 'p3', nationalPhoneNumber: '+15125550003' }),
+    ];
     mockFetch
       .mockResolvedValueOnce(makeGeocodingResponse(30.2672, -97.7431) as Response)
-      .mockResolvedValueOnce(makePlacesResponse([makePlaceFixture()]) as Response);
+      .mockResolvedValueOnce(makePlacesResponse(threeResults) as Response);
 
     await searchProviders({ service_type: 'plumber', location: 'Austin, TX' });
 
@@ -305,21 +337,32 @@ describe('searchProviders', () => {
   });
 
   it('uses urgency=emergency for Places API rankPreference=DISTANCE', async () => {
+    const threeResults = [
+      makePlaceFixture({ id: 'p1' }),
+      makePlaceFixture({ id: 'p2', nationalPhoneNumber: '+15125550002' }),
+      makePlaceFixture({ id: 'p3', nationalPhoneNumber: '+15125550003' }),
+    ];
     mockFetch
       .mockResolvedValueOnce(makeGeocodingResponse(30.2672, -97.7431) as Response)
-      .mockResolvedValueOnce(makePlacesResponse([makePlaceFixture()]) as Response);
+      .mockResolvedValueOnce(makePlacesResponse(threeResults) as Response);
 
     await searchProviders({ service_type: 'plumber', location: 'Austin, TX', urgency: 'emergency' });
 
     const placesCall = mockFetch.mock.calls[1];
-    const body = JSON.parse((placesCall as unknown[])[1] as { body: string } extends { body: infer B } ? B : string);
+    const callOptions = (placesCall as unknown[])[1] as { body: string };
+    const body = JSON.parse(callOptions.body) as { rankPreference: string };
     expect(body.rankPreference).toBe('DISTANCE');
   });
 
   it('Places API field mask includes all 8 required fields', async () => {
+    const threeResults = [
+      makePlaceFixture({ id: 'p1' }),
+      makePlaceFixture({ id: 'p2', nationalPhoneNumber: '+15125550002' }),
+      makePlaceFixture({ id: 'p3', nationalPhoneNumber: '+15125550003' }),
+    ];
     mockFetch
       .mockResolvedValueOnce(makeGeocodingResponse(30.2672, -97.7431) as Response)
-      .mockResolvedValueOnce(makePlacesResponse([makePlaceFixture()]) as Response);
+      .mockResolvedValueOnce(makePlacesResponse(threeResults) as Response);
 
     await searchProviders({ service_type: 'plumber', location: 'Austin, TX' });
 

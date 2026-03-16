@@ -8,6 +8,10 @@
  * can persist to DB separately.
  */
 
+// Type-only import to avoid circular dependency with search.ts
+import type { Provider } from '../tools/handlers/search.js';
+export type { Provider };
+
 export interface CallState {
   callControlId: string;
   callerPhone: string;
@@ -22,6 +26,8 @@ export interface CallState {
   consentMethod: 'verbal' | undefined;
   silenceNudgeTimer: ReturnType<typeof setTimeout> | undefined;
   silenceNudgeCount: number;
+  providers: Provider[];
+  currentProviderIndex: number;
 }
 
 const _calls = new Map<string, CallState>();
@@ -45,6 +51,8 @@ export function initCall(callControlId: string, callerPhone: string): CallState 
     consentMethod: undefined,
     silenceNudgeTimer: undefined,
     silenceNudgeCount: 0,
+    providers: [],
+    currentProviderIndex: 0,
   };
   _calls.set(callControlId, state);
   return state;
