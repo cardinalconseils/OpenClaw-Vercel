@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -169,10 +168,7 @@ export default function LoginPage() {
 
       <CardFooter className="justify-center">
         <p className="text-sm text-muted-foreground">
-          Don&apos;t have an account?{' '}
-          <Link href="/signup" className="text-primary hover:text-primary/80 transition-colors">
-            Sign up
-          </Link>
+          Admin access only
         </p>
       </CardFooter>
     </Card>
