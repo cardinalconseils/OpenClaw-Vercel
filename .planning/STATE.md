@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Not planned yet
-stopped_at: Completed 09-frontend-website-02-PLAN.md (checkpoint approved)
-last_updated: "2026-03-16T23:44:20.176Z"
+stopped_at: Completed 09-frontend-website-04-PLAN.md (checkpoint reached — awaiting visual verification)
+last_updated: "2026-03-17T00:34:38.480Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
   total_phases: 10
   completed_phases: 6
   total_plans: 26
-  completed_plans: 24
+  completed_plans: 25
   percent: 0
 ---
 
@@ -87,6 +87,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 09-frontend-website P02 | 135s | 2 tasks | 8 files |
 | Phase 09-frontend-website PP03 | 222s | 2 tasks | 9 files |
 | Phase 09-frontend-website P02 | 135s | 3 tasks | 8 files |
+| Phase 09-frontend-website P04 | 2246s | 2 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -196,6 +197,8 @@ Recent decisions affecting current work:
 - [Phase 09-frontend-website]: VoiceWave uses inline <style> tag with @media (prefers-reduced-motion: reduce) — CSS disables animation at browser level
 - [Phase 09-frontend-website]: base-ui Button uses render prop (not asChild) — Radix-style asChild not available in base-ui 1.x
 - [Phase 09-frontend-website]: Always use getUser() in middleware/server code — never getSession() (Supabase security requirement, validates token with auth server)
+- [Phase 09-frontend-website]: SheetTrigger uses render prop (not asChild) — base-ui 1.x does not support asChild; consistent with other base-ui components in codebase
+- [Phase 09-frontend-website]: MissionsTable Supabase Realtime subscription filtered by user_id=eq.{userId} for row-level security alignment
 
 ### Pending Todos
 
@@ -213,6 +216,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T23:44:20.174Z
-Stopped at: Completed 09-frontend-website-02-PLAN.md (checkpoint approved)
+Last session: 2026-03-17T00:34:38.478Z
+Stopped at: Completed 09-frontend-website-04-PLAN.md (checkpoint reached — awaiting visual verification)
 Resume file: None
