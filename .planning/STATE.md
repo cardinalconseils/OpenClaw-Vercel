@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Not planned yet
-stopped_at: Completed 09-frontend-website-04-PLAN.md (checkpoint reached — awaiting visual verification)
-last_updated: "2026-03-17T00:34:38.480Z"
+stopped_at: Completed 09-04-PLAN.md — dashboard pages with visual verification approved
+last_updated: "2026-03-17T01:42:14.266Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
   total_phases: 10
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 26
-  completed_plans: 25
+  completed_plans: 26
   percent: 0
 ---
 
@@ -88,6 +88,8 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 09-frontend-website PP03 | 222s | 2 tasks | 9 files |
 | Phase 09-frontend-website P02 | 135s | 3 tasks | 8 files |
 | Phase 09-frontend-website P04 | 2246s | 2 tasks | 11 files |
+| Phase 09-frontend-website PP05 | 20min | 3 tasks | 5 files |
+| Phase 09-frontend-website P04 | 2246s | 3 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -199,6 +201,8 @@ Recent decisions affecting current work:
 - [Phase 09-frontend-website]: Always use getUser() in middleware/server code — never getSession() (Supabase security requirement, validates token with auth server)
 - [Phase 09-frontend-website]: SheetTrigger uses render prop (not asChild) — base-ui 1.x does not support asChild; consistent with other base-ui components in codebase
 - [Phase 09-frontend-website]: MissionsTable Supabase Realtime subscription filtered by user_id=eq.{userId} for row-level security alignment
+- [Phase 09-frontend-website]: react-hook-form with zodResolver used for settings forms — eliminates manual error state, integrates with shadcn Form components
+- [Phase 09-frontend-website]: Account deletion defers to server-side admin API; client flow signs out + redirects with ?deleted=true
 
 ### Pending Todos
 
@@ -216,6 +220,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-17T00:34:38.478Z
-Stopped at: Completed 09-frontend-website-04-PLAN.md (checkpoint reached — awaiting visual verification)
+Last session: 2026-03-17T01:42:14.264Z
+Stopped at: Completed 09-04-PLAN.md — dashboard pages with visual verification approved
 Resume file: None
