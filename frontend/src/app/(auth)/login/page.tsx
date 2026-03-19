@@ -15,6 +15,7 @@ import {
   CardDescription,
   CardFooter,
 } from '@/components/ui/card'
+import Link from 'next/link'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -166,9 +167,15 @@ export default function LoginPage() {
         </form>
       </CardContent>
 
-      <CardFooter className="justify-center">
+      <CardFooter className="flex-col gap-2 text-center">
         <p className="text-sm text-muted-foreground">
           Admin access only
+        </p>
+        <p className="text-xs text-muted-foreground">
+          By signing in, you agree to our{' '}
+          <Link href="/terms" className="text-primary hover:underline">Terms of Service</Link>
+          {' '}and{' '}
+          <Link href="/privacy" className="text-primary hover:underline">Privacy Policy</Link>
         </p>
       </CardFooter>
     </Card>
