@@ -55,10 +55,25 @@ export function Footer() {
         </div>
 
         {/* Copyright */}
-        <div className="border-t border-border pt-6">
-          <p className="font-sans text-sm font-normal text-muted-foreground text-center">
+        <div className="border-t border-border pt-6 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-6">
+          <p className="font-sans text-sm font-normal text-muted-foreground">
             &copy; {year} Murphy. All rights reserved.
           </p>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/privacy"
+              className="font-sans text-sm font-normal text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Privacy Policy
+            </Link>
+            <span className="text-muted-foreground/40 text-sm">|</span>
+            <Link
+              href="/terms"
+              className="font-sans text-sm font-normal text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Terms of Service
+            </Link>
+          </div>
         </div>
       </div>
     </footer>
