@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Not planned yet
-stopped_at: "Completed 10-02-PLAN.md (checkpoint: Task 4 awaiting human-verify)"
-last_updated: "2026-03-19T01:46:42.321Z"
+stopped_at: Completed 10-01-PLAN.md
+last_updated: "2026-03-19T01:49:11.000Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
   total_phases: 12
-  completed_phases: 7
+  completed_phases: 8
   total_plans: 28
-  completed_plans: 27
+  completed_plans: 28
   percent: 0
 ---
 
@@ -91,6 +91,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 09-frontend-website PP05 | 20min | 3 tasks | 5 files |
 | Phase 09-frontend-website P04 | 2246s | 3 tasks | 11 files |
 | Phase 10-add-privacy-policy-and-terms-and-conditions-pages P02 | 8min | 3 tasks | 3 files |
+| Phase 10-add-privacy-policy-and-terms-and-conditions-pages P01 | 219s | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -207,6 +208,9 @@ Recent decisions affecting current work:
 - [Phase 10-add-privacy-policy-and-terms-and-conditions-pages]: Footer copyright row uses flex-col sm:flex-row for responsive stacking — legal links inline on desktop, stacked on mobile
 - [Phase 10-add-privacy-policy-and-terms-and-conditions-pages]: Login CardFooter className changed to flex-col gap-2 text-center to stack Admin access only + agreement text vertically
 - [Phase 10-add-privacy-policy-and-terms-and-conditions-pages]: Footer tests use dynamic import pattern matching existing VoiceWave/NavBar test conventions
+- [Phase 10-add-privacy-policy-and-terms-and-conditions-pages]: LegalToc uses IntersectionObserver with rootMargin: '-80px 0px -60% 0px' — top -80px accounts for fixed navbar height
+- [Phase 10-add-privacy-policy-and-terms-and-conditions-pages]: LegalPageLayout is server component wrapping client LegalToc — avoids unnecessary client bundles for static legal content
+- [Phase 10-add-privacy-policy-and-terms-and-conditions-pages]: Mobile ToC uses native HTML details/summary element — no JS required for expand/collapse, accessible by default
 
 ### Pending Todos
 
@@ -226,6 +230,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T01:46:42.318Z
-Stopped at: Completed 10-02-PLAN.md (checkpoint: Task 4 awaiting human-verify)
+Last session: 2026-03-19T01:49:04.802Z
+Stopped at: Completed 10-01-PLAN.md
 Resume file: None
