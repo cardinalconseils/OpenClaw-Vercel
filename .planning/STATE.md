@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Not planned yet
-stopped_at: Completed 10-01-PLAN.md
-last_updated: "2026-03-19T01:49:11.000Z"
+stopped_at: Completed 10-02-PLAN.md
+last_updated: "2026-03-19T02:13:57.609Z"
 last_activity: 2026-03-14 — Roadmap created
 progress:
   total_phases: 12
@@ -92,6 +92,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 09-frontend-website P04 | 2246s | 3 tasks | 11 files |
 | Phase 10-add-privacy-policy-and-terms-and-conditions-pages P02 | 8min | 3 tasks | 3 files |
 | Phase 10-add-privacy-policy-and-terms-and-conditions-pages P01 | 219s | 3 tasks | 4 files |
+| Phase 10-add-privacy-policy-and-terms-and-conditions-pages P02 | 8min | 4 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -211,6 +212,9 @@ Recent decisions affecting current work:
 - [Phase 10-add-privacy-policy-and-terms-and-conditions-pages]: LegalToc uses IntersectionObserver with rootMargin: '-80px 0px -60% 0px' — top -80px accounts for fixed navbar height
 - [Phase 10-add-privacy-policy-and-terms-and-conditions-pages]: LegalPageLayout is server component wrapping client LegalToc — avoids unnecessary client bundles for static legal content
 - [Phase 10-add-privacy-policy-and-terms-and-conditions-pages]: Mobile ToC uses native HTML details/summary element — no JS required for expand/collapse, accessible by default
+- [Phase 10-add-privacy-policy-and-terms-and-conditions-pages]: Footer copyright row uses flex-col sm:flex-row for responsive stacking — legal links inline on desktop, stacked on mobile
+- [Phase 10-add-privacy-policy-and-terms-and-conditions-pages]: Login CardFooter className changed to flex-col gap-2 text-center to stack Admin access only + agreement text vertically
+- [Phase 10-add-privacy-policy-and-terms-and-conditions-pages]: Footer tests use dynamic import pattern matching existing VoiceWave/NavBar test conventions
 
 ### Pending Todos
 
@@ -230,6 +234,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T01:49:04.802Z
-Stopped at: Completed 10-01-PLAN.md
+Last session: 2026-03-19T02:13:57.606Z
+Stopped at: Completed 10-02-PLAN.md
 Resume file: None
