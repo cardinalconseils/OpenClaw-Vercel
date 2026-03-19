@@ -183,7 +183,7 @@ Plans:
 **Goal:** Privacy Policy and Terms of Service pages at /privacy and /terms with comprehensive legal content covering CCPA, PIPEDA, TCPA, CAN-SPAM, and AI disclosure (CA SB-1001), integrated into the footer and login page navigation
 **Requirements**: LEGAL-01, LEGAL-02, LEGAL-03, LEGAL-04, LEGAL-05, LEGAL-06
 **Depends on:** Phase 9
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 
 Plans:
 - [ ] 10-01-PLAN.md — Legal page layout components, Privacy Policy page, Terms of Service page (LEGAL-01, LEGAL-02, LEGAL-03, LEGAL-04)
@@ -206,7 +206,7 @@ Phases execute in numeric order: 1 -> 1.1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 
 | 7. Web Dashboard | 0/TBD | Not started | - |
 | 8. Telnyx Missions | 4/5 | Gap closure |  |
 | 9. Frontend Website | 5/6 | In Progress|  |
-| 10. Privacy & Terms Pages | 0/2 | Not started | - |
+| 10. Privacy & Terms Pages | 1/2 | In Progress|  |
 
 ### Phase 11: Fix Murphy phone number 18888306873 Telnyx redirect configuration
 
