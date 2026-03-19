@@ -81,6 +81,15 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **MISSION-05**: Agent captures results and conversation insights from each mission event automatically
 - [x] **MISSION-06**: Agent handles batch operations with automatic scheduling and throttling (rate limiting)
 
+### Legal Pages
+
+- [ ] **LEGAL-01**: Privacy Policy page at /privacy with comprehensive coverage of CCPA, PIPEDA, TCPA, CAN-SPAM
+- [ ] **LEGAL-02**: Terms of Service page at /terms with prominent AI disclosure referencing CA SB-1001
+- [ ] **LEGAL-03**: Both legal pages disclose all third-party services (Telnyx, Supabase, Google Places, OpenRouter/Anthropic, BuyMeACoffee, Vercel)
+- [ ] **LEGAL-04**: Legal pages have sticky table of contents sidebar on desktop and collapsible ToC on mobile
+- [ ] **LEGAL-05**: Footer contains Privacy Policy and Terms of Service links in the copyright row
+- [ ] **LEGAL-06**: Login page displays Terms/Privacy agreement text with links
+
 ## v2 Requirements
 
 Deferred to future release. Tracked but not in current roadmap.
@@ -172,12 +181,18 @@ Which phases cover which requirements. Updated during roadmap creation.
 | WEB-05 | Phase 9 | Complete |
 | WEB-06 | Phase 9 | Complete |
 | WEB-07 | Phase 9 | Complete |
+| LEGAL-01 | Phase 10 | Pending |
+| LEGAL-02 | Phase 10 | Pending |
+| LEGAL-03 | Phase 10 | Pending |
+| LEGAL-04 | Phase 10 | Pending |
+| LEGAL-05 | Phase 10 | Pending |
+| LEGAL-06 | Phase 10 | Pending |
 
 **Coverage:**
-- v1 requirements: 47 total
-- Mapped to phases: 47
+- v1 requirements: 53 total
+- Mapped to phases: 53
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-14*
-*Last updated: 2026-03-14 after roadmap creation*
+*Last updated: 2026-03-18 after Phase 10 planning*
