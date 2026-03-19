@@ -207,13 +207,14 @@ Phases execute in numeric order: 1 -> 1.1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 
 | 8. Telnyx Missions | 4/5 | Gap closure |  |
 | 9. Frontend Website | 5/6 | In Progress|  |
 | 10. Privacy & Terms Pages | 2/2 | Complete    | 2026-03-19 |
+| 11. Fix Murphy Phone Routing | 0/1 | Planned | - |
 
 ### Phase 11: Fix Murphy phone number 18888306873 Telnyx redirect configuration
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** Diagnose and fix inbound call routing so calls to +18888306873 are answered by the Express webhook handler, by verifying TELNYX_PUBLIC_KEY in Vercel production and hardening the webhook signature verification middleware
+**Requirements**: FIX-01, FIX-02
 **Depends on:** Phase 10
-**Plans:** 0 plans
+**Plans:** 1 plan
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 11 to break down)
+- [ ] 11-01-PLAN.md — Diagnose env var mismatch, harden webhook verifier, redeploy, live call verification (FIX-01, FIX-02)
