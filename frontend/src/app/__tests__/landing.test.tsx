@@ -77,4 +77,20 @@ describe('Landing Page (WEB-01)', () => {
       expect(styleEl!.textContent).toContain('prefers-reduced-motion')
     })
   })
+
+  describe('Footer', () => {
+    it('renders Privacy Policy link pointing to /privacy', async () => {
+      const { Footer } = await import('@/components/landing/footer')
+      render(<Footer />)
+      const privacyLink = screen.getByRole('link', { name: /privacy policy/i })
+      expect(privacyLink.getAttribute('href')).toBe('/privacy')
+    })
+
+    it('renders Terms of Service link pointing to /terms', async () => {
+      const { Footer } = await import('@/components/landing/footer')
+      render(<Footer />)
+      const termsLink = screen.getByRole('link', { name: /terms of service/i })
+      expect(termsLink.getAttribute('href')).toBe('/terms')
+    })
+  })
 })
