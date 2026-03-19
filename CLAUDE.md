@@ -19,8 +19,22 @@ AI-powered phone concierge that finds and connects callers with local service pr
 | **Search** | Google Maps/Places API | Provider discovery |
 | **Database** | Supabase (PostgreSQL) | Data persistence |
 | **Deployment** | Vercel Sandbox | Isolated MicroVM, port 18789 |
+| **Web Framework** | Express 5 | API routing |
+| **Validation** | Zod 4 | Schema validation |
+| **Testing** | Vitest + supertest | Unit & integration tests |
 | **Monetization** | BuyMeACoffee | Tip link via SMS |
 | **Observability** | LangSmith | LLM tracing |
+
+---
+
+## Quick Reference
+
+| Command | Description |
+|---------|-------------|
+| `npm test` | Run tests (Vitest) |
+| `npm run test:watch` | Run tests in watch mode |
+| `npm run build` | Compile TypeScript |
+| `npm run typecheck` | Type-check without emitting |
 
 ---
 
@@ -181,11 +195,14 @@ Domain expertise in `.claude/skills/`:
 │
 ├── src/                         # Source code
 │   ├── api/                     # API routes
+│   │   └── webhooks.ts          # Telnyx webhook handler (single entry point)
 │   ├── lib/                     # Core libraries
-│   │   ├── voice/               # Voice pipeline (Telnyx)
-│   │   ├── state/               # Call state machine
 │   │   ├── ai/                  # LLM orchestrator
-│   │   └── tools/               # Tool registry
+│   │   ├── db/                  # Database (Supabase client, missions repo)
+│   │   ├── missions/            # Mission engine, planner, orchestrator, scheduler, reporter
+│   │   ├── state/               # Call state machine
+│   │   ├── tools/               # Tool registry
+│   │   └── voice/               # Voice pipeline (Telnyx, outbound caller)
 │   └── types/                   # Type definitions
 │
 ├── tests/                       # Test suites
@@ -206,6 +223,7 @@ Domain expertise in `.claude/skills/`:
 
 ### Rules
 
+- Test framework: Vitest + supertest for HTTP
 - Keep files under 300 lines
 - Co-locate tests (`*.test.ts` alongside `*.ts`)
 - Use typed errors and Result types for recoverable errors
