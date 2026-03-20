@@ -90,6 +90,11 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **LEGAL-05**: Footer contains Privacy Policy and Terms of Service links in the copyright row
 - [x] **LEGAL-06**: Login page displays Terms/Privacy agreement text with links
 
+### Bug Fixes
+
+- [ ] **FIX-01**: TELNYX_PUBLIC_KEY in Vercel production matches the canonical value from Telnyx API
+- [ ] **FIX-02**: Webhook signature verifier handles pre-parsed request bodies without producing "[object Object]"
+
 ## v2 Requirements
 
 Deferred to future release. Tracked but not in current roadmap.
@@ -187,12 +192,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | LEGAL-04 | Phase 10 | Complete |
 | LEGAL-05 | Phase 10 | Complete |
 | LEGAL-06 | Phase 10 | Complete |
+| FIX-01 | Phase 11 | Pending |
+| FIX-02 | Phase 11 | Pending |
 
 **Coverage:**
-- v1 requirements: 53 total
-- Mapped to phases: 53
+- v1 requirements: 55 total
+- Mapped to phases: 55
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-14*
-*Last updated: 2026-03-18 after Phase 10 planning*
+*Last updated: 2026-03-19 after Phase 11 planning*

@@ -1,4 +1,5 @@
 import express from 'express';
+import { createProxyMiddleware } from 'http-proxy-middleware';
 import { webhookRouter } from './api/webhooks.js';
 import { GatewayManager } from './startup/gateway-manager.js';
 import { startKeepAlive, stopKeepAlive } from './startup/keepalive.js';
@@ -17,18 +18,6 @@ export default app;
 
 // --- Routes ---
 
-/** Root endpoint — basic service info */
-app.get('/', (_req, res) => {
-  res.status(200).json({
-    service: 'OpenClaw Service Matchmaker',
-    status: 'ok',
-    endpoints: {
-      health: '/health',
-      webhooks: '/webhooks/telnyx',
-    },
-  });
-});
-
 /** Health endpoint — used by keep-alive and webhook URL self-test */
 app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok' });
@@ -36,6 +25,30 @@ app.get('/health', (_req, res) => {
 
 /** Telnyx Call Control v2 webhook handler */
 app.use('/webhooks/telnyx', webhookRouter);
+
+/**
+ * Proxy all remaining requests to the Next.js frontend (port 3000).
+ * Only active in Sandbox mode where both Express and Next.js run on the same VM.
+ * In Vercel serverless mode, routing is handled by vercel.json.
+ */
+if (process.env.SANDBOX_URL) {
+  app.use(
+    '/',
+    createProxyMiddleware({
+      target: 'http://127.0.0.1:3000',
+      changeOrigin: true,
+      on: {
+        error: (err, _req, res) => {
+          console.error('[server] Frontend proxy error:', (err as Error).message);
+          if ('writeHead' in res && typeof res.writeHead === 'function') {
+            (res as any).writeHead(502, { 'Content-Type': 'application/json' });
+            (res as any).end(JSON.stringify({ error: 'Frontend unavailable' }));
+          }
+        },
+      },
+    }),
+  );
+}
 
 // --- Server startup ---
 
