@@ -41,9 +41,9 @@ Eliminate the tedious multi-call search for local service providers — one phon
 
 ## Context
 
-- **Platform:** OpenClaw AI agent framework deployed on Vercel Sandbox
+- **Platform:** OpenClaw AI agent framework deployed on Railway
 - **Voice/SMS:** Telnyx Call Control v2 via ClawdTalk or OpenClaw voice-call plugin
-- **Deployment:** Vercel Sandbox (isolated Linux MicroVM, port 18789, HTTPS)
+- **Deployment:** Railway (custom Node.js server with Next.js standalone + admin proxy)
 - **Search:** Google Maps/Places API for business listings + web search for supplementary results
 - **Monetization:** BuyMeACoffee tip link sent via SMS after successful connections
 - **Location:** Works for any location the user specifies (not geo-restricted)
