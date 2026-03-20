@@ -196,10 +196,10 @@ Plans:
 **Goal:** Route Canadian callers to Murphy through ClawdTalk by forwarding +18888306873 → +18885440160, and fix SMS delivery through the ClawdTalk path (sessions_send tool + gateway allowlist)
 **Requirements**: FIX-01, FIX-02
 **Depends on:** Phase 10
-**Plans:** Needs replanning (context updated 2026-03-20)
+**Plans:** 1 plan
 
 Plans:
-- [ ] 11-01-PLAN.md — (stale — needs replan to reflect ClawdTalk approach)
+- [ ] 11-01-PLAN.md — Telnyx call forwarding, ClawdTalk SMS allowlist, env var verification, webhook hardening (FIX-01, FIX-02)
 
 ## Progress
 
