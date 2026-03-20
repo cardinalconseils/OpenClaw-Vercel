@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('../../missions/mission-engine.js', () => ({
   missionEngine: {
@@ -56,13 +56,24 @@ function makeMission(overrides: Record<string, unknown> = {}) {
 }
 
 describe('createMissionHandler', () => {
+  const originalAdminUserId = process.env.ADMIN_USER_ID;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.ADMIN_USER_ID = 'admin-uuid-123';
     mockEngine.create.mockResolvedValue('mission-123');
     mockEngine.plan.mockResolvedValue(makePlannedSteps());
     mockEngine.start.mockResolvedValue(undefined);
     mockGetMissionEvents.mockResolvedValue(makePlannedSteps());
     mockScheduler.enqueue.mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    if (originalAdminUserId !== undefined) {
+      process.env.ADMIN_USER_ID = originalAdminUserId;
+    } else {
+      delete process.env.ADMIN_USER_ID;
+    }
   });
 
   it('creates and starts mission via engine in order', async () => {
@@ -77,7 +88,13 @@ describe('createMissionHandler', () => {
     expect(mockEngine.create).toHaveBeenCalledWith('user-42', 'sms', 'Find plumbers');
   });
 
-  it('defaults channel to voice when not provided', async () => {
+  it('defaults channel to voice and userId to ADMIN_USER_ID when not provided', async () => {
+    await createMissionHandler({ description: 'Find plumbers' });
+    expect(mockEngine.create).toHaveBeenCalledWith('admin-uuid-123', 'voice', 'Find plumbers');
+  });
+
+  it('falls back to unknown when ADMIN_USER_ID is not set', async () => {
+    delete process.env.ADMIN_USER_ID;
     await createMissionHandler({ description: 'Find plumbers' });
     expect(mockEngine.create).toHaveBeenCalledWith('unknown', 'voice', 'Find plumbers');
   });

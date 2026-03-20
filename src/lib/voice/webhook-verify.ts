@@ -30,7 +30,13 @@ export async function telnyxWebhookVerifier(
   res: Response,
   next: NextFunction
 ): Promise<void> {
-  const rawBody = req.body instanceof Buffer ? req.body.toString('utf8') : String(req.body ?? '');
+  const rawBody = req.body instanceof Buffer
+    ? req.body.toString('utf8')
+    : typeof req.body === 'string'
+      ? req.body
+      : typeof req.body === 'object' && req.body !== null
+        ? JSON.stringify(req.body)
+        : String(req.body ?? '');
   const publicKey = process.env.TELNYX_PUBLIC_KEY;
 
   if (!publicKey) {
