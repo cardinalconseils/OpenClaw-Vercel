@@ -1,0 +1,35 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "file=\"$CLAUDE_FILE_PATH\"; ext=\"${file##*.}\"; if [ \"$ext\" = \"ts\" ] || [ \"$ext\" = \"tsx\" ] || [ \"$ext\" = \"js\" ] || [ \"$ext\" = \"jsx\" ]; then npx next lint --fix --file \"$file\" 2>/dev/null || true; fi"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"$CLAUDE_FILE_PATH\" | grep -qE '\\.(env|lock)$|^\\.env' && echo 'BLOCK: Cannot edit .env or lock files — these are protected.' && exit 1 || exit 0"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "file=\"$CLAUDE_FILE_PATH\"; if echo \"$file\" | grep -qE '(app/\\(dashboard\\)|app/\\(auth\\)/callback|lib/supabase/server)' && grep -q 'supabase/client' \"$file\" 2>/dev/null; then echo 'BLOCK: Server file imports @/lib/supabase/client — use @/lib/supabase/server (createServerSupabaseClient) instead.' && exit 1; fi; exit 0"
+          }
+        ]
+      }
+    ]
+  }
+}
