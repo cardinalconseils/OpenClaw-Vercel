@@ -65,7 +65,7 @@ export interface Mission {
 }
 
 // ---------------------------------------------------------------------------
-// Call history type (new — for the dashboard, shaped for DB rows)
+// Call history type (shaped for DB rows)
 // ---------------------------------------------------------------------------
 
 export interface CallHistoryRecord {
