@@ -95,6 +95,15 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **FIX-01**: TELNYX_PUBLIC_KEY in Vercel production matches the canonical value from Telnyx API
 - [ ] **FIX-02**: Webhook signature verifier handles pre-parsed request bodies without producing "[object Object]"
 
+### Migration & Admin
+
+- [ ] **MIGRATE-01**: Remove Vercel Sandbox configuration (vercel.json, turbopack root workaround)
+- [ ] **MIGRATE-02**: Configure Next.js for Railway standalone build with custom server
+- [ ] **MIGRATE-03**: Create custom server with HTTP + WebSocket proxy for /admin to OpenClaw Control UI
+- [ ] **MIGRATE-04**: Add admin RBAC to middleware (user_metadata.role='admin' check on /admin/* routes)
+- [ ] **MIGRATE-05**: Remove /dashboard route group and all dashboard placeholder components
+- [ ] **MIGRATE-06**: Update navigation links and auth callback redirect (no more /dashboard references)
+
 ## v2 Requirements
 
 Deferred to future release. Tracked but not in current roadmap.
@@ -194,12 +203,18 @@ Which phases cover which requirements. Updated during roadmap creation.
 | LEGAL-06 | Phase 10 | Complete |
 | FIX-01 | Phase 11 | Pending |
 | FIX-02 | Phase 11 | Pending |
+| MIGRATE-01 | Phase 12 | Pending |
+| MIGRATE-02 | Phase 12 | Pending |
+| MIGRATE-03 | Phase 12 | Pending |
+| MIGRATE-04 | Phase 12 | Pending |
+| MIGRATE-05 | Phase 12 | Pending |
+| MIGRATE-06 | Phase 12 | Pending |
 
 **Coverage:**
-- v1 requirements: 55 total
-- Mapped to phases: 55
+- v1 requirements: 61 total
+- Mapped to phases: 61
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-14*
-*Last updated: 2026-03-19 after Phase 11 planning*
+*Last updated: 2026-03-20 after Phase 12 planning*
