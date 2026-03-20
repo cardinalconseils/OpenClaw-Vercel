@@ -220,14 +220,14 @@ Phases execute in numeric order: 1 -> 1.1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 
 | 9. Frontend Website | 6/6 | Complete | 2026-03-18 |
 | 10. Privacy & Terms Pages | 2/2 | Complete | 2026-03-19 |
 | 11. Fix Murphy Phone Routing | 0/1 | In Progress | - |
-| 12. Migrate to Railway + Admin Auth | 0/3 | In Progress | - |
+| 12. Migrate to Railway + Admin Auth | 2/3 | In Progress|  |
 
 ### Phase 12: Migrate OpenClaw to Railway with /admin Auth System
 
 **Goal:** Deploy OpenClaw on Railway using the official template, move the Next.js frontend from Vercel to Railway, proxy OpenClaw's built-in Control UI at /admin behind Supabase admin-only auth, remove Vercel Sandbox and dashboard placeholder, and configure standalone Next.js build with custom server for WebSocket proxy
 **Requirements**: MIGRATE-01, MIGRATE-02, MIGRATE-03, MIGRATE-04, MIGRATE-05, MIGRATE-06
 **Depends on:** Phase 11
-**Plans:** 3 plans
+**Plans:** 2/3 plans executed
 
 Plans:
 - [ ] 12-01-PLAN.md — Admin RBAC middleware with tests (MIGRATE-04)

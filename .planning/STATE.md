@@ -2,16 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Not planned yet
-stopped_at: Phase 12 context gathered
-last_updated: "2026-03-20T18:37:12.836Z"
-last_activity: 2026-03-14 — Roadmap created
+status: unknown
+stopped_at: Completed 12-02-PLAN.md
+last_updated: "2026-03-20T19:51:53.653Z"
 progress:
   total_phases: 13
   completed_phases: 8
-  total_plans: 29
-  completed_plans: 28
-  percent: 0
+  total_plans: 32
+  completed_plans: 30
 ---
 
 # Project State
@@ -21,16 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-14)
 
 **Core value:** One phone call replaces five — user describes what they need, agent finds a provider, calls them, and patches the user through live
-**Current focus:** Phase 1.1 — OpenClaw Agent Setup
+**Current focus:** Phase 12 — migrate-openclaw-instance-to-vercel-with-admin-auth-system
 
 ## Current Position
 
-Phase: 1.1 of 8 (OpenClaw Agent Setup)
-Plan: 0 of TBD in current phase
-Status: Not planned yet
-Last activity: 2026-03-14 — Roadmap created
-
-Progress: [░░░░░░░░░░] 0%
+Phase: 12 (migrate-openclaw-instance-to-vercel-with-admin-auth-system) — EXECUTING
+Plan: 2 of 3
 
 ## Performance Metrics
 
@@ -95,6 +89,8 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 10-add-privacy-policy-and-terms-and-conditions-pages P02 | 8min | 3 tasks | 3 files |
 | Phase 10-add-privacy-policy-and-terms-and-conditions-pages P01 | 219s | 3 tasks | 4 files |
 | Phase 10-add-privacy-policy-and-terms-and-conditions-pages P02 | 8min | 4 tasks | 3 files |
+| Phase 12-migrate-openclaw-instance-to-vercel-with-admin-auth-system P01 | 1min | 1 tasks | 3 files |
+| Phase 12-migrate-openclaw-instance-to-vercel-with-admin-auth-system P02 | 4min | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -217,6 +213,10 @@ Recent decisions affecting current work:
 - [Phase 10-add-privacy-policy-and-terms-and-conditions-pages]: Footer copyright row uses flex-col sm:flex-row for responsive stacking — legal links inline on desktop, stacked on mobile
 - [Phase 10-add-privacy-policy-and-terms-and-conditions-pages]: Login CardFooter className changed to flex-col gap-2 text-center to stack Admin access only + agreement text vertically
 - [Phase 10-add-privacy-policy-and-terms-and-conditions-pages]: Footer tests use dynamic import pattern matching existing VoiceWave/NavBar test conventions
+- [Phase 12-migrate-openclaw-instance-to-vercel-with-admin-auth-system]: Admin RBAC uses user_metadata.role per locked decision — note: user_metadata is user-modifiable; migrate to app_metadata in a future hardening phase
+- [Phase 12-migrate-openclaw-instance-to-vercel-with-admin-auth-system]: navbar.tsx: navLinks array removed entirely; Sign In link retained as sole nav item
+- [Phase 12-migrate-openclaw-instance-to-vercel-with-admin-auth-system]: middleware.ts: /admin RBAC guard checks user_metadata.role === 'admin'; silently redirects non-admins to /
+- [Phase 12-migrate-openclaw-instance-to-vercel-with-admin-auth-system]: vitest.config.ts: setupFiles changed to path.resolve to fix wrong parent-project root resolution
 
 ### Pending Todos
 
@@ -237,6 +237,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-20T18:37:12.834Z
-Stopped at: Phase 12 context gathered
-Resume file: .planning/phases/12-migrate-openclaw-instance-to-vercel-with-admin-auth-system/12-CONTEXT.md
+Last session: 2026-03-20T19:51:53.651Z
+Stopped at: Completed 12-02-PLAN.md
+Resume file: None
