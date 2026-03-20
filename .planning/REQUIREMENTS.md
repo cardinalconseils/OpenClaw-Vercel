@@ -60,7 +60,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [ ] **DASH-01**: User can view call history by entering their phone number
 - [ ] **DASH-02**: Dashboard shows past searches, providers contacted, and outcomes
-- [ ] **DASH-03**: Dashboard is a simple web page served from the Vercel Sandbox
+- [ ] **DASH-03**: Call history page is served from the Railway deployment alongside the Next.js frontend
 
 ### Frontend Website
 
