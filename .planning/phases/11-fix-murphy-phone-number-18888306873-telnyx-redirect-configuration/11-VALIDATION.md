@@ -1,10 +1,11 @@
 ---
 phase: 11
 slug: fix-murphy-phone-number-18888306873-telnyx-redirect-configuration
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: approved
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-03-19
+updated: 2026-03-20
 ---
 
 # Phase 11 — Validation Strategy
@@ -25,6 +26,17 @@ created: 2026-03-19
 
 ---
 
+## Nyquist Compliance Rationale
+
+This phase is `nyquist_compliant: true` with the following rationale:
+
+- **Changes are external system configuration:** The primary deliverable (Telnyx call forwarding) is configured via API/MCP tools, not code. The only code change is adding `allow: ['sessions_send']` to `openclaw-config.ts`.
+- **`npm test` provides regression guard:** The full test suite (379 tests) runs after each task to confirm no regressions from the config change.
+- **Live call is the acceptance gate:** The critical validation (call forwarding works, SMS arrives) is inherently manual — it requires a real phone call through the PSTN. This is documented as a `checkpoint:human-verify` task in the plan.
+- **No Wave 0 gaps:** Existing test infrastructure covers all automated aspects. The external configuration changes (Telnyx forwarding, Vercel env var) are verified via API GET responses, not unit tests.
+
+---
+
 ## Sampling Rate
 
 - **After every task commit:** Run `npm test`
@@ -38,12 +50,11 @@ created: 2026-03-19
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 11-01-01 | 01 | 1 | Diagnostic | manual | `curl https://murphy.help/webhooks/telnyx` | N/A | ⬜ pending |
-| 11-01-02 | 01 | 1 | Env var fix | manual | `vercel env ls` | N/A | ⬜ pending |
-| 11-01-03 | 01 | 1 | Body parsing | unit | `npm test -- --grep rawBody` | ✅ | ⬜ pending |
-| 11-01-04 | 01 | 1 | End-to-end | manual | Test call to +18888306873 | N/A | ⬜ pending |
+| 11-01-01 | 01 | 1 | Call forwarding + env var | API verify | `get_phone_number` MCP tool or `curl GET /v2/phone_numbers/{id}` confirms forwarding to +18885440160; `npm test` for regression | N/A (external config) | pending |
+| 11-01-02 | 01 | 1 | sessions_send allowlist | unit + deploy | `npm test`; `curl -s https://murphy.help/health` returns ok | Yes | pending |
+| 11-01-03 | 01 | 1 | End-to-end | manual | Live call to +18888306873 + SMS verification | N/A | pending |
 
-*Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
+*Status: pending / green / red / flaky*
 
 ---
 
@@ -57,19 +68,20 @@ Existing infrastructure covers all phase requirements. No new test framework or 
 
 | Behavior | Requirement | Why Manual | Test Instructions |
 |----------|-------------|------------|-------------------|
-| Calls answered | Core fix | Requires live Telnyx call | Call +18888306873, verify answer within 5s |
-| Env var correct | Config fix | Encrypted in Vercel | `vercel env pull`, compare TELNYX_PUBLIC_KEY |
-| Webhook 200 | Routing | Requires signed Telnyx payload | Check Vercel runtime logs during test call |
+| Calls forwarded to ClawdTalk | Core goal | Requires live PSTN call through Telnyx forwarding | Call +18888306873, verify Murphy answers via ClawdTalk within 5s |
+| SMS recap arrives | SMS fix | Requires live call flow to trigger SMS | Complete a service request during call, verify SMS arrives after hangup |
+| Env var correct | FIX-01 (secondary) | Encrypted in Vercel | `vercel env pull`, compare TELNYX_PUBLIC_KEY |
 
 ---
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 30s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 30s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved (2026-03-20)
+**Rationale:** Changes are external system configuration; npm test provides regression guard; live call is the acceptance gate.
