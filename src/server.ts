@@ -27,6 +27,25 @@ app.get('/health', (_req, res) => {
 app.use('/webhooks/telnyx', webhookRouter);
 
 /**
+ * TeXML forward endpoint — returns a Telnyx TeXML response that dials the ClawdTalk
+ * dedicated number (+18885440160). Used by the "OpenClaw Canadian Forward" TeXML
+ * application assigned to the Canadian toll-free number +18888306873.
+ *
+ * Telnyx GETs this URL when a call arrives on +18888306873, then executes the TeXML
+ * instructions (dial +18885440160 = ClawdTalk). This achieves Telnyx-level call
+ * forwarding without webhook signature verification overhead.
+ *
+ * Route: GET /webhooks/telnyx/forward
+ * No auth required — Telnyx fetches this URL directly.
+ */
+app.get('/webhooks/telnyx/forward', (_req, res) => {
+  res.set('Content-Type', 'application/xml');
+  res.send(
+    `<?xml version="1.0" encoding="UTF-8"?>\n<Response>\n  <Dial>+18885440160</Dial>\n</Response>`,
+  );
+});
+
+/**
  * Proxy all remaining requests to the Next.js frontend (port 3000).
  * Only active in Sandbox mode where both Express and Next.js run on the same VM.
  * In Vercel serverless mode, routing is handled by vercel.json.
