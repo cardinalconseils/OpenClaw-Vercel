@@ -23,7 +23,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 8: Telnyx Missions** - Create and execute batch missions (multi-call campaigns, SMS surveys, provider research) via natural language through any connected channel (completed 2026-03-16)
 - [x] **Phase 9: Frontend Website** - Next.js SaaS frontend with dark modern landing page, Supabase Auth, authenticated dashboard (call history, missions, analytics), settings, and billing (completed 2026-03-18)
 - [x] **Phase 10: Privacy & Terms Pages** - Privacy Policy and Terms of Service pages with legal compliance content (completed 2026-03-19)
-- [ ] **Phase 11: Fix Murphy Phone Routing** - Forward +18888306873 → ClawdTalk +18885440160, fix SMS delivery via ClawdTalk sessions_send
+- [x] **Phase 11: Fix Murphy Phone Routing** - Forward +18888306873 → ClawdTalk +18885440160, fix SMS delivery via ClawdTalk sessions_send (completed 2026-03-20)
 
 ## Phase Details
 
@@ -196,7 +196,7 @@ Plans:
 **Goal:** Route Canadian callers to Murphy through ClawdTalk by forwarding +18888306873 → +18885440160, and fix SMS delivery through the ClawdTalk path (sessions_send tool + gateway allowlist)
 **Requirements**: FIX-01, FIX-02
 **Depends on:** Phase 10
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 
 Plans:
 - [ ] 11-01-PLAN.md — Telnyx call forwarding, ClawdTalk SMS allowlist, env var verification, webhook hardening (FIX-01, FIX-02)
@@ -219,4 +219,4 @@ Phases execute in numeric order: 1 -> 1.1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 
 | 8. Telnyx Missions | 5/5 | Complete | 2026-03-16 |
 | 9. Frontend Website | 6/6 | Complete | 2026-03-18 |
 | 10. Privacy & Terms Pages | 2/2 | Complete | 2026-03-19 |
-| 11. Fix Murphy Phone Routing | 0/1 | In Progress | - |
+| 11. Fix Murphy Phone Routing | 1/1 | Complete   | 2026-03-20 |

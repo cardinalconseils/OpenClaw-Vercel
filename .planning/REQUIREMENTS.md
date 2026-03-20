@@ -92,8 +92,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Bug Fixes
 
-- [ ] **FIX-01**: TELNYX_PUBLIC_KEY in Vercel production matches the canonical value from Telnyx API
-- [ ] **FIX-02**: Webhook signature verifier handles pre-parsed request bodies without producing "[object Object]"
+- [x] **FIX-01**: TELNYX_PUBLIC_KEY in Vercel production matches the canonical value from Telnyx API
+- [x] **FIX-02**: Webhook signature verifier handles pre-parsed request bodies without producing "[object Object]"
 
 ## v2 Requirements
 
@@ -192,8 +192,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | LEGAL-04 | Phase 10 | Complete |
 | LEGAL-05 | Phase 10 | Complete |
 | LEGAL-06 | Phase 10 | Complete |
-| FIX-01 | Phase 11 | Pending |
-| FIX-02 | Phase 11 | Pending |
+| FIX-01 | Phase 11 | Complete |
+| FIX-02 | Phase 11 | Complete |
 
 **Coverage:**
 - v1 requirements: 55 total
