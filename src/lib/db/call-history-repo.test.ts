@@ -77,11 +77,11 @@ describe('insertCallHistory', () => {
     );
   });
 
-  it('throws on Supabase error', async () => {
-    mockInsert.mockResolvedValue({ error: { message: 'RLS violation' } });
+  it('throws on Supabase error with code', async () => {
+    mockInsert.mockResolvedValue({ error: { message: 'RLS violation', code: '42501' } });
 
     await expect(insertCallHistory(validParams)).rejects.toThrow(
-      '[call-history-repo] insertCallHistory failed: RLS violation',
+      '[call-history-repo] insertCallHistory failed: RLS violation (code: 42501)',
     );
   });
 });

@@ -30,12 +30,16 @@ export async function createMissionHandler(params: CreateMissionParams): Promise
     MissionInputSchema.parse({ description: params.description, channel: params.channel });
 
     const channel = (params.channel as 'voice' | 'sms' | 'chat') ?? 'voice';
-    const userId = params.userId ?? process.env.ADMIN_USER_ID ?? 'unknown';
+    const userId = params.userId ?? process.env.ADMIN_USER_ID;
+    if (!userId) {
+      console.warn('[tools:missions] No userId provided and ADMIN_USER_ID not set — mission will be unowned');
+    }
 
-    console.log(`[tools:missions] Creating mission for user ${userId}, channel ${channel}`);
+    const resolvedUserId = userId ?? 'unknown';
+    console.log(`[tools:missions] Creating mission for user ${resolvedUserId}, channel ${channel}`);
 
     // Lifecycle: create -> plan -> start
-    const missionId = await missionEngine.create(userId, channel, params.description);
+    const missionId = await missionEngine.create(resolvedUserId, channel, params.description);
     const steps = await missionEngine.plan(missionId);
     await missionEngine.start(missionId);
 

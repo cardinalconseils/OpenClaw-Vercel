@@ -9,9 +9,8 @@ echo "[startup] Phase 1.5: Writing OpenClaw config and Murphy persona..."
 bash bin/write-openclaw-config.sh
 
 echo "[startup] Phase 2: Building and starting Next.js frontend..."
-cd frontend && npm run build && npm run start -- -p 3000 &
+(cd frontend && npm run build && npm run start -- -p 3000) &
 FRONTEND_PID=$!
-cd ..
 
 echo "[startup] Phase 2.5: Starting server.ts (Express + GatewayManager + keep-alive)..."
 npx tsx src/server.ts &

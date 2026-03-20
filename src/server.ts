@@ -37,6 +37,15 @@ if (process.env.SANDBOX_URL) {
     createProxyMiddleware({
       target: 'http://127.0.0.1:3000',
       changeOrigin: true,
+      on: {
+        error: (err, _req, res) => {
+          console.error('[server] Frontend proxy error:', (err as Error).message);
+          if ('writeHead' in res && typeof res.writeHead === 'function') {
+            (res as any).writeHead(502, { 'Content-Type': 'application/json' });
+            (res as any).end(JSON.stringify({ error: 'Frontend unavailable' }));
+          }
+        },
+      },
     }),
   );
 }

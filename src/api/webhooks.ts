@@ -427,27 +427,48 @@ webhookRouter.post(
 
             // Persist call history to Supabase before clearing in-memory state
             if (state) {
+              const adminUserId = process.env.ADMIN_USER_ID;
+              if (!adminUserId) {
+                console.warn(`[webhooks] ADMIN_USER_ID not set — call history for ${callControlId} will have no owner`);
+              }
+
+              // Only include providers that were actually contacted (stage must be 'calling' or 'complete')
+              const wasDialing = ['calling', 'complete'].includes(state.stage);
+              const contactedProviders = wasDialing
+                ? state.providers
+                    .slice(0, state.currentProviderIndex + 1)
+                    .map((p) => ({ name: p.name, phone: p.phone, status: 'contacted' as const }))
+                : [];
+
+              // Determine call outcome status
+              let callStatus: 'completed' | 'no_match' | 'abandoned';
+              if (state.stage === 'complete') {
+                callStatus = 'completed';
+              } else if (wasDialing && state.currentProviderIndex >= state.providers.length - 1) {
+                callStatus = 'no_match';
+              } else {
+                callStatus = 'abandoned';
+              }
+
               try {
                 await insertCallHistory({
-                  user_id: process.env.ADMIN_USER_ID ?? 'unknown',
+                  user_id: adminUserId ?? 'unknown',
                   caller_phone: state.callerPhone,
                   service_type: state.intent.serviceType ?? null,
                   location: state.intent.location ?? null,
                   urgency: state.intent.urgency ?? null,
-                  providers_contacted: state.providers
-                    .slice(0, state.currentProviderIndex + 1)
-                    .map((p) => ({ name: p.name, phone: p.phone, status: 'contacted' })),
+                  providers_contacted: contactedProviders,
                   connected_provider:
                     state.stage === 'complete'
                       ? (state.providers[state.currentProviderIndex]?.name ?? null)
                       : null,
-                  status: state.stage === 'complete' ? 'completed' : 'abandoned',
+                  status: callStatus,
                   started_at: state.startedAt.toISOString(),
                   ended_at: new Date().toISOString(),
                 });
                 console.log(`[webhooks] Call history persisted for ${callControlId}`);
               } catch (err) {
-                console.error('[webhooks] Failed to write call history:', err);
+                console.error(`[webhooks] Failed to write call history for ${callControlId}:`, err);
               }
             }
 

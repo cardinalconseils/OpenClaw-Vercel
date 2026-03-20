@@ -35,6 +35,6 @@ export async function insertCallHistory(params: CallHistoryRecord): Promise<void
   });
 
   if (error) {
-    throw new Error(`[call-history-repo] insertCallHistory failed: ${error.message}`);
+    throw new Error(`[call-history-repo] insertCallHistory failed: ${error.message} (code: ${error.code ?? 'unknown'})`);
   }
 }
