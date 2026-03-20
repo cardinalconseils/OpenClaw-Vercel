@@ -30,7 +30,7 @@ export async function createMissionHandler(params: CreateMissionParams): Promise
     MissionInputSchema.parse({ description: params.description, channel: params.channel });
 
     const channel = (params.channel as 'voice' | 'sms' | 'chat') ?? 'voice';
-    const userId = params.userId ?? 'unknown';
+    const userId = params.userId ?? process.env.ADMIN_USER_ID ?? 'unknown';
 
     console.log(`[tools:missions] Creating mission for user ${userId}, channel ${channel}`);
 

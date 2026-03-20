@@ -8,7 +8,12 @@ npx tsx src/startup/pair-device.ts
 echo "[startup] Phase 1.5: Writing OpenClaw config and Murphy persona..."
 bash bin/write-openclaw-config.sh
 
-echo "[startup] Phase 2: Starting server.ts (Express + GatewayManager + keep-alive)..."
+echo "[startup] Phase 2: Building and starting Next.js frontend..."
+cd frontend && npm run build && npm run start -- -p 3000 &
+FRONTEND_PID=$!
+cd ..
+
+echo "[startup] Phase 2.5: Starting server.ts (Express + GatewayManager + keep-alive)..."
 npx tsx src/server.ts &
 SERVER_PID=$!
 
@@ -28,5 +33,5 @@ done
 echo "[startup] Phase 4: Updating Telnyx webhook URL..."
 npx tsx src/startup/webhook-url-updater.ts
 
-echo "[startup] Infrastructure ready (server=$SERVER_PID)"
-wait $SERVER_PID
+echo "[startup] Infrastructure ready (server=$SERVER_PID, frontend=$FRONTEND_PID)"
+wait $SERVER_PID $FRONTEND_PID

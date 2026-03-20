@@ -43,6 +43,7 @@ import {
   isIntentComplete,
   getDisambiguationPrompt,
 } from '../lib/ai/intent-extractor.js';
+import { insertCallHistory } from '../lib/db/call-history-repo.js';
 
 /**
  * Express router for Telnyx webhook events.
@@ -423,6 +424,33 @@ webhookRouter.post(
 
             const state = getCall(callControlId);
             if (state?.silenceNudgeTimer) clearTimeout(state.silenceNudgeTimer);
+
+            // Persist call history to Supabase before clearing in-memory state
+            if (state) {
+              try {
+                await insertCallHistory({
+                  user_id: process.env.ADMIN_USER_ID ?? 'unknown',
+                  caller_phone: state.callerPhone,
+                  service_type: state.intent.serviceType ?? null,
+                  location: state.intent.location ?? null,
+                  urgency: state.intent.urgency ?? null,
+                  providers_contacted: state.providers
+                    .slice(0, state.currentProviderIndex + 1)
+                    .map((p) => ({ name: p.name, phone: p.phone, status: 'contacted' })),
+                  connected_provider:
+                    state.stage === 'complete'
+                      ? (state.providers[state.currentProviderIndex]?.name ?? null)
+                      : null,
+                  status: state.stage === 'complete' ? 'completed' : 'abandoned',
+                  started_at: state.startedAt.toISOString(),
+                  ended_at: new Date().toISOString(),
+                });
+                console.log(`[webhooks] Call history persisted for ${callControlId}`);
+              } catch (err) {
+                console.error('[webhooks] Failed to write call history:', err);
+              }
+            }
+
             if (state && state.stage !== 'complete') {
               setTimeout(() => endCall(callControlId), SESSION_PERSIST_MS);
               console.log(`[webhooks] Unexpected disconnect, session persists 30 min`);
