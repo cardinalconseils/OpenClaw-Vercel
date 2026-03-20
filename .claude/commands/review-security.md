@@ -1,17 +1,30 @@
 ---
-description: Security-focused code scan
-allowed-tools: Read, Glob, Grep, Bash
+description: Security-focused scan using the security-reviewer agent
+allowed-tools: Read, Glob, Grep, Bash, Agent
 ---
 
-Perform a security-focused scan of the OpenClaw codebase:
+# Security Review
 
-1. **Secrets** — Search for hardcoded API keys, tokens, passwords
-2. **Telnyx webhooks** — Verify all webhook endpoints validate signatures
-3. **Input validation** — Check all external data inputs are sanitized
-4. **SQL injection** — Verify parameterized queries used everywhere
-5. **Rate limiting** — Check API endpoints have rate limits
-6. **PII handling** — Ensure phone numbers and caller data are handled securely
-7. **WebSocket security** — Check origin validation, auth on WS connections
-8. **Environment** — Verify no .env files committed, .gitignore correct
+## Step 1: Scope
 
-Report as: CRITICAL (fix now), HIGH (fix before deploy), MEDIUM (fix soon), LOW (nice to have).
+Determine review scope from: $ARGUMENTS
+
+If no arguments:
+1. Run `git diff --name-only` for uncommitted changes
+2. If no changes, scan the full `src/` directory
+
+## Step 2: Run Security Reviewer
+
+Spawn the `security-reviewer` agent from `.claude/agents/security-reviewer.md`.
+
+Direct it to focus on the scoped files, covering:
+1. Authentication & authorization (middleware, Supabase auth)
+2. Supabase security (RLS, client vs server usage, exposed keys)
+3. Input validation (Zod schemas, XSS, injection)
+4. Middleware route protection
+5. Environment & secrets
+
+## Step 3: Report
+
+Present the agent's findings organized by severity.
+If CRITICAL issues found, recommend immediate action items.
