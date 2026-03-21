@@ -319,6 +319,7 @@ describe('POST /webhooks/telnyx', () => {
       providers: [],
       currentProviderIndex: 0,
       providerCallControlId: undefined,
+      pendingBridge: false,
     });
 
     const body = makePayload('call.speak.ended');
@@ -351,6 +352,7 @@ describe('POST /webhooks/telnyx', () => {
       providers: [],
       currentProviderIndex: 0,
       providerCallControlId: undefined,
+      pendingBridge: false,
     });
 
     const body = makePayload('call.transcription', {
@@ -385,6 +387,7 @@ describe('POST /webhooks/telnyx', () => {
       providers: [],
       currentProviderIndex: 0,
       providerCallControlId: undefined,
+      pendingBridge: false,
     });
 
     const body = makePayload('call.transcription', {
@@ -428,6 +431,7 @@ describe('POST /webhooks/telnyx', () => {
       providers: [],
       currentProviderIndex: 0,
       providerCallControlId: undefined,
+      pendingBridge: false,
     });
 
     const body = makePayload('call.transcription', {
@@ -466,6 +470,7 @@ describe('POST /webhooks/telnyx', () => {
       providers: [],
       currentProviderIndex: 0,
       providerCallControlId: undefined,
+      pendingBridge: false,
     });
     vi.mocked(extractIntent).mockReturnValue({
       serviceType: 'plumber',
@@ -515,6 +520,7 @@ describe('POST /webhooks/telnyx', () => {
       providers: [],
       currentProviderIndex: 0,
       providerCallControlId: undefined,
+      pendingBridge: false,
     });
     vi.mocked(isIntentComplete).mockReturnValue(false);
     vi.mocked(shouldAdvancePastClarification).mockReturnValue(false);
@@ -554,6 +560,7 @@ describe('POST /webhooks/telnyx', () => {
       providers: [],
       currentProviderIndex: 0,
       providerCallControlId: undefined,
+      pendingBridge: false,
     });
     vi.mocked(isIntentComplete).mockReturnValue(false);
     vi.mocked(shouldAdvancePastClarification).mockReturnValue(false);
@@ -597,6 +604,7 @@ describe('POST /webhooks/telnyx', () => {
       providers: [],
       currentProviderIndex: 0,
       providerCallControlId: undefined,
+      pendingBridge: false,
     });
 
     const body = makePayload('call.transcription', {
@@ -640,6 +648,7 @@ describe('POST /webhooks/telnyx', () => {
       providers: [],
       currentProviderIndex: 0,
       providerCallControlId: undefined,
+      pendingBridge: false,
     });
 
     const body = makePayload('call.transcription', {
@@ -678,6 +687,7 @@ describe('POST /webhooks/telnyx', () => {
       providers: [],
       currentProviderIndex: 0,
       providerCallControlId: undefined,
+      pendingBridge: false,
     });
 
     const body = makePayload('call.transcription', {
@@ -712,6 +722,7 @@ describe('POST /webhooks/telnyx', () => {
       providers: [],
       currentProviderIndex: 0,
       providerCallControlId: undefined,
+      pendingBridge: false,
     });
     vi.mocked(isIntentComplete).mockReturnValue(false);
     vi.mocked(shouldAdvancePastClarification).mockReturnValue(true);
@@ -753,6 +764,7 @@ describe('POST /webhooks/telnyx', () => {
       providers: [],
       currentProviderIndex: 0,
       providerCallControlId: undefined,
+      pendingBridge: false,
     });
     vi.mocked(isIntentComplete).mockReturnValue(false);
     vi.mocked(shouldAdvancePastClarification).mockReturnValue(true);
@@ -789,6 +801,7 @@ describe('POST /webhooks/telnyx', () => {
       providers: [],
       currentProviderIndex: 0,
       providerCallControlId: undefined,
+      pendingBridge: false,
     });
     vi.mocked(isIntentComplete).mockReturnValue(false);
     vi.mocked(shouldAdvancePastClarification).mockReturnValue(true);
@@ -826,6 +839,7 @@ describe('POST /webhooks/telnyx', () => {
       providers: [],
       currentProviderIndex: 0,
       providerCallControlId: undefined,
+      pendingBridge: false,
     });
 
     const body = makePayload('call.transcription', {
@@ -863,6 +877,7 @@ describe('POST /webhooks/telnyx', () => {
       providers: [],
       currentProviderIndex: 0,
       providerCallControlId: undefined,
+      pendingBridge: false,
     });
 
     const consentBody = makePayload('call.transcription', {
@@ -894,6 +909,7 @@ describe('POST /webhooks/telnyx', () => {
       providers: [],
       currentProviderIndex: 0,
       providerCallControlId: undefined,
+      pendingBridge: false,
     });
     vi.mocked(extractIntent).mockReturnValue({
       serviceType: 'plumber',
@@ -939,6 +955,7 @@ describe('POST /webhooks/telnyx', () => {
       providers: [],
       currentProviderIndex: 0,
       providerCallControlId: undefined,
+      pendingBridge: false,
     });
     vi.mocked(extractIntent).mockReturnValue({
       serviceType: undefined,
@@ -989,6 +1006,7 @@ describe('POST /webhooks/telnyx', () => {
       providers: [],
       currentProviderIndex: 0,
       providerCallControlId: undefined,
+      pendingBridge: false,
     });
 
     // Capture the setTimeout callback so we can invoke it manually
@@ -997,11 +1015,11 @@ describe('POST /webhooks/telnyx', () => {
     const originalSetTimeout = global.setTimeout;
     const setTimeoutSpy = vi
       .spyOn(global, 'setTimeout')
-      .mockImplementationOnce((fn: (...args: unknown[]) => void, delay?: number) => {
+      .mockImplementationOnce(((fn: (...args: unknown[]) => void, delay?: number) => {
         capturedCallback = fn as () => void;
         capturedDelay = delay;
         return 0 as unknown as ReturnType<typeof setTimeout>;
-      });
+      }) as typeof setTimeout);
 
     const body = makePayload('call.hangup');
     mockUnwrap.mockResolvedValueOnce(JSON.parse(body) as any);
@@ -1039,6 +1057,7 @@ describe('POST /webhooks/telnyx', () => {
       providers: [],
       currentProviderIndex: 0,
       providerCallControlId: undefined,
+      pendingBridge: false,
     });
 
     const body = makePayload('call.hangup');

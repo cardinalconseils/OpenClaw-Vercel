@@ -325,12 +325,28 @@ describe('handleProviderHangup', () => {
     expect(mockUpdateCall).toHaveBeenCalledWith('user-ccid', expect.objectContaining({ currentProviderIndex: 1 }));
   });
 
-  it('does not cascade on normal_clearing hangup cause', async () => {
+  it('cascades on normal_clearing hangup cause (pre-bridge)', async () => {
     const clientState = {
       userCallControlId: 'user-ccid',
       providerName: 'Acme Plumbing',
       providerIndex: 0,
     };
+    mockGetCall
+      .mockReturnValueOnce({ ...mockState, currentProviderIndex: 1 });
+
+    await handleProviderHangup('provider-ccid', 'normal_clearing', clientState);
+    expect(mockUpdateCall).toHaveBeenCalledWith('user-ccid', expect.objectContaining({ currentProviderIndex: 1 }));
+  });
+
+  it('does not cascade on normal_clearing after transfer', async () => {
+    const clientState = {
+      userCallControlId: 'user-ccid',
+      providerName: 'Acme Plumbing',
+      providerIndex: 0,
+    };
+    mockGetCall
+      .mockReturnValueOnce({ ...mockState, stage: 'transferred' as const });
+
     await handleProviderHangup('provider-ccid', 'normal_clearing', clientState);
     expect(mockUpdateCall).not.toHaveBeenCalled();
   });
