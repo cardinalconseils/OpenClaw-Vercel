@@ -12,7 +12,8 @@ Eliminate the tedious multi-call search for local service providers — one phon
 
 ### Validated
 
-(None yet — ship to validate)
+- [x] Agent sends SMS recap after the call (providers contacted, outcomes, who was connected) — Validated in Phase 6: Post-Call SMS
+- [x] Agent sends BuyMeACoffee tip link via SMS after the call — Validated in Phase 6: Post-Call SMS
 
 ### Active
 
@@ -26,8 +27,8 @@ Eliminate the tedious multi-call search for local service providers — one phon
 - [ ] User stays on the line with live verbal updates while agent calls providers
 - [ ] Agent confirms provider availability before connecting
 - [ ] Agent performs live call transfer (patches user through to provider)
-- [ ] Agent sends SMS recap after the call (providers contacted, outcomes, who was connected)
-- [ ] Agent sends BuyMeACoffee tip link via SMS after the call
+- [x] Agent sends SMS recap after the call (providers contacted, outcomes, who was connected)
+- [x] Agent sends BuyMeACoffee tip link via SMS after the call
 - [ ] User can view call history on a web dashboard
 - [ ] Agent can proactively monitor for needs and suggest providers
 
@@ -67,4 +68,4 @@ Eliminate the tedious multi-call search for local service providers — one phon
 | Google Maps as primary search | Best coverage for local service providers with ratings/reviews | — Pending |
 
 ---
-*Last updated: 2026-03-21 — Phase 05 (live-call-transfer) complete: warm bridge transfer via Telnyx Call Control, provider briefing, clean exit, failure cascade*
+*Last updated: 2026-03-21 — Phase 06 (post-call-sms) complete: SMS recap with provider outcomes, BuyMeACoffee tip link, failure fallback with contact info, TCPA consent gating*
