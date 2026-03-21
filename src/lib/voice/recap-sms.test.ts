@@ -2,6 +2,18 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { CallState } from './call-state.js';
 import type { Provider } from '../tools/handlers/search.js';
 
+// ─── Module-level mock for telnyx-client ──────────────────────────────────
+// Must be at top level so vi.mock hoisting captures it correctly.
+// The mock factory returns a fresh spy per test via the module-level variable.
+
+const mockMessagesSend = vi.fn();
+
+vi.mock('./telnyx-client.js', () => ({
+  getTelnyxClient: () => ({
+    messages: { send: mockMessagesSend },
+  }),
+}));
+
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
 function makeProvider(overrides: Partial<Provider> = {}): Provider {
@@ -236,28 +248,16 @@ describe('sendRecapSms', () => {
     state: CallState,
     callStatus: 'completed' | 'no_match' | 'abandoned'
   ) => Promise<void>;
-  let mockMessagesSend: ReturnType<typeof vi.fn>;
 
   beforeEach(async () => {
-    mockMessagesSend = vi.fn().mockResolvedValue({});
-
-    vi.doMock('./telnyx-client.js', () => ({
-      getTelnyxClient: () => ({
-        messages: {
-          send: mockMessagesSend,
-        },
-      }),
-    }));
-
-    vi.doMock('./call-state.js', () => ({}));
-
-    const mod = await import('./recap-sms.js?v=' + Math.random());
+    vi.clearAllMocks();
+    mockMessagesSend.mockResolvedValue({});
+    const mod = await import('./recap-sms.js');
     sendRecapSms = mod.sendRecapSms;
   });
 
   afterEach(() => {
-    vi.resetModules();
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
   it('skips send when smsConsent is undefined', async () => {
