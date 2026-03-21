@@ -46,6 +46,7 @@ import {
   getDisambiguationPrompt,
 } from '../lib/ai/intent-extractor.js';
 import { insertCallHistory } from '../lib/db/call-history-repo.js';
+import { sendRecapSms } from '../lib/voice/recap-sms.js';
 
 /**
  * Express router for Telnyx webhook events.
@@ -540,6 +541,11 @@ webhookRouter.post(
                 console.log(`[webhooks] Call history persisted for ${callControlId}`);
               } catch (err) {
                 console.error(`[webhooks] Failed to write call history for ${callControlId}:`, err);
+              }
+
+              // Send recap SMS if consent given and providers were contacted
+              if (state.smsConsent === true && wasDialing) {
+                await sendRecapSms(state, callStatus);
               }
             }
 
