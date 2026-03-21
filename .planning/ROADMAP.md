@@ -132,7 +132,11 @@ Plans:
   2. SMS includes a BuyMeACoffee tip link on every successful connection
   3. When no live transfer was achieved, user receives an SMS with the names and phone numbers of the providers that were tried, so they can follow up themselves
   4. A call record exists in the database after every call, capturing caller number, providers contacted, outcomes, and timestamps — this record is what the dashboard reads
-**Plans**: TBD
+**Plans:** 2 plans
+
+Plans:
+- [ ] 06-01-PLAN.md — TDD: recap-sms module with buildSuccessSms, buildFailureSms, sendRecapSms + tests (POST-01, POST-02, POST-03)
+- [ ] 06-02-PLAN.md — Wire sendRecapSms into webhooks.ts call.hangup, add BUYMEACOFFEE_URL env var (POST-01, POST-02, POST-03, POST-04)
 
 ### Phase 7: Web Dashboard
 **Goal**: A simple web page served from the Vercel Sandbox lets a user enter their phone number and see their call history — past searches, providers contacted, and outcomes
@@ -219,7 +223,7 @@ Phases execute in numeric order: 1 -> 1.1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 
 | 3. Provider Discovery | 3/3 | Complete | 2026-03-16 |
 | 4. Outbound Provider Calling | 2/2 | Complete | 2026-03-16 |
 | 5. Live Call Transfer | 3/3 | Complete   | 2026-03-21 |
-| 6. Post-Call SMS | 0/TBD | Not started | - |
+| 6. Post-Call SMS | 0/2 | Planning complete | - |
 | 7. Web Dashboard | 0/TBD | Not started | - |
 | 8. Telnyx Missions | 5/5 | Complete | 2026-03-16 |
 | 9. Frontend Website | 6/6 | Complete | 2026-03-18 |
