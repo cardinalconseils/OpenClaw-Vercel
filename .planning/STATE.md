@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 06-01-PLAN.md
-last_updated: "2026-03-21T20:49:32.309Z"
+stopped_at: Completed 06-02-PLAN.md
+last_updated: "2026-03-21T20:51:47.141Z"
 progress:
   total_phases: 12
-  completed_phases: 10
+  completed_phases: 11
   total_plans: 34
-  completed_plans: 33
+  completed_plans: 34
 ---
 
 # Project State
@@ -94,6 +94,7 @@ Plan: 1 of 2
 | Phase 05-live-call-transfer P02 | 5min | 1 tasks | 1 files |
 | Phase 05-live-call-transfer P03 | 357s | 2 tasks | 6 files |
 | Phase 06-post-call-sms P01 | 171s | 1 tasks | 2 files |
+| Phase 06-post-call-sms PP02 | 120s | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -228,6 +229,8 @@ Recent decisions affecting current work:
 - [Phase 05-live-call-transfer]: mockImplementationOnce setTimeout spy requires 'as typeof setTimeout' cast in TypeScript 5.x — applied to both root and frontend test copies
 - [Phase 06-post-call-sms]: buildSuccessSms tried-providers list capped at 3 via slice(0, currentProviderIndex).slice(0, 3) — prevents bloated SMS on long cascades
 - [Phase 06-post-call-sms]: sendRecapSms uses strict smsConsent !== true guard (not falsy check) — TCPA compliance; undefined and false both skip
+- [Phase 06-post-call-sms]: sendRecapSms placed after insertCallHistory and before endCall — DB write first, SMS before state cleanup
+- [Phase 06-post-call-sms]: smsConsent === true strict equality gate in webhooks.ts — TCPA compliance, undefined and false both skip
 
 ### Pending Todos
 
@@ -247,6 +250,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-21T20:49:32.306Z
-Stopped at: Completed 06-01-PLAN.md
+Last session: 2026-03-21T20:51:47.138Z
+Stopped at: Completed 06-02-PLAN.md
 Resume file: None

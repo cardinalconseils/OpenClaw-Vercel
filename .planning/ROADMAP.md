@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Provider Discovery** - Search Google Places and ranked provider sources, narrate results to user (completed 2026-03-16)
 - [x] **Phase 4: Outbound Provider Calling** - Dial providers sequentially with live user narration, handle voicemail and busy signals, cascade through ranked list (completed 2026-03-16)
 - [x] **Phase 5: Live Call Transfer** - Warm-transfer user to confirmed-available provider via conference bridge, exit cleanly, handle transfer failures (completed 2026-03-21)
-- [ ] **Phase 6: Post-Call SMS** - Send SMS recap with outcome, provider info, and tip link; persist call record
+- [x] **Phase 6: Post-Call SMS** - Send SMS recap with outcome, provider info, and tip link; persist call record (completed 2026-03-21)
 - [ ] **Phase 7: Web Dashboard** - Serve read-only call history by phone number from Vercel Sandbox
 - [x] **Phase 8: Telnyx Missions** - Create and execute batch missions (multi-call campaigns, SMS surveys, provider research) via natural language through any connected channel (completed 2026-03-16)
 - [x] **Phase 9: Frontend Website** - Next.js SaaS frontend with dark modern landing page, Supabase Auth, authenticated dashboard (call history, missions, analytics), settings, and billing (completed 2026-03-18)
@@ -132,7 +132,7 @@ Plans:
   2. SMS includes a BuyMeACoffee tip link on every successful connection
   3. When no live transfer was achieved, user receives an SMS with the names and phone numbers of the providers that were tried, so they can follow up themselves
   4. A call record exists in the database after every call, capturing caller number, providers contacted, outcomes, and timestamps — this record is what the dashboard reads
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 - [ ] 06-01-PLAN.md — TDD: recap-sms module with buildSuccessSms, buildFailureSms, sendRecapSms + tests (POST-01, POST-02, POST-03)
@@ -223,7 +223,7 @@ Phases execute in numeric order: 1 -> 1.1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 
 | 3. Provider Discovery | 3/3 | Complete | 2026-03-16 |
 | 4. Outbound Provider Calling | 2/2 | Complete | 2026-03-16 |
 | 5. Live Call Transfer | 3/3 | Complete   | 2026-03-21 |
-| 6. Post-Call SMS | 1/2 | In Progress|  |
+| 6. Post-Call SMS | 2/2 | Complete   | 2026-03-21 |
 | 7. Web Dashboard | 0/TBD | Not started | - |
 | 8. Telnyx Missions | 5/5 | Complete | 2026-03-16 |
 | 9. Frontend Website | 6/6 | Complete | 2026-03-18 |

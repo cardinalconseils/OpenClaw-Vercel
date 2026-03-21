@@ -54,7 +54,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **POST-01**: Agent sends SMS recap to user after call ends (providers contacted, outcomes, connected provider info)
 - [x] **POST-02**: Agent includes BuyMeACoffee tip link in SMS recap
 - [x] **POST-03**: Agent sends graceful failure SMS with provider contact list if no live transfer was achieved
-- [ ] **POST-04**: Call data is persisted for history (caller, providers, outcomes, timestamps)
+- [x] **POST-04**: Call data is persisted for history (caller, providers, outcomes, timestamps)
 
 ### Web Dashboard
 
@@ -169,7 +169,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | POST-01 | Phase 6 | Complete |
 | POST-02 | Phase 6 | Complete |
 | POST-03 | Phase 6 | Complete |
-| POST-04 | Phase 6 | Pending |
+| POST-04 | Phase 6 | Complete |
 | DASH-01 | Phase 7 | Pending |
 | DASH-02 | Phase 7 | Pending |
 | DASH-03 | Phase 7 | Pending |
