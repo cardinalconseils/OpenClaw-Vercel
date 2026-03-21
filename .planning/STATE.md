@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 05-01-PLAN.md — bridge transfer primitives
-last_updated: "2026-03-21T15:36:50.408Z"
+stopped_at: Completed 05-02-PLAN.md — warm transfer webhook wiring
+last_updated: "2026-03-21T15:41:40.331Z"
 progress:
   total_phases: 12
-  completed_phases: 9
+  completed_phases: 10
   total_plans: 31
-  completed_plans: 30
+  completed_plans: 31
 ---
 
 # Project State
@@ -91,6 +91,7 @@ Plan: 1 of 2
 | Phase 10-add-privacy-policy-and-terms-and-conditions-pages P02 | 8min | 4 tasks | 3 files |
 | Phase 11-fix-murphy-phone-number-18888306873-telnyx-redirect-configuration P01 | 180min | 2 tasks | 8 files |
 | Phase 05-live-call-transfer P01 | 480s | 2 tasks | 6 files |
+| Phase 05-live-call-transfer P02 | 5min | 1 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -219,6 +220,8 @@ Recent decisions affecting current work:
 - [Phase 05-live-call-transfer]: Telnyx bridge API uses call_control_id_to_bridge_with (not call_control_id) — SDK ActionBridgeParams verified at implementation time
 - [Phase 05-live-call-transfer]: normal_clearing added to cascadeCauses — provider may hang up before transfer; cascades when stage is not transferred
 - [Phase 05-live-call-transfer]: pendingBridge field added to CallState as boolean — reserved for Plan 02 webhook wiring; initialized false
+- [Phase 05-live-call-transfer]: pendingBridge set BEFORE speaking brief so speak.ended fires after brief completes and triggers bridge
+- [Phase 05-live-call-transfer]: call.bridged filtered to provider-leg only via client_state.stage=provider-dial — user-leg event ignored
 
 ### Pending Todos
 
@@ -238,6 +241,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-21T15:36:50.403Z
-Stopped at: Completed 05-01-PLAN.md — bridge transfer primitives
+Last session: 2026-03-21T15:41:40.328Z
+Stopped at: Completed 05-02-PLAN.md — warm transfer webhook wiring
 Resume file: None
