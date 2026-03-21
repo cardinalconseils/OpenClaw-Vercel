@@ -27,6 +27,40 @@ import type { Provider } from '../tools/handlers/search.js';
 
 // ─── Exported constants ────────────────────────────────────────────────────
 
+/**
+ * Builds a brief transfer announcement for the provider when the user is being bridged.
+ * Used as the spoken intro before the bridge is initiated.
+ * Falls back to 'a customer' when callerName is undefined.
+ */
+export const TRANSFER_BRIEF = (
+  callerName: string | undefined,
+  serviceType: string,
+  location: string
+): string => {
+  const name = callerName ?? 'a customer';
+  return (
+    `I have ${name} who needs ${serviceType} near ${location}. ` +
+    `I'm connecting them to you now. One moment.`
+  );
+};
+
+/**
+ * Bridges the provider call leg to the user call leg via Telnyx bridge API.
+ * After this call, both parties are connected directly; the agent exits the call.
+ * XFER-02: Telnyx bridge API call.
+ */
+export async function bridgeToUser(
+  providerCallControlId: string,
+  userCallControlId: string
+): Promise<void> {
+  await getTelnyxClient().calls.actions.bridge(providerCallControlId, {
+    call_control_id_to_bridge_with: userCallControlId,
+  });
+  console.log(
+    `[outbound-caller] Bridge initiated: provider ${providerCallControlId} <-> user ${userCallControlId}`
+  );
+}
+
 /** AI legal disclosure — must be first utterance on outbound calls (CA SB-1001, FCC) */
 export const AI_INTRO = (providerName: string, serviceType: string, location: string): string =>
   `Hi, this is an AI concierge calling on behalf of a customer. ` +
@@ -341,7 +375,17 @@ export async function handleProviderHangup(
   const providerName = clientState.providerName as string;
   const providerIndex = clientState.providerIndex as number;
 
-  const cascadeCauses = ['timeout', 'no_answer', 'user_busy'];
+  // XFER-04: Do NOT cascade after successful bridge transfer
+  const state = getCall(userCallControlId);
+  if (state?.stage === 'transferred') {
+    console.log(
+      `[outbound-caller] Post-transfer hangup from ${providerName} — call completed normally`
+    );
+    return;
+  }
+
+  // Also cascade on normal_clearing if pre-bridge (provider hung up before transfer)
+  const cascadeCauses = ['timeout', 'no_answer', 'user_busy', 'normal_clearing'];
   if (cascadeCauses.includes(hangupCause)) {
     console.log(
       `[outbound-caller] Provider ${providerName} hangup: ${hangupCause}, cascading`

@@ -16,7 +16,8 @@ export interface CallState {
   callControlId: string;
   callerPhone: string;
   language: 'en' | 'fr';
-  stage: 'greeting' | 'name_capture' | 'intake' | 'consent' | 'searching' | 'calling' | 'complete';
+  stage: 'greeting' | 'name_capture' | 'intake' | 'consent' | 'searching' | 'calling' | 'transferred' | 'complete';
+  pendingBridge: boolean;
   intent: Partial<{ serviceType: string; location: string; urgency: string }>;
   clarificationTurns: number;
   startedAt: Date;
@@ -55,6 +56,7 @@ export function initCall(callControlId: string, callerPhone: string): CallState 
     providers: [],
     currentProviderIndex: 0,
     providerCallControlId: undefined,
+    pendingBridge: false,
   };
   _calls.set(callControlId, state);
   return state;

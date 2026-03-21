@@ -9,6 +9,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const mockDial = vi.fn().mockResolvedValue({ data: { call_control_id: 'provider-ccid-123' } });
 const mockHangup = vi.fn().mockResolvedValue({});
 const mockSpeak = vi.fn().mockResolvedValue({});
+const mockBridge = vi.fn().mockResolvedValue({});
 const mockMessagesSend = vi.fn().mockResolvedValue({});
 
 vi.mock('./telnyx-client.js', () => ({
@@ -18,6 +19,7 @@ vi.mock('./telnyx-client.js', () => ({
       actions: {
         speak: mockSpeak,
         hangup: mockHangup,
+        bridge: mockBridge,
       },
     },
     messages: {
@@ -71,6 +73,7 @@ const mockState = {
   ],
   currentProviderIndex: 0,
   providerCallControlId: undefined,
+  pendingBridge: false,
 };
 
 const mockGetCall = vi.fn().mockReturnValue(mockState);
@@ -86,6 +89,7 @@ import {
   decodeClientState,
   AI_INTRO,
   NO_MATCH_MESSAGE,
+  TRANSFER_BRIEF,
   startNarrationTimer,
   stopNarrationTimer,
   sendProviderSms,
@@ -95,6 +99,7 @@ import {
   handleProviderHangup,
   tryNextProvider,
   startOutboundCascade,
+  bridgeToUser,
 } from './outbound-caller.js';
 
 beforeEach(() => {
@@ -294,6 +299,35 @@ describe('handleAmdResult', () => {
   });
 });
 
+// ─── TRANSFER_BRIEF (XFER-01) ─────────────────────────────────────────────
+
+describe('TRANSFER_BRIEF', () => {
+  it('includes caller name, service type, and location when name is provided', () => {
+    const brief = TRANSFER_BRIEF('Alice', 'plumber', 'Austin TX');
+    expect(brief).toContain('Alice');
+    expect(brief).toContain('plumber');
+    expect(brief).toContain('Austin TX');
+  });
+
+  it('falls back to "a customer" when caller name is undefined', () => {
+    const brief = TRANSFER_BRIEF(undefined, 'plumber', 'Austin TX');
+    expect(brief).toContain('a customer');
+    expect(brief).toContain('plumber');
+    expect(brief).toContain('Austin TX');
+  });
+});
+
+// ─── bridgeToUser (XFER-02) ───────────────────────────────────────────────
+
+describe('bridgeToUser', () => {
+  it('calls calls.actions.bridge with providerCallControlId and userCallControlId', async () => {
+    await bridgeToUser('provider-ccid-abc', 'user-ccid-xyz');
+    expect(mockBridge).toHaveBeenCalledWith('provider-ccid-abc', {
+      call_control_id_to_bridge_with: 'user-ccid-xyz',
+    });
+  });
+});
+
 // ─── handleProviderHangup (CALL-05) ───────────────────────────────────────
 
 describe('handleProviderHangup', () => {
@@ -325,13 +359,35 @@ describe('handleProviderHangup', () => {
     expect(mockUpdateCall).toHaveBeenCalledWith('user-ccid', expect.objectContaining({ currentProviderIndex: 1 }));
   });
 
-  it('does not cascade on normal_clearing hangup cause', async () => {
+  it('cascades on normal_clearing when stage is calling (pre-transfer)', async () => {
     const clientState = {
       userCallControlId: 'user-ccid',
       providerName: 'Acme Plumbing',
       providerIndex: 0,
     };
+    // stage is 'calling' — getCall returns calling state for guard check, then tryNextProvider uses it
+    mockGetCall
+      .mockReturnValueOnce({ ...mockState, stage: 'calling', currentProviderIndex: 0 }) // guard check
+      .mockReturnValueOnce({ ...mockState, stage: 'calling', currentProviderIndex: 1 }); // tryNextProvider
+
     await handleProviderHangup('provider-ccid', 'normal_clearing', clientState);
+
+    expect(mockSpeak).toHaveBeenCalled();
+    expect(mockUpdateCall).toHaveBeenCalledWith('user-ccid', expect.objectContaining({ currentProviderIndex: 1 }));
+  });
+
+  it('does not cascade on normal_clearing when stage is transferred', async () => {
+    const clientState = {
+      userCallControlId: 'user-ccid',
+      providerName: 'Acme Plumbing',
+      providerIndex: 0,
+    };
+    // stage is 'transferred' — guard must short-circuit
+    mockGetCall.mockReturnValueOnce({ ...mockState, stage: 'transferred' });
+
+    await handleProviderHangup('provider-ccid', 'normal_clearing', clientState);
+
+    expect(mockSpeak).not.toHaveBeenCalled();
     expect(mockUpdateCall).not.toHaveBeenCalled();
   });
 });
