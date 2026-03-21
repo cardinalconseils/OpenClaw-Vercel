@@ -1015,11 +1015,11 @@ describe('POST /webhooks/telnyx', () => {
     const originalSetTimeout = global.setTimeout;
     const setTimeoutSpy = vi
       .spyOn(global, 'setTimeout')
-      .mockImplementationOnce((fn: (...args: unknown[]) => void, delay?: number) => {
+      .mockImplementationOnce(((fn: (...args: unknown[]) => void, delay?: number) => {
         capturedCallback = fn as () => void;
         capturedDelay = delay;
         return 0 as unknown as ReturnType<typeof setTimeout>;
-      });
+      }) as typeof setTimeout);
 
     const body = makePayload('call.hangup');
     mockUnwrap.mockResolvedValueOnce(JSON.parse(body) as any);
