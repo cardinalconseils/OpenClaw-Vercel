@@ -44,16 +44,16 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Call Transfer
 
-- [ ] **XFER-01**: Agent performs live warm transfer — patches user through to available provider
-- [ ] **XFER-02**: Agent briefs provider before merging: service needed, user name, location
-- [ ] **XFER-03**: Agent exits call cleanly after successful transfer
-- [ ] **XFER-04**: Agent handles transfer failure gracefully (provider drops, no answer) and retries next provider
+- [x] **XFER-01**: Agent performs live warm transfer — patches user through to available provider
+- [x] **XFER-02**: Agent briefs provider before merging: service needed, user name, location
+- [x] **XFER-03**: Agent exits call cleanly after successful transfer
+- [x] **XFER-04**: Agent handles transfer failure gracefully (provider drops, no answer) and retries next provider
 
 ### Post-Call
 
-- [ ] **POST-01**: Agent sends SMS recap to user after call ends (providers contacted, outcomes, connected provider info)
-- [ ] **POST-02**: Agent includes BuyMeACoffee tip link in SMS recap
-- [ ] **POST-03**: Agent sends graceful failure SMS with provider contact list if no live transfer was achieved
+- [x] **POST-01**: Agent sends SMS recap to user after call ends (providers contacted, outcomes, connected provider info)
+- [x] **POST-02**: Agent includes BuyMeACoffee tip link in SMS recap
+- [x] **POST-03**: Agent sends graceful failure SMS with provider contact list if no live transfer was achieved
 - [ ] **POST-04**: Call data is persisted for history (caller, providers, outcomes, timestamps)
 
 ### Web Dashboard
@@ -162,13 +162,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CALL-05 | Phase 4 | Complete |
 | CALL-06 | Phase 4 | Complete |
 | CALL-07 | Phase 4 | Complete |
-| XFER-01 | Phase 5 | Pending |
-| XFER-02 | Phase 5 | Pending |
-| XFER-03 | Phase 5 | Pending |
-| XFER-04 | Phase 5 | Pending |
-| POST-01 | Phase 6 | Pending |
-| POST-02 | Phase 6 | Pending |
-| POST-03 | Phase 6 | Pending |
+| XFER-01 | Phase 5 | Complete |
+| XFER-02 | Phase 5 | Complete |
+| XFER-03 | Phase 5 | Complete |
+| XFER-04 | Phase 5 | Complete |
+| POST-01 | Phase 6 | Complete |
+| POST-02 | Phase 6 | Complete |
+| POST-03 | Phase 6 | Complete |
 | POST-04 | Phase 6 | Pending |
 | DASH-01 | Phase 7 | Pending |
 | DASH-02 | Phase 7 | Pending |
