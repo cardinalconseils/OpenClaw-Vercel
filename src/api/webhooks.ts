@@ -33,6 +33,7 @@ import {
   handleAmdResult,
   handleProviderHangup,
   decodeClientState,
+  decodeProviderDialState,
   parseAvailability,
   stopNarrationTimer,
   bridgeToUser,
@@ -159,8 +160,8 @@ webhookRouter.post(
               console.log(`[webhooks] Greeting + transcription started for ${callControlId}`);
             } else {
               // Outbound provider leg answered
-              const clientState = decodeClientState((payload as any).client_state);
-              if (clientState.stage === 'provider-dial') {
+              const clientState = decodeProviderDialState((payload as any).client_state);
+              if (clientState) {
                 await handleProviderAnswer(callControlId, clientState);
                 // Start transcription on provider leg to capture availability response (CALL-06)
                 await getTelnyxClient().calls.actions.startTranscription(callControlId, {
@@ -174,10 +175,10 @@ webhookRouter.post(
 
           case 'call.speak.ended': {
             // Check if this is a provider-leg speak.ended (bridge trigger)
-            const speakClientState = decodeClientState((payload as any).client_state);
-            if (speakClientState.stage === 'provider-dial') {
+            const speakClientState = decodeProviderDialState((payload as any).client_state);
+            if (speakClientState) {
               // Provider leg speak ended — check if bridge is pending (XFER-01)
-              const userCcid = speakClientState.userCallControlId as string;
+              const { userCallControlId: userCcid, providerName, providerIndex } = speakClientState;
               const bridgeState = getCall(userCcid);
               if (bridgeState?.pendingBridge) {
                 updateCall(userCcid, { pendingBridge: false });
@@ -187,8 +188,6 @@ webhookRouter.post(
                 } catch (err) {
                   // Bridge failed — tell user and cascade to next provider
                   console.error(`[webhooks] Bridge API failed:`, err);
-                  const providerName = speakClientState.providerName as string;
-                  const providerIndex = speakClientState.providerIndex as number;
                   try {
                     await speak(userCcid, `I had trouble connecting you to ${providerName} — trying the next one.`);
                   } catch (err) { console.warn(`[webhooks] Speak failed (user leg may have ended): ${(err as Error).message}`); }
@@ -215,14 +214,12 @@ webhookRouter.post(
             if (!transcript.trim()) break;
 
             // Check if this is a provider leg transcription (CALL-06)
-            const transcriptionClientState = decodeClientState((payload as any).client_state);
-            if (transcriptionClientState.stage === 'provider-dial') {
+            const transcriptionClientState = decodeProviderDialState((payload as any).client_state);
+            if (transcriptionClientState) {
               const providerTranscript: string = transcriptionData.transcript ?? '';
               if (providerTranscript.trim()) {
                 const availability = parseAvailability(providerTranscript);
-                const userCcid = transcriptionClientState.userCallControlId as string;
-                const providerName = transcriptionClientState.providerName as string;
-                const providerIndex = transcriptionClientState.providerIndex as number;
+                const { userCallControlId: userCcid, providerName, providerIndex } = transcriptionClientState;
 
                 console.log(`[webhooks] Provider ${providerName} transcript: "${providerTranscript}" → ${availability}`);
 
@@ -441,8 +438,8 @@ webhookRouter.post(
 
           case 'call.machine.detection.ended': {
             const result = (payload as any).result;  // 'human' | 'machine' | 'not_sure'
-            const clientState = decodeClientState((payload as any).client_state);
-            if (clientState.stage === 'provider-dial') {
+            const clientState = decodeProviderDialState((payload as any).client_state);
+            if (clientState) {
               await handleAmdResult(callControlId, result, clientState);
             }
             console.log(`[webhooks] AMD result: ${result} for ${callControlId}`);
@@ -452,10 +449,9 @@ webhookRouter.post(
           case 'call.bridged': {
             // XFER-03: Bridge established — mark as transferred
             // call.bridged fires on BOTH legs — only process the provider leg (has client_state with stage=provider-dial)
-            const bridgedClientState = decodeClientState((payload as any).client_state);
-            if (bridgedClientState.stage === 'provider-dial') {
-              const userCcid = bridgedClientState.userCallControlId as string;
-              const providerName = bridgedClientState.providerName as string;
+            const bridgedClientState = decodeProviderDialState((payload as any).client_state);
+            if (bridgedClientState) {
+              const { userCallControlId: userCcid, providerName } = bridgedClientState;
               updateCall(userCcid, { stage: 'transferred' });
 
               // XFER-03: Speak goodbye to both parties on the user leg (both hear it via bridge)
@@ -477,8 +473,8 @@ webhookRouter.post(
 
             // Handle outbound provider leg hangup
             if (hangupDirection === 'outgoing') {
-              const clientState = decodeClientState((payload as any).client_state);
-              if (clientState.stage === 'provider-dial') {
+              const clientState = decodeProviderDialState((payload as any).client_state);
+              if (clientState) {
                 await handleProviderHangup(callControlId, hangupCause, clientState);
               }
               console.log(`[webhooks] Outbound leg hangup: cause=${hangupCause}, id=${callControlId}`);

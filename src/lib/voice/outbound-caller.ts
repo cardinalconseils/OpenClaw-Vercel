@@ -24,6 +24,18 @@ import {
   NARRATION_INTERVAL_MS,
 } from './voice-config.js';
 import type { Provider } from '../tools/handlers/search.js';
+import { z } from 'zod';
+
+// ─── Provider dial client state (serialization boundary) ─────────────────
+
+const ProviderDialClientStateSchema = z.object({
+  stage: z.literal('provider-dial'),
+  userCallControlId: z.string(),
+  providerName: z.string(),
+  providerIndex: z.number(),
+});
+
+export type ProviderDialClientState = z.infer<typeof ProviderDialClientStateSchema>;
 
 // ─── Exported constants ────────────────────────────────────────────────────
 
@@ -102,6 +114,17 @@ export function decodeClientState(raw: string | undefined): Record<string, unkno
     console.error(`[outbound-caller] Failed to decode client_state: ${(err as Error).message}, raw=${raw?.substring(0, 50)}`);
     return {};
   }
+}
+
+/**
+ * Decodes and validates a provider-dial client_state with Zod.
+ * Returns null if the payload is missing, malformed, or doesn't match the schema.
+ */
+export function decodeProviderDialState(raw: string | undefined): ProviderDialClientState | null {
+  const decoded = decodeClientState(raw);
+  const result = ProviderDialClientStateSchema.safeParse(decoded);
+  if (!result.success) return null;
+  return result.data;
 }
 
 // ─── Internal helpers ─────────────────────────────────────────────────────
@@ -297,10 +320,9 @@ export async function startOutboundCascade(userCallControlId: string): Promise<v
  */
 export async function handleProviderAnswer(
   providerCallControlId: string,
-  clientState: Record<string, unknown>
+  clientState: ProviderDialClientState
 ): Promise<void> {
-  const userCallControlId = clientState.userCallControlId as string;
-  const providerName = clientState.providerName as string;
+  const { userCallControlId, providerName } = clientState;
 
   stopNarrationTimer(userCallControlId);
 
@@ -336,11 +358,9 @@ export async function handleProviderAnswer(
 export async function handleAmdResult(
   providerCallControlId: string,
   result: string,
-  clientState: Record<string, unknown>
+  clientState: ProviderDialClientState
 ): Promise<void> {
-  const userCallControlId = clientState.userCallControlId as string;
-  const providerName = clientState.providerName as string;
-  const providerIndex = clientState.providerIndex as number;
+  const { userCallControlId, providerName, providerIndex } = clientState;
 
   if (result === 'machine') {
     console.log(`[outbound-caller] AMD: machine detected for ${providerName}, cascading`);
@@ -370,11 +390,9 @@ export async function handleAmdResult(
 export async function handleProviderHangup(
   providerCallControlId: string,
   hangupCause: string,
-  clientState: Record<string, unknown>
+  clientState: ProviderDialClientState
 ): Promise<void> {
-  const userCallControlId = clientState.userCallControlId as string;
-  const providerName = clientState.providerName as string;
-  const providerIndex = clientState.providerIndex as number;
+  const { userCallControlId, providerName, providerIndex } = clientState;
 
   // XFER-04: Do NOT cascade after successful bridge transfer
   const state = getCall(userCallControlId);

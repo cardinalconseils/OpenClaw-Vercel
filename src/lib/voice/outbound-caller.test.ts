@@ -267,6 +267,7 @@ describe('dialProvider', () => {
 describe('handleAmdResult', () => {
   it('hangs up provider leg and calls tryNextProvider when result=machine', async () => {
     const clientState = {
+      stage: 'provider-dial' as const,
       userCallControlId: 'user-ccid',
       providerName: 'Acme Plumbing',
       providerIndex: 0,
@@ -285,6 +286,7 @@ describe('handleAmdResult', () => {
 
   it('does not hang up when result=human', async () => {
     const clientState = {
+      stage: 'provider-dial' as const,
       userCallControlId: 'user-ccid',
       providerName: 'Acme Plumbing',
       providerIndex: 0,
@@ -299,6 +301,7 @@ describe('handleAmdResult', () => {
 describe('handleProviderHangup', () => {
   it('cascades on timeout hangup cause', async () => {
     const clientState = {
+      stage: 'provider-dial' as const,
       userCallControlId: 'user-ccid',
       providerName: 'Acme Plumbing',
       providerIndex: 0,
@@ -314,6 +317,7 @@ describe('handleProviderHangup', () => {
 
   it('cascades on user_busy hangup cause', async () => {
     const clientState = {
+      stage: 'provider-dial' as const,
       userCallControlId: 'user-ccid',
       providerName: 'Acme Plumbing',
       providerIndex: 0,
@@ -327,6 +331,7 @@ describe('handleProviderHangup', () => {
 
   it('cascades on normal_clearing hangup cause (pre-bridge)', async () => {
     const clientState = {
+      stage: 'provider-dial' as const,
       userCallControlId: 'user-ccid',
       providerName: 'Acme Plumbing',
       providerIndex: 0,
@@ -340,6 +345,7 @@ describe('handleProviderHangup', () => {
 
   it('does not cascade on normal_clearing after transfer', async () => {
     const clientState = {
+      stage: 'provider-dial' as const,
       userCallControlId: 'user-ccid',
       providerName: 'Acme Plumbing',
       providerIndex: 0,
@@ -442,8 +448,10 @@ describe('handleProviderAnswer', () => {
     });
 
     const clientState = {
+      stage: 'provider-dial' as const,
       userCallControlId: 'user-ccid',
       providerName: 'Acme Plumbing',
+      providerIndex: 0,
     };
 
     await handleProviderAnswer('provider-ccid', clientState);

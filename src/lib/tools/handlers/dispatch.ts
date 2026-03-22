@@ -4,12 +4,11 @@ import { getCall } from '../../voice/call-state.js';
 interface CallProviderParams {
   phone_number: string;
   provider_name: string;
-  ring_timeout_ms?: number;
-  call_control_id?: string;  // user's callControlId to start cascade on
+  call_control_id: string;
 }
 
 interface CallProviderResult {
-  status: string;
+  status: 'cascade-started' | 'no-providers' | 'error';
   provider: string;
   note: string;
 }
@@ -17,24 +16,16 @@ interface CallProviderResult {
 interface TransferCallParams {
   provider_phone: string;
   caller_context?: string;
-  call_control_id?: string;
+  call_control_id: string;
 }
 
 interface TransferCallResult {
-  status: string;
+  status: 'bridge-initiated' | 'error';
   note: string;
 }
 
 export async function callProvider(params: CallProviderParams): Promise<CallProviderResult> {
-  const userCallControlId = params.call_control_id;
-  if (!userCallControlId) {
-    console.log(`[tools:dispatch] callProvider called without call_control_id — cannot start cascade`);
-    return {
-      status: 'error',
-      provider: params.provider_name,
-      note: 'Missing call_control_id — cannot initiate outbound cascade',
-    };
-  }
+  const { call_control_id: userCallControlId } = params;
 
   const state = getCall(userCallControlId);
   if (!state || state.providers.length === 0) {
@@ -57,11 +48,7 @@ export async function callProvider(params: CallProviderParams): Promise<CallProv
 }
 
 export async function transferCall(params: TransferCallParams): Promise<TransferCallResult> {
-  const userCallControlId = params.call_control_id;
-  if (!userCallControlId) {
-    console.log(`[tools:dispatch] transferCall called without call_control_id`);
-    return { status: 'error', note: 'Missing call_control_id' };
-  }
+  const { call_control_id: userCallControlId } = params;
 
   const state = getCall(userCallControlId);
   if (!state?.providerCallControlId) {
