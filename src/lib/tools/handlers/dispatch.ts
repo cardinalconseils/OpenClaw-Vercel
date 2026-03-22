@@ -1,15 +1,14 @@
-import { startOutboundCascade } from '../../voice/outbound-caller.js';
+import { startOutboundCascade, bridgeToUser } from '../../voice/outbound-caller.js';
 import { getCall } from '../../voice/call-state.js';
 
 interface CallProviderParams {
   phone_number: string;
   provider_name: string;
-  ring_timeout_ms?: number;
-  call_control_id?: string;  // user's callControlId to start cascade on
+  call_control_id: string;
 }
 
 interface CallProviderResult {
-  status: string;
+  status: 'cascade-started' | 'no-providers' | 'error';
   provider: string;
   note: string;
 }
@@ -17,23 +16,16 @@ interface CallProviderResult {
 interface TransferCallParams {
   provider_phone: string;
   caller_context?: string;
+  call_control_id: string;
 }
 
 interface TransferCallResult {
-  status: string;
+  status: 'bridge-initiated' | 'error';
   note: string;
 }
 
 export async function callProvider(params: CallProviderParams): Promise<CallProviderResult> {
-  const userCallControlId = params.call_control_id;
-  if (!userCallControlId) {
-    console.log(`[tools:dispatch] callProvider called without call_control_id — cannot start cascade`);
-    return {
-      status: 'error',
-      provider: params.provider_name,
-      note: 'Missing call_control_id — cannot initiate outbound cascade',
-    };
-  }
+  const { call_control_id: userCallControlId } = params;
 
   const state = getCall(userCallControlId);
   if (!state || state.providers.length === 0) {
@@ -56,10 +48,19 @@ export async function callProvider(params: CallProviderParams): Promise<CallProv
 }
 
 export async function transferCall(params: TransferCallParams): Promise<TransferCallResult> {
-  console.log(`[tools:dispatch] STUB — transferCall to "${params.provider_phone}"`);
+  const { call_control_id: userCallControlId } = params;
 
-  return {
-    status: 'stub-transfer-pending',
-    note: 'Real implementation in Phase 5',
-  };
+  const state = getCall(userCallControlId);
+  if (!state?.providerCallControlId) {
+    console.log(`[tools:dispatch] No active provider leg for ${userCallControlId}`);
+    return { status: 'error', note: 'No active provider call to bridge' };
+  }
+
+  try {
+    await bridgeToUser(state.providerCallControlId, userCallControlId);
+    return { status: 'bridge-initiated', note: 'Bridge command sent to Telnyx' };
+  } catch (err) {
+    console.error(`[tools:dispatch] Bridge failed for ${userCallControlId}:`, err);
+    return { status: 'error', note: 'Bridge API call failed' };
+  }
 }

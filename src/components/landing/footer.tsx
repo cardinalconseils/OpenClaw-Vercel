@@ -1,11 +1,5 @@
 import Link from 'next/link'
 
-const navLinks = [
-  { href: '/dashboard', label: 'Dashboard' },
-  { href: '/missions', label: 'Missions' },
-  { href: '/settings', label: 'Settings' },
-]
-
 export function Footer() {
   const year = new Date().getFullYear()
   const bmcUrl =
@@ -14,7 +8,7 @@ export function Footer() {
   return (
     <footer className="border-t border-border py-12 px-4 bg-background">
       <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
           {/* Brand */}
           <div className="flex flex-col gap-2">
             <span className="font-sans font-bold text-lg text-foreground">
@@ -24,19 +18,6 @@ export function Footer() {
               One call replaces five.
             </span>
           </div>
-
-          {/* Navigation */}
-          <nav className="flex flex-col gap-2">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="font-sans text-sm font-normal text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {link.label}
-              </Link>
-            ))}
-          </nav>
 
           {/* BuyMeACoffee */}
           <div className="flex flex-col gap-2">

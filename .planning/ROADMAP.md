@@ -19,7 +19,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Outbound Provider Calling** - Dial providers sequentially with live user narration, handle voicemail and busy signals, cascade through ranked list (completed 2026-03-16)
 - [ ] **Phase 5: Live Call Transfer** - Warm-transfer user to confirmed-available provider via conference bridge, exit cleanly, handle transfer failures
 - [ ] **Phase 6: Post-Call SMS** - Send SMS recap with outcome, provider info, and tip link; persist call record
-- [ ] **Phase 7: Web Dashboard** - Serve read-only call history by phone number from Vercel Sandbox
+- [ ] **Phase 7: Call History Lookup** - Public /history page for call history by phone number on Railway
 - [x] **Phase 8: Telnyx Missions** - Create and execute batch missions (multi-call campaigns, SMS surveys, provider research) via natural language through any connected channel (completed 2026-03-16)
 - [x] **Phase 9: Frontend Website** - Next.js SaaS frontend with dark modern landing page, Supabase Auth, authenticated dashboard (call history, missions, analytics), settings, and billing (completed 2026-03-18)
 - [x] **Phase 10: Privacy & Terms Pages** - Privacy Policy and Terms of Service pages with legal compliance content (completed 2026-03-19)
@@ -129,14 +129,14 @@ Plans:
   4. A call record exists in the database after every call, capturing caller number, providers contacted, outcomes, and timestamps — this record is what the dashboard reads
 **Plans**: TBD
 
-### Phase 7: Web Dashboard
-**Goal**: A simple web page served from the Vercel Sandbox lets a user enter their phone number and see their call history — past searches, providers contacted, and outcomes
+### Phase 7: Call History Lookup
+**Goal**: A simple public page at /history lets a user enter their phone number and see their call history — past searches, providers contacted, and outcomes. Reads from the existing `call_history` Supabase table (written by the hangup handler). No authentication required — phone number is the lookup key.
 **Depends on**: Phase 6
 **Requirements**: DASH-01, DASH-02, DASH-03
 **Success Criteria** (what must be TRUE):
-  1. User visits the dashboard URL, enters their phone number, and sees a list of past calls without any login or registration
+  1. User visits /history, enters their phone number, and sees a list of past calls without any login or registration
   2. Each call record shows the date, service type searched, providers contacted with outcomes, and which provider they were connected to
-  3. Dashboard is served directly from the Vercel Sandbox at a public HTTPS URL — no separate hosting or deployment needed
+  3. Page is served from the Railway deployment alongside the existing Next.js frontend
 **Plans**: TBD
 
 ### Phase 8: Telnyx Missions
@@ -204,7 +204,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 1.1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10 -> 11
+Phases execute in numeric order: 1 -> 1.1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10 -> 11 -> 12
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -220,3 +220,16 @@ Phases execute in numeric order: 1 -> 1.1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 
 | 9. Frontend Website | 6/6 | Complete | 2026-03-18 |
 | 10. Privacy & Terms Pages | 2/2 | Complete | 2026-03-19 |
 | 11. Fix Murphy Phone Routing | 0/1 | In Progress | - |
+| 12. Migrate to Railway + Admin Auth | 3/3 | Complete    | 2026-03-20 |
+
+### Phase 12: Migrate OpenClaw to Railway with /admin Auth System
+
+**Goal:** Deploy OpenClaw on Railway using the official template, move the Next.js frontend from Vercel to Railway, proxy OpenClaw's built-in Control UI at /admin behind Supabase admin-only auth, remove Vercel Sandbox and dashboard placeholder, and configure standalone Next.js build with custom server for WebSocket proxy
+**Requirements**: MIGRATE-01, MIGRATE-02, MIGRATE-03, MIGRATE-04, MIGRATE-05, MIGRATE-06
+**Depends on:** Phase 11
+**Plans:** 3/3 plans complete
+
+Plans:
+- [ ] 12-01-PLAN.md — Admin RBAC middleware with tests (MIGRATE-04)
+- [ ] 12-02-PLAN.md — Remove dashboard routes/components, update nav links, delete vercel.json (MIGRATE-01, MIGRATE-05, MIGRATE-06)
+- [ ] 12-03-PLAN.md — Custom server with WebSocket proxy, standalone build config, http-proxy-middleware (MIGRATE-02, MIGRATE-03)

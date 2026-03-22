@@ -26,31 +26,44 @@ export async function middleware(request: NextRequest) {
   )
 
   // IMPORTANT: Always use getUser(), never getSession() — security requirement
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  // Protect dashboard routes — redirect unauthenticated users to /login
-  if (
-    !user &&
-    (request.nextUrl.pathname.startsWith('/dashboard') ||
-      request.nextUrl.pathname.startsWith('/missions') ||
-      request.nextUrl.pathname.startsWith('/analytics') ||
-      request.nextUrl.pathname.startsWith('/settings'))
-  ) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
+  let user = null
+  try {
+    const { data } = await supabase.auth.getUser()
+    user = data.user
+  } catch (err) {
+    console.error('[middleware] Supabase auth check failed:', (err as Error).message)
+    // Fail closed for protected routes, fail open for public routes
+    if (request.nextUrl.pathname.startsWith('/admin')) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/login'
+      return NextResponse.redirect(url)
+    }
+    return supabaseResponse
   }
 
-  // Redirect authenticated users away from auth pages
+  // Protect /admin routes — require admin role (app_metadata is not user-writable)
+  if (request.nextUrl.pathname.startsWith('/admin')) {
+    if (!user) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/login'
+      return NextResponse.redirect(url)
+    }
+    const role = user.app_metadata?.role
+    if (role !== 'admin') {
+      const url = request.nextUrl.clone()
+      url.pathname = '/'
+      return NextResponse.redirect(url)
+    }
+  }
+
+  // Redirect authenticated users away from auth pages to home
   if (
     user &&
     (request.nextUrl.pathname === '/login' ||
       request.nextUrl.pathname === '/signup')
   ) {
     const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
+    url.pathname = '/'
     return NextResponse.redirect(url)
   }
 

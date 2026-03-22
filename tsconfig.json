@@ -36,6 +36,16 @@
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "src/api",
+    "src/lib/ai",
+    "src/lib/db",
+    "src/lib/missions",
+    "src/lib/tools",
+    "src/lib/voice",
+    "src/server.ts",
+    "src/server.test.ts",
+    "src/startup",
+    "src/types"
   ]
 }

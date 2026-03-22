@@ -29,31 +29,14 @@ describe('Auth Middleware (WEB-02)', () => {
     vi.clearAllMocks()
   })
 
-  it('redirects unauthenticated user from /dashboard to /login', async () => {
+  it('allows unauthenticated user to access /dashboard (routes removed)', async () => {
     mockGetUser.mockResolvedValueOnce({ data: { user: null }, error: null })
     const req = makeRequest('/dashboard')
     const res = await middleware(req)
-    expect(res?.status).toBe(307)
-    expect(res?.headers.get('location')).toContain('/login')
+    expect(res?.status).toBe(200)
   })
 
-  it('redirects unauthenticated user from /missions to /login', async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: null }, error: null })
-    const req = makeRequest('/missions')
-    const res = await middleware(req)
-    expect(res?.status).toBe(307)
-    expect(res?.headers.get('location')).toContain('/login')
-  })
-
-  it('redirects unauthenticated user from /settings to /login', async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: null }, error: null })
-    const req = makeRequest('/settings')
-    const res = await middleware(req)
-    expect(res?.status).toBe(307)
-    expect(res?.headers.get('location')).toContain('/login')
-  })
-
-  it('redirects authenticated user from /login to /dashboard', async () => {
+  it('redirects authenticated user from /login to / (home)', async () => {
     mockGetUser.mockResolvedValueOnce({
       data: { user: { id: 'user-123', email: 'test@example.com' } },
       error: null,
@@ -61,7 +44,9 @@ describe('Auth Middleware (WEB-02)', () => {
     const req = makeRequest('/login')
     const res = await middleware(req)
     expect(res?.status).toBe(307)
-    expect(res?.headers.get('location')).toContain('/dashboard')
+    const location = res?.headers.get('location') ?? ''
+    expect(location).toMatch(/\/$/)
+    expect(location).not.toContain('/dashboard')
   })
 
   it('allows unauthenticated user to access /', async () => {
