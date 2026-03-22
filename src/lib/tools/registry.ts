@@ -143,12 +143,12 @@ export async function executeTool(
 
     case 'call_provider':
       return callProvider(
-        params as { phone_number: string; provider_name: string }
+        params as { phone_number: string; provider_name: string; call_control_id: string }
       );
 
     case 'transfer_call':
       return transferCall(
-        params as { provider_phone: string; caller_context?: string }
+        params as { provider_phone: string; caller_context?: string; call_control_id: string }
       );
 
     case 'send_sms':

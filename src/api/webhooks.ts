@@ -33,8 +33,11 @@ import {
   handleAmdResult,
   handleProviderHangup,
   decodeClientState,
+  decodeProviderDialState,
   parseAvailability,
   stopNarrationTimer,
+  bridgeToUser,
+  TRANSFER_BRIEF,
 } from '../lib/voice/outbound-caller.js';
 import { searchProviders } from '../lib/tools/handlers/search.js';
 import { buildResultNarration, buildNoResultsNarration, buildSearchingFiller } from '../lib/voice/narration.js';
@@ -157,8 +160,8 @@ webhookRouter.post(
               console.log(`[webhooks] Greeting + transcription started for ${callControlId}`);
             } else {
               // Outbound provider leg answered
-              const clientState = decodeClientState((payload as any).client_state);
-              if (clientState.stage === 'provider-dial') {
+              const clientState = decodeProviderDialState((payload as any).client_state);
+              if (clientState) {
                 await handleProviderAnswer(callControlId, clientState);
                 // Start transcription on provider leg to capture availability response (CALL-06)
                 await getTelnyxClient().calls.actions.startTranscription(callControlId, {
@@ -171,6 +174,31 @@ webhookRouter.post(
           }
 
           case 'call.speak.ended': {
+            // Check if this is a provider-leg speak.ended (bridge trigger)
+            const speakClientState = decodeProviderDialState((payload as any).client_state);
+            if (speakClientState) {
+              // Provider leg speak ended — check if bridge is pending (XFER-01)
+              const { userCallControlId: userCcid, providerName, providerIndex } = speakClientState;
+              const bridgeState = getCall(userCcid);
+              if (bridgeState?.pendingBridge) {
+                updateCall(userCcid, { pendingBridge: false });
+                try {
+                  await bridgeToUser(callControlId, userCcid);
+                  console.log(`[webhooks] Bridge initiated after brief: ${callControlId} <-> ${userCcid}`);
+                } catch (err) {
+                  // Bridge failed — tell user and cascade to next provider
+                  console.error(`[webhooks] Bridge API failed:`, err);
+                  try {
+                    await speak(userCcid, `I had trouble connecting you to ${providerName} — trying the next one.`);
+                  } catch (err) { console.warn(`[webhooks] Speak failed (user leg may have ended): ${(err as Error).message}`); }
+                  updateCall(userCcid, { currentProviderIndex: providerIndex + 1, providerCallControlId: undefined });
+                  await tryNextProvider(userCcid);
+                }
+              }
+              break;
+            }
+
+            // Inbound user leg speak.ended — existing greeting logic
             const state = getCall(callControlId);
             if (state?.stage === 'greeting') {
               updateCall(callControlId, { stage: 'name_capture' });
@@ -186,29 +214,47 @@ webhookRouter.post(
             if (!transcript.trim()) break;
 
             // Check if this is a provider leg transcription (CALL-06)
-            const transcriptionClientState = decodeClientState((payload as any).client_state);
-            if (transcriptionClientState.stage === 'provider-dial') {
+            const transcriptionClientState = decodeProviderDialState((payload as any).client_state);
+            if (transcriptionClientState) {
               const providerTranscript: string = transcriptionData.transcript ?? '';
               if (providerTranscript.trim()) {
                 const availability = parseAvailability(providerTranscript);
-                const userCcid = transcriptionClientState.userCallControlId as string;
-                const providerName = transcriptionClientState.providerName as string;
-                const providerIndex = transcriptionClientState.providerIndex as number;
+                const { userCallControlId: userCcid, providerName, providerIndex } = transcriptionClientState;
 
                 console.log(`[webhooks] Provider ${providerName} transcript: "${providerTranscript}" → ${availability}`);
 
                 if (availability === 'available') {
-                  // Provider confirmed available — store for Phase 5 transfer
+                  // XFER-01/XFER-02: Provider confirmed — brief provider, then bridge
                   stopNarrationTimer(userCcid);
-                  await speak(userCcid, `Great news — ${providerName} is available! I'm going to connect you now.`);
-                  updateCall(userCcid, { stage: 'complete', currentProviderIndex: providerIndex });
-                  // Phase 5 will handle the actual bridge
-                  console.log(`[webhooks] Provider ${providerName} available — ready for transfer`);
+
+                  // Tell user the good news
+                  try {
+                    await speak(userCcid, `Great news — ${providerName} is available! I'm going to connect you now.`);
+                  } catch (err) { console.warn(`[webhooks] Speak failed (user leg may have ended): ${(err as Error).message}`); }
+
+                  // Build and speak brief on PROVIDER leg (XFER-02)
+                  const state = getCall(userCcid);
+                  const briefText = TRANSFER_BRIEF(
+                    state?.callerName,
+                    state?.intent?.serviceType ?? 'service',
+                    state?.intent?.location ?? 'your area'
+                  );
+
+                  // Set pendingBridge BEFORE speaking brief — speak.ended will trigger bridge
+                  updateCall(userCcid, { pendingBridge: true, currentProviderIndex: providerIndex });
+
+                  await getTelnyxClient().calls.actions.speak(callControlId, {
+                    payload: briefText,
+                    voice: TELNYX_VOICE_STRING,
+                    voice_settings: TELNYX_VOICE_SETTINGS,
+                  });
+
+                  console.log(`[webhooks] Provider ${providerName} available — brief spoken, pendingBridge=true`);
                 } else if (availability === 'unavailable') {
                   // Provider declined — cascade
                   try {
                     await getTelnyxClient().calls.actions.hangup(callControlId, {});
-                  } catch (_) { /* may already be hung up */ }
+                  } catch (err) { console.warn(`[webhooks] Provider hangup failed (may already be hung up): ${(err as Error).message}`); }
                   await speak(userCcid, `${providerName} isn't available right now — trying the next one.`);
                   updateCall(userCcid, { currentProviderIndex: providerIndex + 1, providerCallControlId: undefined });
                   await tryNextProvider(userCcid);
@@ -224,8 +270,8 @@ webhookRouter.post(
               break;
             }
 
-            // Gate: ignore transcripts while search is in progress, calling is active, or call is complete
-            if (['searching', 'calling', 'complete'].includes(state.stage)) {
+            // Gate: ignore transcripts while search is in progress, calling is active, or call is complete/transferred
+            if (['searching', 'calling', 'transferred', 'complete'].includes(state.stage)) {
               console.log(`[webhooks] Ignoring transcription — stage is ${state.stage}`);
               break;
             }
@@ -392,11 +438,32 @@ webhookRouter.post(
 
           case 'call.machine.detection.ended': {
             const result = (payload as any).result;  // 'human' | 'machine' | 'not_sure'
-            const clientState = decodeClientState((payload as any).client_state);
-            if (clientState.stage === 'provider-dial') {
+            const clientState = decodeProviderDialState((payload as any).client_state);
+            if (clientState) {
               await handleAmdResult(callControlId, result, clientState);
             }
             console.log(`[webhooks] AMD result: ${result} for ${callControlId}`);
+            break;
+          }
+
+          case 'call.bridged': {
+            // XFER-03: Bridge established — mark as transferred
+            // call.bridged fires on BOTH legs — only process the provider leg (has client_state with stage=provider-dial)
+            const bridgedClientState = decodeProviderDialState((payload as any).client_state);
+            if (bridgedClientState) {
+              const { userCallControlId: userCcid, providerName } = bridgedClientState;
+              updateCall(userCcid, { stage: 'transferred' });
+
+              // XFER-03: Speak goodbye to both parties on the user leg (both hear it via bridge)
+              try {
+                await speak(userCcid,
+                  `Alright, you're connected! I'll leave you two to it — good luck!`
+                );
+              } catch (err) { console.warn(`[webhooks] Bridge speak failed (call may have ended): ${(err as Error).message}`); }
+
+              console.log(`[webhooks] Bridge established: user ${userCcid} <-> provider ${providerName}, stage=transferred`);
+            }
+            // Ignore user-leg call.bridged event (client_state has { source: 'openclaw' })
             break;
           }
 
@@ -406,8 +473,8 @@ webhookRouter.post(
 
             // Handle outbound provider leg hangup
             if (hangupDirection === 'outgoing') {
-              const clientState = decodeClientState((payload as any).client_state);
-              if (clientState.stage === 'provider-dial') {
+              const clientState = decodeProviderDialState((payload as any).client_state);
+              if (clientState) {
                 await handleProviderHangup(callControlId, hangupCause, clientState);
               }
               console.log(`[webhooks] Outbound leg hangup: cause=${hangupCause}, id=${callControlId}`);
@@ -432,8 +499,8 @@ webhookRouter.post(
                 console.warn(`[webhooks] ADMIN_USER_ID not set — call history for ${callControlId} will have no owner`);
               }
 
-              // Only include providers that were actually contacted (stage must be 'calling' or 'complete')
-              const wasDialing = ['calling', 'complete'].includes(state.stage);
+              // Only include providers that were actually contacted (stage must be 'calling', 'transferred', or 'complete')
+              const wasDialing = ['calling', 'transferred', 'complete'].includes(state.stage);
               const contactedProviders = wasDialing
                 ? state.providers
                     .slice(0, state.currentProviderIndex + 1)
@@ -442,7 +509,7 @@ webhookRouter.post(
 
               // Determine call outcome status
               let callStatus: 'completed' | 'no_match' | 'abandoned';
-              if (state.stage === 'complete') {
+              if (state.stage === 'complete' || state.stage === 'transferred') {
                 callStatus = 'completed';
               } else if (wasDialing && state.currentProviderIndex >= state.providers.length - 1) {
                 callStatus = 'no_match';
@@ -459,7 +526,7 @@ webhookRouter.post(
                   urgency: state.intent.urgency ?? null,
                   providers_contacted: contactedProviders,
                   connected_provider:
-                    state.stage === 'complete'
+                    (state.stage === 'complete' || state.stage === 'transferred')
                       ? (state.providers[state.currentProviderIndex]?.name ?? null)
                       : null,
                   status: callStatus,
@@ -472,7 +539,24 @@ webhookRouter.post(
               }
             }
 
-            if (state && state.stage !== 'complete') {
+            // If user hangs up during an active transfer, apologize to provider and hang up their leg
+            if (state && (state.stage === 'calling' || state.pendingBridge) && state.providerCallControlId) {
+              try {
+                await getTelnyxClient().calls.actions.speak(state.providerCallControlId, {
+                  payload: 'Sorry, the caller disconnected. Have a good day!',
+                  voice: TELNYX_VOICE_STRING,
+                  voice_settings: TELNYX_VOICE_SETTINGS,
+                });
+                // Give TTS time to play before hanging up
+                setTimeout(async () => {
+                  try {
+                    await getTelnyxClient().calls.actions.hangup(state.providerCallControlId!, {});
+                  } catch (err) { console.warn(`[webhooks] Provider hangup failed (may have already hung up): ${(err as Error).message}`); }
+                }, 3000);
+              } catch (err) { console.warn(`[webhooks] Provider goodbye failed (leg may have ended): ${(err as Error).message}`); }
+            }
+
+            if (state && state.stage !== 'complete' && state.stage !== 'transferred') {
               setTimeout(() => endCall(callControlId), SESSION_PERSIST_MS);
               console.log(`[webhooks] Unexpected disconnect, session persists 30 min`);
             } else {
@@ -492,6 +576,10 @@ webhookRouter.post(
         const eventType = event?.data?.event_type ?? 'unknown';
         const callControlId: string = (event?.data?.payload as any)?.call_control_id ?? '';
         console.error(`[webhooks] Error processing ${eventType} for call ${callControlId}:`, err);
+        // Attempt cleanup of timers to prevent zombie resource consumption
+        if (callControlId) {
+          try { stopNarrationTimer(callControlId); } catch {}
+        }
       }
     });
   }

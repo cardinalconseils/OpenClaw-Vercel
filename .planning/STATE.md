@@ -2,16 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Not planned yet
-stopped_at: Phase 11 context updated — ClawdTalk pivot
-last_updated: "2026-03-20T15:18:58.365Z"
-last_activity: 2026-03-14 — Roadmap created
+status: unknown
+stopped_at: Completed 12-03-PLAN.md
+last_updated: "2026-03-20T20:29:53.005Z"
 progress:
-  total_phases: 12
-  completed_phases: 8
-  total_plans: 29
-  completed_plans: 28
-  percent: 0
+  total_phases: 13
+  completed_phases: 9
+  total_plans: 32
+  completed_plans: 31
 ---
 
 # Project State
@@ -21,16 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-14)
 
 **Core value:** One phone call replaces five — user describes what they need, agent finds a provider, calls them, and patches the user through live
-**Current focus:** Phase 1.1 — OpenClaw Agent Setup
+**Current focus:** Phase 11 — fix-murphy-phone-number-18888306873-telnyx-redirect-configuration
 
 ## Current Position
 
-Phase: 1.1 of 8 (OpenClaw Agent Setup)
-Plan: 0 of TBD in current phase
-Status: Not planned yet
-Last activity: 2026-03-14 — Roadmap created
-
-Progress: [░░░░░░░░░░] 0%
+Phase: 11 (fix-murphy-phone-number-18888306873-telnyx-redirect-configuration) — EXECUTING
+Plan: 1 of 1
 
 ## Performance Metrics
 
@@ -95,6 +89,9 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 10-add-privacy-policy-and-terms-and-conditions-pages P02 | 8min | 3 tasks | 3 files |
 | Phase 10-add-privacy-policy-and-terms-and-conditions-pages P01 | 219s | 3 tasks | 4 files |
 | Phase 10-add-privacy-policy-and-terms-and-conditions-pages P02 | 8min | 4 tasks | 3 files |
+| Phase 12-migrate-openclaw-instance-to-vercel-with-admin-auth-system P01 | 1min | 1 tasks | 3 files |
+| Phase 12-migrate-openclaw-instance-to-vercel-with-admin-auth-system P02 | 4min | 2 tasks | 10 files |
+| Phase 12-migrate-openclaw-instance-to-vercel-with-admin-auth-system P03 | 20min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -217,6 +214,12 @@ Recent decisions affecting current work:
 - [Phase 10-add-privacy-policy-and-terms-and-conditions-pages]: Footer copyright row uses flex-col sm:flex-row for responsive stacking — legal links inline on desktop, stacked on mobile
 - [Phase 10-add-privacy-policy-and-terms-and-conditions-pages]: Login CardFooter className changed to flex-col gap-2 text-center to stack Admin access only + agreement text vertically
 - [Phase 10-add-privacy-policy-and-terms-and-conditions-pages]: Footer tests use dynamic import pattern matching existing VoiceWave/NavBar test conventions
+- [Phase 12-migrate-openclaw-instance-to-vercel-with-admin-auth-system]: Admin RBAC uses user_metadata.role per locked decision — note: user_metadata is user-modifiable; migrate to app_metadata in a future hardening phase
+- [Phase 12-migrate-openclaw-instance-to-vercel-with-admin-auth-system]: navbar.tsx: navLinks array removed entirely; Sign In link retained as sole nav item
+- [Phase 12-migrate-openclaw-instance-to-vercel-with-admin-auth-system]: middleware.ts: /admin RBAC guard checks user_metadata.role === 'admin'; silently redirects non-admins to /
+- [Phase 12-migrate-openclaw-instance-to-vercel-with-admin-auth-system]: vitest.config.ts: setupFiles changed to path.resolve to fix wrong parent-project root resolution
+- [Phase 12-migrate-openclaw-instance-to-vercel-with-admin-auth-system]: pathRewrite: { '^/admin': '' } strips /admin prefix when forwarding to OpenClaw Control UI (served at root on port 18789)
+- [Phase 12-migrate-openclaw-instance-to-vercel-with-admin-auth-system]: build script compiles server.ts via tsc --project tsconfig.server.json after next build — Railway runs node server.js as start command
 
 ### Pending Todos
 
@@ -227,6 +230,7 @@ None yet.
 - Phase 1.1 inserted after Phase 1: OpenClaw Agent Setup — install/configure OpenClaw framework, agent persona, LLM wiring, tool registry (URGENT)
 - Phase 10 added: Add privacy policy and terms and conditions pages
 - Phase 11 added: Fix Murphy phone number 18888306873 Telnyx redirect configuration
+- Phase 12 added: Migrate OpenClaw instance to Vercel with /admin auth system
 
 ### Blockers/Concerns
 
@@ -236,6 +240,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-20T15:18:58.359Z
-Stopped at: Phase 11 context updated — ClawdTalk pivot
-Resume file: .planning/phases/11-fix-murphy-phone-number-18888306873-telnyx-redirect-configuration/11-CONTEXT.md
+Last session: 2026-03-20T20:01:46.171Z
+Stopped at: Completed 12-03-PLAN.md
+Resume file: None

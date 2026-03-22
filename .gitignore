@@ -7,6 +7,7 @@ out/
 
 # Production build
 dist/
+server.js
 
 # Environment files
 .env
@@ -18,3 +19,17 @@ npm-debug.log*
 
 # TypeScript
 *.tsbuildinfo
+
+# Express backend code (lives in root src/ — not part of Next.js frontend build)
+# These are copies from the OpenClaw backend that do not belong in the
+# Next.js compilation context and cause TypeScript errors if included.
+src/api/
+src/lib/ai/
+src/lib/db/
+src/lib/missions/
+src/lib/tools/
+src/lib/voice/
+src/server.ts
+src/server.test.ts
+src/startup/
+src/types/

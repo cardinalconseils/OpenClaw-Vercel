@@ -16,7 +16,8 @@ export interface CallState {
   callControlId: string;
   callerPhone: string;
   language: 'en' | 'fr';
-  stage: 'greeting' | 'name_capture' | 'intake' | 'consent' | 'searching' | 'calling' | 'complete';
+  stage: 'greeting' | 'name_capture' | 'intake' | 'consent' | 'searching' | 'calling' | 'transferred' | 'complete';
+  pendingBridge: boolean;
   intent: Partial<{ serviceType: string; location: string; urgency: string }>;
   clarificationTurns: number;
   startedAt: Date;
@@ -55,6 +56,7 @@ export function initCall(callControlId: string, callerPhone: string): CallState 
     providers: [],
     currentProviderIndex: 0,
     providerCallControlId: undefined,
+    pendingBridge: false,
   };
   _calls.set(callControlId, state);
   return state;
@@ -71,9 +73,11 @@ export function getCall(id: string): CallState | undefined {
  */
 export function updateCall(id: string, patch: Partial<CallState>): void {
   const existing = _calls.get(id);
-  if (existing) {
-    _calls.set(id, { ...existing, ...patch });
+  if (!existing) {
+    console.warn(`[call-state] updateCall for unknown call ${id} — state may have been cleaned up`);
+    return;
   }
+  _calls.set(id, { ...existing, ...patch });
 }
 
 /** Clears silence nudge timer and removes the call state. */

@@ -24,8 +24,54 @@ import {
   NARRATION_INTERVAL_MS,
 } from './voice-config.js';
 import type { Provider } from '../tools/handlers/search.js';
+import { z } from 'zod';
+
+// ─── Provider dial client state (serialization boundary) ─────────────────
+
+const ProviderDialClientStateSchema = z.object({
+  stage: z.literal('provider-dial'),
+  userCallControlId: z.string(),
+  providerName: z.string(),
+  providerIndex: z.number(),
+});
+
+export type ProviderDialClientState = z.infer<typeof ProviderDialClientStateSchema>;
 
 // ─── Exported constants ────────────────────────────────────────────────────
+
+/**
+ * Builds a brief transfer announcement for the provider when the user is being bridged.
+ * Used as the spoken intro before the bridge is initiated.
+ * Falls back to 'a customer' when callerName is undefined.
+ */
+export const TRANSFER_BRIEF = (
+  callerName: string | undefined,
+  serviceType: string,
+  location: string
+): string => {
+  const name = callerName ?? 'a customer';
+  return (
+    `I have ${name} who needs ${serviceType} near ${location}. ` +
+    `I'm connecting them to you now. One moment.`
+  );
+};
+
+/**
+ * Bridges the provider call leg to the user call leg via Telnyx bridge API.
+ * After this call, both parties are connected directly; the agent exits the call.
+ * XFER-02: Telnyx bridge API call.
+ */
+export async function bridgeToUser(
+  providerCallControlId: string,
+  userCallControlId: string
+): Promise<void> {
+  await getTelnyxClient().calls.actions.bridge(providerCallControlId, {
+    call_control_id_to_bridge_with: userCallControlId,
+  });
+  console.log(
+    `[outbound-caller] Bridge initiated: provider ${providerCallControlId} <-> user ${userCallControlId}`
+  );
+}
 
 /** AI legal disclosure — must be first utterance on outbound calls (CA SB-1001, FCC) */
 export const AI_INTRO = (providerName: string, serviceType: string, location: string): string =>
@@ -64,9 +110,21 @@ export function decodeClientState(raw: string | undefined): Record<string, unkno
   if (!raw) return {};
   try {
     return JSON.parse(Buffer.from(raw, 'base64').toString('utf8'));
-  } catch {
+  } catch (err) {
+    console.error(`[outbound-caller] Failed to decode client_state: ${(err as Error).message}, raw=${raw?.substring(0, 50)}`);
     return {};
   }
+}
+
+/**
+ * Decodes and validates a provider-dial client_state with Zod.
+ * Returns null if the payload is missing, malformed, or doesn't match the schema.
+ */
+export function decodeProviderDialState(raw: string | undefined): ProviderDialClientState | null {
+  const decoded = decodeClientState(raw);
+  const result = ProviderDialClientStateSchema.safeParse(decoded);
+  if (!result.success) return null;
+  return result.data;
 }
 
 // ─── Internal helpers ─────────────────────────────────────────────────────
@@ -106,8 +164,8 @@ export function startNarrationTimer(
     count++;
     try {
       await speak(userCallControlId, text);
-    } catch {
-      // Call may have ended — suppress silently
+    } catch (err) {
+      console.warn(`[outbound-caller] Narration speak failed (call may have ended): ${(err as Error).message}`);
     }
   }, NARRATION_INTERVAL_MS);
 
@@ -262,10 +320,9 @@ export async function startOutboundCascade(userCallControlId: string): Promise<v
  */
 export async function handleProviderAnswer(
   providerCallControlId: string,
-  clientState: Record<string, unknown>
+  clientState: ProviderDialClientState
 ): Promise<void> {
-  const userCallControlId = clientState.userCallControlId as string;
-  const providerName = clientState.providerName as string;
+  const { userCallControlId, providerName } = clientState;
 
   stopNarrationTimer(userCallControlId);
 
@@ -284,8 +341,8 @@ export async function handleProviderAnswer(
   // Narrate to user that provider answered
   try {
     await speak(userCallControlId, `${providerName} answered — I'm checking if they're available now.`);
-  } catch {
-    // User leg may have ended — suppress silently
+  } catch (err) {
+    console.warn(`[outbound-caller] Speak to user failed (call may have ended): ${(err as Error).message}`);
   }
 
   console.log(`[outbound-caller] Provider ${providerName} answered, AI intro spoken`);
@@ -301,18 +358,16 @@ export async function handleProviderAnswer(
 export async function handleAmdResult(
   providerCallControlId: string,
   result: string,
-  clientState: Record<string, unknown>
+  clientState: ProviderDialClientState
 ): Promise<void> {
-  const userCallControlId = clientState.userCallControlId as string;
-  const providerName = clientState.providerName as string;
-  const providerIndex = clientState.providerIndex as number;
+  const { userCallControlId, providerName, providerIndex } = clientState;
 
   if (result === 'machine') {
     console.log(`[outbound-caller] AMD: machine detected for ${providerName}, cascading`);
     try {
       await getTelnyxClient().calls.actions.hangup(providerCallControlId, {});
-    } catch {
-      // May already be hung up — suppress silently
+    } catch (err) {
+      console.warn(`[outbound-caller] Provider hangup failed (may already be hung up): ${(err as Error).message}`);
     }
 
     await speak(userCallControlId, `${providerName} went to voicemail — trying the next one.`);
@@ -335,13 +390,21 @@ export async function handleAmdResult(
 export async function handleProviderHangup(
   providerCallControlId: string,
   hangupCause: string,
-  clientState: Record<string, unknown>
+  clientState: ProviderDialClientState
 ): Promise<void> {
-  const userCallControlId = clientState.userCallControlId as string;
-  const providerName = clientState.providerName as string;
-  const providerIndex = clientState.providerIndex as number;
+  const { userCallControlId, providerName, providerIndex } = clientState;
 
-  const cascadeCauses = ['timeout', 'no_answer', 'user_busy'];
+  // XFER-04: Do NOT cascade after successful bridge transfer
+  const state = getCall(userCallControlId);
+  if (state?.stage === 'transferred') {
+    console.log(
+      `[outbound-caller] Post-transfer hangup from ${providerName} — call completed normally`
+    );
+    return;
+  }
+
+  // Also cascade on normal_clearing if pre-bridge (provider hung up before transfer)
+  const cascadeCauses = ['timeout', 'no_answer', 'user_busy', 'normal_clearing'];
   if (cascadeCauses.includes(hangupCause)) {
     console.log(
       `[outbound-caller] Provider ${providerName} hangup: ${hangupCause}, cascading`

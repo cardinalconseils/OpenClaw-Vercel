@@ -12,12 +12,6 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 
-const navLinks = [
-  { href: '/dashboard', label: 'Dashboard' },
-  { href: '/missions', label: 'Missions' },
-  { href: '/analytics', label: 'Analytics' },
-]
-
 export function NavBar() {
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -34,15 +28,6 @@ export function NavBar() {
 
         {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-6">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {link.label}
-            </Link>
-          ))}
           <Link
             href="/login"
             className="text-sm text-primary hover:text-primary/80 transition-colors font-medium"
@@ -64,16 +49,6 @@ export function NavBar() {
                 </SheetTitle>
               </SheetHeader>
               <div className="flex flex-col gap-4 px-4 pt-4">
-                {navLinks.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
-                    onClick={() => setMobileOpen(false)}
-                  >
-                    {link.label}
-                  </Link>
-                ))}
                 <Link
                   href="/login"
                   className="text-sm text-primary hover:text-primary/80 transition-colors font-medium py-2"

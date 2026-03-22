@@ -60,7 +60,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [ ] **DASH-01**: User can view call history by entering their phone number
 - [ ] **DASH-02**: Dashboard shows past searches, providers contacted, and outcomes
-- [ ] **DASH-03**: Dashboard is a simple web page served from the Vercel Sandbox
+- [ ] **DASH-03**: Call history page is served from the Railway deployment alongside the Next.js frontend
 
 ### Frontend Website
 
@@ -94,6 +94,15 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [ ] **FIX-01**: TELNYX_PUBLIC_KEY in Vercel production matches the canonical value from Telnyx API
 - [ ] **FIX-02**: Webhook signature verifier handles pre-parsed request bodies without producing "[object Object]"
+
+### Migration & Admin
+
+- [x] **MIGRATE-01**: Remove Vercel Sandbox configuration (vercel.json, turbopack root workaround)
+- [x] **MIGRATE-02**: Configure Next.js for Railway standalone build with custom server
+- [x] **MIGRATE-03**: Create custom server with HTTP + WebSocket proxy for /admin to OpenClaw Control UI
+- [x] **MIGRATE-04**: Add admin RBAC to middleware (user_metadata.role='admin' check on /admin/* routes)
+- [x] **MIGRATE-05**: Remove /dashboard route group and all dashboard placeholder components
+- [x] **MIGRATE-06**: Update navigation links and auth callback redirect (no more /dashboard references)
 
 ## v2 Requirements
 
@@ -194,12 +203,18 @@ Which phases cover which requirements. Updated during roadmap creation.
 | LEGAL-06 | Phase 10 | Complete |
 | FIX-01 | Phase 11 | Pending |
 | FIX-02 | Phase 11 | Pending |
+| MIGRATE-01 | Phase 12 | Complete |
+| MIGRATE-02 | Phase 12 | Complete |
+| MIGRATE-03 | Phase 12 | Complete |
+| MIGRATE-04 | Phase 12 | Complete |
+| MIGRATE-05 | Phase 12 | Complete |
+| MIGRATE-06 | Phase 12 | Complete |
 
 **Coverage:**
-- v1 requirements: 55 total
-- Mapped to phases: 55
+- v1 requirements: 61 total
+- Mapped to phases: 61
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-14*
-*Last updated: 2026-03-19 after Phase 11 planning*
+*Last updated: 2026-03-20 after Phase 12 planning*
