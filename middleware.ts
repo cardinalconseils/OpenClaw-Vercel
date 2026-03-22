@@ -30,32 +30,19 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Protect /admin routes — require admin role
+  // Protect /admin routes — require admin role (app_metadata is not user-writable)
   if (request.nextUrl.pathname.startsWith('/admin')) {
     if (!user) {
       const url = request.nextUrl.clone()
       url.pathname = '/login'
       return NextResponse.redirect(url)
     }
-    const role = user.user_metadata?.role
+    const role = user.app_metadata?.role
     if (role !== 'admin') {
       const url = request.nextUrl.clone()
       url.pathname = '/'
-      return NextResponse.redirect(url) // Silently redirect non-admins
+      return NextResponse.redirect(url)
     }
-  }
-
-  // Protect dashboard routes — redirect unauthenticated users to /login
-  if (
-    !user &&
-    (request.nextUrl.pathname.startsWith('/dashboard') ||
-      request.nextUrl.pathname.startsWith('/missions') ||
-      request.nextUrl.pathname.startsWith('/analytics') ||
-      request.nextUrl.pathname.startsWith('/settings'))
-  ) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
   }
 
   // Redirect authenticated users away from auth pages to home

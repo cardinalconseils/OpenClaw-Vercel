@@ -95,6 +95,7 @@ export type CallStage =
   | 'consent'
   | 'searching'
   | 'calling'
+  | 'transferred'
   | 'complete';
 
 export interface CallStateView {

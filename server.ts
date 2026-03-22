@@ -1,5 +1,4 @@
 import { createServer } from 'http'
-import { parse } from 'url'
 import next from 'next'
 import { createProxyMiddleware } from 'http-proxy-middleware'
 
@@ -15,13 +14,11 @@ const handle = app.getRequestHandler()
 
 // Proxy /admin/* to OpenClaw Control UI
 // pathRewrite strips /admin prefix — Control UI is served at root on port 18789
-// If Control UI is at /openclaw on 18789, change '' to '/openclaw'
 const adminProxy = createProxyMiddleware({
   target: OPENCLAW_INTERNAL_URL,
   changeOrigin: true,
   ws: true,
   pathRewrite: { '^/admin': '' },
-  // Suppress proxy errors when OpenClaw gateway is not running (dev mode)
   on: {
     error: (err, _req, res) => {
       console.error('[proxy] OpenClaw gateway error:', err.message)
@@ -35,25 +32,31 @@ const adminProxy = createProxyMiddleware({
 
 app.prepare().then(() => {
   const server = createServer((req, res) => {
-    const parsedUrl = parse(req.url ?? '/', true)
+    const parsedUrl = new URL(req.url ?? '/', `http://${hostname}:${port}`)
 
-    // Proxy /admin requests to OpenClaw Control UI
-    if (parsedUrl.pathname?.startsWith('/admin')) {
+    if (parsedUrl.pathname.startsWith('/admin')) {
       return adminProxy(req, res, () => {
-        // Fallback: if proxy doesn't handle, pass to Next.js
-        handle(req, res, parsedUrl)
+        handle(req, res)
       })
     }
 
-    // All other requests handled by Next.js
-    handle(req, res, parsedUrl)
+    handle(req, res)
   })
 
   // Forward WebSocket upgrade events for /admin paths
-  // Cast socket to any: http.Server 'upgrade' provides Duplex but http-proxy-middleware expects net.Socket
   server.on('upgrade', (req, socket, head) => {
     if (req.url?.startsWith('/admin')) {
-      adminProxy.upgrade!(req, socket as any, head)
+      try {
+        if (adminProxy.upgrade) {
+          adminProxy.upgrade(req, socket as any, head)
+        } else {
+          console.error('[server] adminProxy.upgrade is not available')
+          socket.destroy()
+        }
+      } catch (err) {
+        console.error(`[server] WebSocket upgrade failed: ${(err as Error).message}`)
+        socket.destroy()
+      }
     }
   })
 
@@ -61,4 +64,7 @@ app.prepare().then(() => {
     console.log(`> Ready on http://${hostname}:${port}`)
     console.log(`> OpenClaw proxy target: ${OPENCLAW_INTERNAL_URL}`)
   })
+}).catch((err) => {
+  console.error('Failed to start Next.js application:', err)
+  process.exit(1)
 })

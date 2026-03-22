@@ -73,9 +73,11 @@ export function getCall(id: string): CallState | undefined {
  */
 export function updateCall(id: string, patch: Partial<CallState>): void {
   const existing = _calls.get(id);
-  if (existing) {
-    _calls.set(id, { ...existing, ...patch });
+  if (!existing) {
+    console.warn(`[call-state] updateCall for unknown call ${id} — state may have been cleaned up`);
+    return;
   }
+  _calls.set(id, { ...existing, ...patch });
 }
 
 /** Clears silence nudge timer and removes the call state. */

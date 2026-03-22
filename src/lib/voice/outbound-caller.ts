@@ -98,7 +98,8 @@ export function decodeClientState(raw: string | undefined): Record<string, unkno
   if (!raw) return {};
   try {
     return JSON.parse(Buffer.from(raw, 'base64').toString('utf8'));
-  } catch {
+  } catch (err) {
+    console.error(`[outbound-caller] Failed to decode client_state: ${(err as Error).message}, raw=${raw?.substring(0, 50)}`);
     return {};
   }
 }
@@ -140,8 +141,8 @@ export function startNarrationTimer(
     count++;
     try {
       await speak(userCallControlId, text);
-    } catch {
-      // Call may have ended — suppress silently
+    } catch (err) {
+      console.warn(`[outbound-caller] Narration speak failed (call may have ended): ${(err as Error).message}`);
     }
   }, NARRATION_INTERVAL_MS);
 
@@ -318,8 +319,8 @@ export async function handleProviderAnswer(
   // Narrate to user that provider answered
   try {
     await speak(userCallControlId, `${providerName} answered — I'm checking if they're available now.`);
-  } catch {
-    // User leg may have ended — suppress silently
+  } catch (err) {
+    console.warn(`[outbound-caller] Speak to user failed (call may have ended): ${(err as Error).message}`);
   }
 
   console.log(`[outbound-caller] Provider ${providerName} answered, AI intro spoken`);
@@ -345,8 +346,8 @@ export async function handleAmdResult(
     console.log(`[outbound-caller] AMD: machine detected for ${providerName}, cascading`);
     try {
       await getTelnyxClient().calls.actions.hangup(providerCallControlId, {});
-    } catch {
-      // May already be hung up — suppress silently
+    } catch (err) {
+      console.warn(`[outbound-caller] Provider hangup failed (may already be hung up): ${(err as Error).message}`);
     }
 
     await speak(userCallControlId, `${providerName} went to voicemail — trying the next one.`);

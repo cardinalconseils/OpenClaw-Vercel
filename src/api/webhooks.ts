@@ -191,7 +191,7 @@ webhookRouter.post(
                   const providerIndex = speakClientState.providerIndex as number;
                   try {
                     await speak(userCcid, `I had trouble connecting you to ${providerName} — trying the next one.`);
-                  } catch { /* user leg may have ended */ }
+                  } catch (err) { console.warn(`[webhooks] Speak failed (user leg may have ended): ${(err as Error).message}`); }
                   updateCall(userCcid, { currentProviderIndex: providerIndex + 1, providerCallControlId: undefined });
                   await tryNextProvider(userCcid);
                 }
@@ -233,7 +233,7 @@ webhookRouter.post(
                   // Tell user the good news
                   try {
                     await speak(userCcid, `Great news — ${providerName} is available! I'm going to connect you now.`);
-                  } catch { /* user leg may have ended */ }
+                  } catch (err) { console.warn(`[webhooks] Speak failed (user leg may have ended): ${(err as Error).message}`); }
 
                   // Build and speak brief on PROVIDER leg (XFER-02)
                   const state = getCall(userCcid);
@@ -257,7 +257,7 @@ webhookRouter.post(
                   // Provider declined — cascade
                   try {
                     await getTelnyxClient().calls.actions.hangup(callControlId, {});
-                  } catch (_) { /* may already be hung up */ }
+                  } catch (err) { console.warn(`[webhooks] Provider hangup failed (may already be hung up): ${(err as Error).message}`); }
                   await speak(userCcid, `${providerName} isn't available right now — trying the next one.`);
                   updateCall(userCcid, { currentProviderIndex: providerIndex + 1, providerCallControlId: undefined });
                   await tryNextProvider(userCcid);
@@ -463,7 +463,7 @@ webhookRouter.post(
                 await speak(userCcid,
                   `Alright, you're connected! I'll leave you two to it — good luck!`
                 );
-              } catch { /* call may have ended */ }
+              } catch (err) { console.warn(`[webhooks] Bridge speak failed (call may have ended): ${(err as Error).message}`); }
 
               console.log(`[webhooks] Bridge established: user ${userCcid} <-> provider ${providerName}, stage=transferred`);
             }
@@ -555,9 +555,9 @@ webhookRouter.post(
                 setTimeout(async () => {
                   try {
                     await getTelnyxClient().calls.actions.hangup(state.providerCallControlId!, {});
-                  } catch { /* provider may have already hung up */ }
+                  } catch (err) { console.warn(`[webhooks] Provider hangup failed (may have already hung up): ${(err as Error).message}`); }
                 }, 3000);
-              } catch { /* provider leg may have already ended */ }
+              } catch (err) { console.warn(`[webhooks] Provider goodbye failed (leg may have ended): ${(err as Error).message}`); }
             }
 
             if (state && state.stage !== 'complete' && state.stage !== 'transferred') {
@@ -580,6 +580,10 @@ webhookRouter.post(
         const eventType = event?.data?.event_type ?? 'unknown';
         const callControlId: string = (event?.data?.payload as any)?.call_control_id ?? '';
         console.error(`[webhooks] Error processing ${eventType} for call ${callControlId}:`, err);
+        // Attempt cleanup of timers to prevent zombie resource consumption
+        if (callControlId) {
+          try { stopNarrationTimer(callControlId); } catch {}
+        }
       }
     });
   }
