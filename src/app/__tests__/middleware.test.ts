@@ -97,4 +97,25 @@ describe('Middleware — Admin RBAC and auth redirects', () => {
     expect(location).not.toContain('/dashboard')
   })
 
+  it('Test 6: Supabase failure on /admin redirects to /login (fail closed)', async () => {
+    mockGetUser.mockRejectedValue(new Error('Supabase unavailable'))
+    const { middleware } = await import('../../../middleware')
+
+    const req = buildRequest('/admin')
+    const res = await middleware(req)
+
+    expect(res.status).toBe(307)
+    expect(res.headers.get('location')).toContain('/login')
+  })
+
+  it('Test 7: Supabase failure on public route passes through (fail open)', async () => {
+    mockGetUser.mockRejectedValue(new Error('Supabase unavailable'))
+    const { middleware } = await import('../../../middleware')
+
+    const req = buildRequest('/')
+    const res = await middleware(req)
+
+    expect(res.status).toBe(200)
+    expect(res.headers.get('location')).toBeNull()
+  })
 })

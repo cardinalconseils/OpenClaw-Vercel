@@ -68,6 +68,31 @@ vi.mock('../../src/lib/tools/handlers/search.js', () => ({
   }),
 }));
 
+// Mock outbound-caller — bridge, cascade, and client state functions
+const mockBridgeToUser = vi.fn().mockResolvedValue(undefined);
+const mockTryNextProvider = vi.fn().mockResolvedValue(undefined);
+const mockDecodeClientState = vi.fn().mockReturnValue({});
+const mockStartOutboundCascade = vi.fn().mockResolvedValue(undefined);
+const mockHandleProviderAnswer = vi.fn().mockResolvedValue(undefined);
+const mockHandleAmdResult = vi.fn().mockResolvedValue(undefined);
+const mockHandleProviderHangup = vi.fn().mockResolvedValue(undefined);
+const mockParseAvailability = vi.fn().mockReturnValue('unclear');
+const mockStopNarrationTimer = vi.fn();
+const mockTransferBrief = vi.fn().mockReturnValue('Connecting you now.');
+
+vi.mock('../../src/lib/voice/outbound-caller.js', () => ({
+  bridgeToUser: (...args: any[]) => mockBridgeToUser(...args),
+  tryNextProvider: (...args: any[]) => mockTryNextProvider(...args),
+  decodeClientState: (...args: any[]) => mockDecodeClientState(...args),
+  startOutboundCascade: (...args: any[]) => mockStartOutboundCascade(...args),
+  handleProviderAnswer: (...args: any[]) => mockHandleProviderAnswer(...args),
+  handleAmdResult: (...args: any[]) => mockHandleAmdResult(...args),
+  handleProviderHangup: (...args: any[]) => mockHandleProviderHangup(...args),
+  parseAvailability: (...args: any[]) => mockParseAvailability(...args),
+  stopNarrationTimer: (...args: any[]) => mockStopNarrationTimer(...args),
+  TRANSFER_BRIEF: (...args: any[]) => mockTransferBrief(...args),
+}));
+
 // Mock narration — deterministic strings without importing the real module
 vi.mock('../../src/lib/voice/narration.js', () => ({
   buildResultNarration: vi.fn().mockReturnValue('I found 1 plumber providers near Austin.'),
@@ -1077,5 +1102,143 @@ describe('POST /webhooks/telnyx', () => {
     expect(res.status).toBe(200);
     // No assertion about throws — just confirming 200 and no crash
     await new Promise((r) => setTimeout(r, 50));
+  });
+
+  // ─── pendingBridge flow (XFER-02/03) ─────────────────────────────────
+
+  it('Test 29: call.speak.ended with pendingBridge=true triggers bridgeToUser', async () => {
+    const clientState = Buffer.from(JSON.stringify({
+      stage: 'provider-dial',
+      userCallControlId: 'user-cc-123',
+      providerName: 'Test Plumber',
+      providerIndex: 0,
+    })).toString('base64');
+
+    mockDecodeClientState.mockReturnValueOnce({
+      stage: 'provider-dial',
+      userCallControlId: 'user-cc-123',
+      providerName: 'Test Plumber',
+      providerIndex: 0,
+    });
+
+    vi.mocked(getCall).mockReturnValueOnce({
+      callControlId: 'user-cc-123',
+      callerPhone: '+15550001111',
+      language: 'en',
+      stage: 'calling',
+      pendingBridge: true,
+      intent: { serviceType: 'plumber', location: 'Austin' },
+      clarificationTurns: 0,
+      startedAt: new Date(),
+      callerName: 'John',
+      smsConsent: undefined,
+      consentTimestamp: undefined,
+      consentMethod: undefined,
+      silenceNudgeTimer: undefined,
+      silenceNudgeCount: 0,
+      providers: [],
+      currentProviderIndex: 0,
+      providerCallControlId: 'provider-cc-456',
+    });
+
+    const body = makePayload('call.speak.ended', {
+      call_control_id: 'provider-cc-456',
+      client_state: clientState,
+    });
+    mockUnwrap.mockResolvedValueOnce(JSON.parse(body) as any);
+
+    const res = await postWebhook(body);
+    expect(res.status).toBe(200);
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(mockBridgeToUser).toHaveBeenCalledWith('provider-cc-456', 'user-cc-123');
+    expect(vi.mocked(updateCall)).toHaveBeenCalledWith('user-cc-123', { pendingBridge: false });
+  });
+
+  it('Test 30: call.speak.ended with pendingBridge=false does NOT trigger bridge', async () => {
+    mockDecodeClientState.mockReturnValueOnce({
+      stage: 'provider-dial',
+      userCallControlId: 'user-cc-123',
+      providerName: 'Test Plumber',
+      providerIndex: 0,
+    });
+
+    vi.mocked(getCall).mockReturnValueOnce({
+      callControlId: 'user-cc-123',
+      callerPhone: '+15550001111',
+      language: 'en',
+      stage: 'calling',
+      pendingBridge: false,
+      intent: {},
+      clarificationTurns: 0,
+      startedAt: new Date(),
+      callerName: undefined,
+      smsConsent: undefined,
+      consentTimestamp: undefined,
+      consentMethod: undefined,
+      silenceNudgeTimer: undefined,
+      silenceNudgeCount: 0,
+      providers: [],
+      currentProviderIndex: 0,
+      providerCallControlId: undefined,
+    });
+
+    const body = makePayload('call.speak.ended', {
+      call_control_id: 'provider-cc-456',
+      client_state: Buffer.from(JSON.stringify({ stage: 'provider-dial', userCallControlId: 'user-cc-123' })).toString('base64'),
+    });
+    mockUnwrap.mockResolvedValueOnce(JSON.parse(body) as any);
+
+    const res = await postWebhook(body);
+    expect(res.status).toBe(200);
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(mockBridgeToUser).not.toHaveBeenCalled();
+  });
+
+  it('Test 31: bridge failure cascades to next provider', async () => {
+    mockDecodeClientState.mockReturnValueOnce({
+      stage: 'provider-dial',
+      userCallControlId: 'user-cc-123',
+      providerName: 'Test Plumber',
+      providerIndex: 0,
+    });
+
+    vi.mocked(getCall).mockReturnValueOnce({
+      callControlId: 'user-cc-123',
+      callerPhone: '+15550001111',
+      language: 'en',
+      stage: 'calling',
+      pendingBridge: true,
+      intent: {},
+      clarificationTurns: 0,
+      startedAt: new Date(),
+      callerName: undefined,
+      smsConsent: undefined,
+      consentTimestamp: undefined,
+      consentMethod: undefined,
+      silenceNudgeTimer: undefined,
+      silenceNudgeCount: 0,
+      providers: [],
+      currentProviderIndex: 0,
+      providerCallControlId: 'provider-cc-456',
+    });
+
+    mockBridgeToUser.mockRejectedValueOnce(new Error('Bridge API error'));
+
+    const body = makePayload('call.speak.ended', {
+      call_control_id: 'provider-cc-456',
+    });
+    mockUnwrap.mockResolvedValueOnce(JSON.parse(body) as any);
+
+    const res = await postWebhook(body);
+    expect(res.status).toBe(200);
+    await new Promise((r) => setTimeout(r, 50));
+
+    expect(vi.mocked(updateCall)).toHaveBeenCalledWith('user-cc-123', expect.objectContaining({
+      currentProviderIndex: 1,
+      providerCallControlId: undefined,
+    }));
+    expect(mockTryNextProvider).toHaveBeenCalledWith('user-cc-123');
   });
 });

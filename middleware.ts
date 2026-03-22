@@ -26,9 +26,20 @@ export async function middleware(request: NextRequest) {
   )
 
   // IMPORTANT: Always use getUser(), never getSession() — security requirement
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  let user = null
+  try {
+    const { data } = await supabase.auth.getUser()
+    user = data.user
+  } catch (err) {
+    console.error('[middleware] Supabase auth check failed:', (err as Error).message)
+    // Fail closed for protected routes, fail open for public routes
+    if (request.nextUrl.pathname.startsWith('/admin')) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/login'
+      return NextResponse.redirect(url)
+    }
+    return supabaseResponse
+  }
 
   // Protect /admin routes — require admin role (app_metadata is not user-writable)
   if (request.nextUrl.pathname.startsWith('/admin')) {
