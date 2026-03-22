@@ -46,7 +46,9 @@ export function buildSuccessSms(state: CallState, buyMeACoffeeUrl: string): stri
     ? `If I saved you some time, a coffee's always appreciated ☕ ${buyMeACoffeeUrl}`
     : '';
 
-  return [greeting, connectedLine, triedLine, tipLine]
+  const historyLine = 'View your call history: https://murphy.help/history';
+
+  return [greeting, connectedLine, triedLine, tipLine, historyLine]
     .filter((part) => part.length > 0)
     .join(' ');
 }
@@ -69,7 +71,7 @@ export function buildFailureSms(state: CallState): string {
 
   return (
     `${greeting} I wasn't able to connect you live, but here are the top ${serviceType} providers I found: ` +
-    `${providerList}. Good luck!`
+    `${providerList}. Good luck! View your call history: https://murphy.help/history`
   );
 }
 
