@@ -58,9 +58,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Web Dashboard
 
-- [ ] **DASH-01**: User can view call history by entering their phone number
+- [x] **DASH-01**: User can view call history by entering their phone number
 - [ ] **DASH-02**: Dashboard shows past searches, providers contacted, and outcomes
-- [ ] **DASH-03**: Dashboard is a simple web page served from the Vercel Sandbox
+- [x] **DASH-03**: Dashboard is a simple web page served from the Vercel Sandbox
 
 ### Frontend Website
 
@@ -170,9 +170,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | POST-02 | Phase 6 | Complete |
 | POST-03 | Phase 6 | Complete |
 | POST-04 | Phase 6 | Complete |
-| DASH-01 | Phase 7 | Pending |
+| DASH-01 | Phase 7 | Complete |
 | DASH-02 | Phase 7 | Pending |
-| DASH-03 | Phase 7 | Pending |
+| DASH-03 | Phase 7 | Complete |
 | MISSION-01 | Phase 8 | Complete |
 | MISSION-02 | Phase 8 | Complete |
 | MISSION-03 | Phase 8 | Complete |
