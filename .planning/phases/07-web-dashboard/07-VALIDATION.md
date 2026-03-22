@@ -38,26 +38,27 @@ created: 2026-03-22
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 07-01-01 | 01 | 1 | DASH-01 | unit | `cd frontend && npm test -- src/app/api/call-history/route.test.ts` | ❌ W0 | ⬜ pending |
-| 07-01-02 | 01 | 1 | DASH-01 | unit | `cd frontend && npm test -- src/lib/phone-normalize.test.ts` | ❌ W0 | ⬜ pending |
-| 07-01-03 | 01 | 1 | DASH-02 | unit (RTL) | `cd frontend && npm test -- src/components/history/call-history-card.test.tsx` | ❌ W0 | ⬜ pending |
-| 07-01-04 | 01 | 1 | DASH-01 | unit (RTL) | `cd frontend && npm test -- src/components/history/history-lookup-form.test.tsx` | ❌ W0 | ⬜ pending |
-| 07-01-05 | 01 | 1 | DASH-03 | unit (RTL) | `cd frontend && npm test -- src/app/history/page.test.tsx` | ❌ W0 | ⬜ pending |
-| 07-01-06 | 01 | 1 | DASH-03 | unit (RTL) | `cd frontend && npm test -- src/components/landing/navbar.test.tsx` | ✅ | ⬜ pending |
+| 07-01-01 | 01 | 1 | DASH-01 | unit | `cd frontend && npm test -- src/app/api/call-history/route.test.ts` | W0 | pending |
+| 07-01-02 | 01 | 1 | DASH-01 | unit | `cd frontend && npm test -- src/lib/phone-normalize.test.ts` | W0 | pending |
+| 07-02-01a | 02 | 2 | DASH-02 | unit (RTL) | `cd frontend && npm test -- src/components/history/call-history-card.test.tsx` | W0 | pending |
+| 07-02-01b | 02 | 2 | DASH-01 | unit (RTL) | `cd frontend && npm test -- src/components/history/history-lookup-form.test.tsx` | W0 | pending |
+| 07-02-01c | 02 | 2 | DASH-03 | unit (RTL) | `cd frontend && npm test -- src/app/history/page.test.tsx` | W0 | pending |
+| 07-02-01d | 02 | 2 | DASH-03 | unit (RTL) | `cd frontend && npm test -- src/components/landing/navbar.test.tsx` | exists | pending |
+| 07-02-02 | 02 | 2 | DASH-03 | grep | `grep -c 'murphy.help/history' src/lib/voice/recap-sms.ts` returns 2 | n/a | pending |
 
-*Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
+*Status: pending / green / red / flaky*
 
 ---
 
 ## Wave 0 Requirements
 
-- [ ] `frontend/src/app/api/call-history/route.test.ts` — stubs for DASH-01 API route
-- [ ] `frontend/src/lib/phone-normalize.test.ts` — stubs for DASH-01 phone normalization
-- [ ] `frontend/src/components/history/call-history-card.test.tsx` — stubs for DASH-02 card rendering
-- [ ] `frontend/src/components/history/history-lookup-form.test.tsx` — stubs for DASH-01 form submission
-- [ ] `frontend/src/app/history/page.test.tsx` — stubs for DASH-03 page structure
+- [ ] `frontend/src/app/api/call-history/route.test.ts` — stubs for DASH-01 API route (created in Plan 01 Task 2)
+- [ ] `frontend/src/lib/phone-normalize.test.ts` — stubs for DASH-01 phone normalization (created in Plan 01 Task 1)
+- [ ] `frontend/src/components/history/call-history-card.test.tsx` — stubs for DASH-02 card rendering (created in Plan 02 Task 1)
+- [ ] `frontend/src/components/history/history-lookup-form.test.tsx` — stubs for DASH-01 form submission (created in Plan 02 Task 1)
+- [ ] `frontend/src/app/history/page.test.tsx` — stubs for DASH-03 page structure (created in Plan 02 Task 1)
 
-*Existing: `frontend/src/components/landing/navbar.test.tsx` — exists but needs History link assertion added*
+*Existing: `frontend/src/components/landing/navbar.test.tsx` — exists but needs History link assertion added (Plan 02 Task 1)*
 
 ---
 
