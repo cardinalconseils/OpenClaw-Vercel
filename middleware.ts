@@ -4,30 +4,39 @@ import { NextResponse, type NextRequest } from 'next/server'
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          )
-          supabaseResponse = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
-        },
-      },
-    }
-  )
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  // If Supabase is not configured, skip auth checks and pass through all requests
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('[middleware] Supabase env vars not set — skipping auth check')
+    return supabaseResponse
+  }
 
   // IMPORTANT: Always use getUser(), never getSession() — security requirement
   let user = null
   try {
+    const supabase = createServerClient(
+      supabaseUrl,
+      supabaseAnonKey,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value }) =>
+              request.cookies.set(name, value)
+            )
+            supabaseResponse = NextResponse.next({ request })
+            cookiesToSet.forEach(({ name, value, options }) =>
+              supabaseResponse.cookies.set(name, value, options)
+            )
+          },
+        },
+      }
+    )
+
     const { data } = await supabase.auth.getUser()
     user = data.user
   } catch (err) {
@@ -72,6 +81,10 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    // Run middleware on all paths EXCEPT:
+    // - Next.js internals (_next/static, _next/image)
+    // - Static files (favicon, images)
+    // - Backend API routes (/health, /webhooks/*, /api/*)
+    '/((?!_next/static|_next/image|favicon.ico|health|webhooks|api|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

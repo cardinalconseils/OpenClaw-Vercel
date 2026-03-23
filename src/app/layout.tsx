@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { Montserrat, Cormorant_Garamond } from 'next/font/google'
-import { ThemeProvider } from 'next-themes'
+import { ThemeProvider } from '@/components/theme-provider'
 import './globals.css'
 
 const montserrat = Montserrat({

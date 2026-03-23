@@ -37,6 +37,7 @@
   ],
   "exclude": [
     "node_modules",
+    "frontend",
     "src/api",
     "src/lib/ai",
     "src/lib/db",
