@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -17,49 +17,68 @@ import {
 } from '@/components/ui/card'
 import Link from 'next/link'
 
+const ERROR_MESSAGES: Record<string, string> = {
+  auth_callback_failed: 'Sign-in failed. Please try again.',
+  code_exchange_failed: 'Authentication expired. Please sign in again.',
+}
+
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [oauthLoading, setOauthLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(() => {
+    const urlError = searchParams.get('error')
+    return urlError ? (ERROR_MESSAGES[urlError] ?? null) : null
+  })
 
   async function handleEmailSignIn(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError(null)
 
-    const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
 
-    if (error) {
-      setError(error.message)
+      if (error) {
+        setError(error.message)
+        return
+      }
+
+      router.refresh()
+      router.push('/')
+    } catch {
+      setError('Unable to connect. Please try again.')
+    } finally {
       setLoading(false)
-      return
     }
-
-    router.refresh()
-    router.push('/')
   }
 
   async function handleGoogleSignIn() {
     setOauthLoading(true)
     setError(null)
 
-    const supabase = createClient()
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${location.origin}/auth/callback`,
-      },
-    })
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${location.origin}/auth/callback`,
+        },
+      })
 
-    if (error) {
-      setError(error.message)
+      if (error) {
+        setError(error.message)
+        setOauthLoading(false)
+      }
+      // On success, browser redirects to Google — no need to reset loading
+    } catch {
+      setError('Unable to connect. Please try again.')
       setOauthLoading(false)
     }
-    // On success, browser redirects to Google — no need to reset loading
   }
 
   return (

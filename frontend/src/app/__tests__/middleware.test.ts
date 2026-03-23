@@ -36,7 +36,7 @@ describe('Middleware — Admin RBAC and auth redirects', () => {
   it('Test 2: /admin with authenticated non-admin user redirects to /', async () => {
     mockGetUser.mockResolvedValue({
       data: {
-        user: { id: 'user-1', user_metadata: {} },
+        user: { id: 'user-1', app_metadata: {} },
       },
     })
     const { middleware } = await import('../../../middleware')
@@ -83,7 +83,7 @@ describe('Middleware — Admin RBAC and auth redirects', () => {
   it('Test 5: /login with authenticated user redirects to / (not /dashboard)', async () => {
     mockGetUser.mockResolvedValue({
       data: {
-        user: { id: 'user-4', user_metadata: {} },
+        user: { id: 'user-4', app_metadata: {} },
       },
     })
     const { middleware } = await import('../../../middleware')
@@ -95,6 +95,21 @@ describe('Middleware — Admin RBAC and auth redirects', () => {
     const location = res.headers.get('location') ?? ''
     expect(location).toMatch(/\/$/)
     expect(location).not.toContain('/dashboard')
+  })
+
+  it('Test 5b: /admin rejects user_metadata.role=admin (only app_metadata grants access)', async () => {
+    mockGetUser.mockResolvedValue({
+      data: {
+        user: { id: 'user-5', user_metadata: { role: 'admin' }, app_metadata: {} },
+      },
+    })
+    const { middleware } = await import('../../../middleware')
+
+    const req = buildRequest('/admin')
+    const res = await middleware(req)
+
+    expect(res.status).toBe(307)
+    expect(res.headers.get('location')).toMatch(/\/$/)
   })
 
   it('Test 6: Supabase failure on /admin redirects to /login (fail closed)', async () => {
