@@ -52,7 +52,7 @@ describe('Middleware — Admin RBAC and auth redirects', () => {
   it('Test 3: /admin with admin role passes through (NextResponse.next)', async () => {
     mockGetUser.mockResolvedValue({
       data: {
-        user: { id: 'user-2', user_metadata: { role: 'admin' } },
+        user: { id: 'user-2', app_metadata: { role: 'admin' } },
       },
     })
     const { middleware } = await import('../../../middleware')
@@ -68,7 +68,7 @@ describe('Middleware — Admin RBAC and auth redirects', () => {
   it('Test 4: /admin/some/path with admin user passes through (catch-all)', async () => {
     mockGetUser.mockResolvedValue({
       data: {
-        user: { id: 'user-3', user_metadata: { role: 'admin' } },
+        user: { id: 'user-3', app_metadata: { role: 'admin' } },
       },
     })
     const { middleware } = await import('../../../middleware')
@@ -97,14 +97,25 @@ describe('Middleware — Admin RBAC and auth redirects', () => {
     expect(location).not.toContain('/dashboard')
   })
 
-  it('Test 6: /dashboard with no session redirects to /login (backward compat)', async () => {
-    mockGetUser.mockResolvedValue({ data: { user: null } })
+  it('Test 6: Supabase failure on /admin redirects to /login (fail closed)', async () => {
+    mockGetUser.mockRejectedValue(new Error('Supabase unavailable'))
     const { middleware } = await import('../../../middleware')
 
-    const req = buildRequest('/dashboard')
+    const req = buildRequest('/admin')
     const res = await middleware(req)
 
     expect(res.status).toBe(307)
     expect(res.headers.get('location')).toContain('/login')
+  })
+
+  it('Test 7: Supabase failure on public route passes through (fail open)', async () => {
+    mockGetUser.mockRejectedValue(new Error('Supabase unavailable'))
+    const { middleware } = await import('../../../middleware')
+
+    const req = buildRequest('/')
+    const res = await middleware(req)
+
+    expect(res.status).toBe(200)
+    expect(res.headers.get('location')).toBeNull()
   })
 })

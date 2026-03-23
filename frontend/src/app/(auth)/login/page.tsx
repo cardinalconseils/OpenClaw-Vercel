@@ -39,7 +39,8 @@ export default function LoginPage() {
       return
     }
 
-    router.push('/dashboard')
+    router.refresh()
+    router.push('/')
   }
 
   async function handleGoogleSignIn() {
@@ -79,6 +80,7 @@ export default function LoginPage() {
           className="w-full min-h-[44px]"
           onClick={handleGoogleSignIn}
           disabled={oauthLoading || loading}
+          aria-busy={oauthLoading}
         >
           {oauthLoading ? (
             <Loader2 className="mr-2 size-4 animate-spin" />
@@ -102,7 +104,7 @@ export default function LoginPage() {
               />
             </svg>
           )}
-          Continue with Google
+          {oauthLoading ? 'Signing in with Google…' : 'Continue with Google'}
         </Button>
 
         <div className="relative">
