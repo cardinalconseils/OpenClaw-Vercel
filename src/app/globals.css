@@ -1,3 +1,7 @@
+/* Google Fonts — loaded at runtime via CDN (avoids build-time fetch failures) */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@700&display=swap');
+
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -79,8 +83,8 @@
 
 @theme inline {
     /* Font families */
-    --font-sans: var(--font-montserrat), system-ui, sans-serif;
-    --font-display: var(--font-cormorant), Georgia, serif;
+    --font-sans: 'Montserrat', system-ui, sans-serif;
+    --font-display: 'Cormorant Garamond', Georgia, serif;
 
     /* Color token mappings */
     --color-background: var(--background);
