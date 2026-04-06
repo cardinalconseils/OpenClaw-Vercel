@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { exec, spawn } from 'node:child_process';
-import { promisify } from 'node:util';
 
 /** Force Node.js runtime — this route uses child_process */
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-const execAsync = promisify(exec);
 
 const GATEWAY_PORT = process.env.OPENCLAW_GATEWAY_PORT ?? '18789';
 const ADMIN_SECRET = process.env.ADMIN_SECRET;
@@ -79,72 +75,68 @@ export async function POST(request: NextRequest) {
   }
 }
 
-/** Find PIDs listening on a port using /proc (works without lsof/fuser) */
-async function findPidsByPort(port: string): Promise<number[]> {
+/* eslint-disable @typescript-eslint/no-require-imports */
+function getChildProcess() {
+  // Dynamic require to avoid Next.js webpack bundling issues
+  return require('child_process') as typeof import('child_process');
+}
+
+function getUtil() {
+  return require('util') as typeof import('util');
+}
+/* eslint-enable @typescript-eslint/no-require-imports */
+
+/** Find PIDs of the gateway process */
+async function findGatewayPids(): Promise<number[]> {
+  const { exec } = getChildProcess();
+  const { promisify } = getUtil();
+  const execAsync = promisify(exec);
+
+  // Try pgrep first
   try {
-    // Try fuser first (available in many minimal containers)
-    const { stdout } = await execAsync(`fuser ${port}/tcp 2>/dev/null || true`);
+    const { stdout } = await execAsync('pgrep -f "openclaw.*gateway" 2>/dev/null || true');
+    const pids = stdout.trim().split('\n').filter(Boolean).map(Number).filter(n => !isNaN(n));
+    if (pids.length > 0) return pids;
+  } catch { /* not available */ }
+
+  // Try fuser
+  try {
+    const { stdout } = await execAsync(`fuser ${GATEWAY_PORT}/tcp 2>/dev/null || true`);
     const pids = stdout.trim().split(/\s+/).filter(Boolean).map(Number).filter(n => !isNaN(n));
     if (pids.length > 0) return pids;
-  } catch { /* fuser not available */ }
+  } catch { /* not available */ }
 
-  try {
-    // Fallback: parse /proc/net/tcp (always available on Linux)
-    const portHex = parseInt(port).toString(16).toUpperCase().padStart(4, '0');
-    const { stdout } = await execAsync(
-      `grep -i ":${portHex}" /proc/net/tcp 2>/dev/null | awk '{print $10}' | sort -u`
-    );
-    const inodes = stdout.trim().split('\n').filter(Boolean);
-    if (inodes.length === 0) return [];
-
-    // Find PIDs that hold these inodes
-    const { stdout: pidOutput } = await execAsync(
-      `for pid in /proc/[0-9]*/fd/*; do readlink "$pid" 2>/dev/null | grep -q "socket:\\[" && echo "$pid $(readlink "$pid")"; done 2>/dev/null | grep -E "socket:\\[(${inodes.join('|')})\\]" | sed 's|/proc/\\([0-9]*\\)/.*|\\1|' | sort -u`
-    );
-    return pidOutput.trim().split('\n').filter(Boolean).map(Number).filter(n => !isNaN(n));
-  } catch { /* /proc parsing failed */ }
-
-  try {
-    // Last resort: find by process name
-    const { stdout } = await execAsync(`pgrep -f "openclaw.*gateway" 2>/dev/null || true`);
-    return stdout.trim().split('\n').filter(Boolean).map(Number).filter(n => !isNaN(n));
-  } catch { return []; }
+  return [];
 }
 
 async function killPids(pids: number[]): Promise<void> {
   for (const pid of pids) {
-    try {
-      process.kill(pid, 'SIGTERM');
-    } catch { /* already dead */ }
+    try { process.kill(pid, 'SIGTERM'); } catch { /* already dead */ }
   }
-  // Wait a moment, then force kill survivors
   await new Promise((r) => setTimeout(r, 2000));
   for (const pid of pids) {
-    try {
-      process.kill(pid, 'SIGKILL');
-    } catch { /* already dead */ }
+    try { process.kill(pid, 'SIGKILL'); } catch { /* already dead */ }
   }
 }
 
 async function restartGateway(): Promise<{ status: string; message: string }> {
-  // Kill existing gateway process
-  const pids = await findPidsByPort(GATEWAY_PORT);
+  const { exec, spawn } = getChildProcess();
+  const { promisify } = getUtil();
+  const execAsync = promisify(exec);
+
+  // Kill existing gateway
+  const pids = await findGatewayPids();
   if (pids.length > 0) {
     await killPids(pids);
-    // Wait for port to free up
     await new Promise((r) => setTimeout(r, 1000));
   }
 
-  // Find openclaw binary — may be in global npm bin or PATH
+  // Find openclaw binary
   let openclawBin = 'openclaw';
   try {
-    const { stdout } = await execAsync('which openclaw 2>/dev/null || npm -g bin 2>/dev/null');
-    const lines = stdout.trim().split('\n');
-    if (lines[0]?.includes('openclaw')) {
-      openclawBin = lines[0];
-    } else if (lines.length > 0) {
-      openclawBin = `${lines[lines.length - 1]}/openclaw`;
-    }
+    const { stdout } = await execAsync('which openclaw 2>/dev/null || echo ""');
+    const bin = stdout.trim();
+    if (bin) openclawBin = bin;
   } catch { /* use default */ }
 
   // Spawn new gateway
@@ -160,8 +152,6 @@ async function restartGateway(): Promise<{ status: string; message: string }> {
   proc.stderr?.on('data', (data: Buffer) => {
     process.stderr.write(`[gateway:err] ${data}`);
   });
-
-  // Log spawn errors
   proc.on('error', (err) => {
     console.error(`[restart-bot] Gateway spawn error: ${err.message}`);
   });
@@ -187,19 +177,15 @@ async function restartGateway(): Promise<{ status: string; message: string }> {
 }
 
 async function restartClawdTalk(): Promise<{ status: string; message: string }> {
+  const { exec } = getChildProcess();
+  const { promisify } = getUtil();
+  const execAsync = promisify(exec);
+
   const clawdtalkDir = `${process.env.HOME}/clawd/skills/clawdtalk-client`;
 
   try {
-    // Stop existing
-    await execAsync(`cd "${clawdtalkDir}" && bash scripts/connect.sh stop 2>/dev/null`).catch(
-      () => {}
-    );
-
-    // Start fresh
-    const { stdout } = await execAsync(
-      `cd "${clawdtalkDir}" && bash scripts/connect.sh start 2>&1`
-    );
-
+    await execAsync(`cd "${clawdtalkDir}" && bash scripts/connect.sh stop 2>/dev/null`).catch(() => {});
+    const { stdout } = await execAsync(`cd "${clawdtalkDir}" && bash scripts/connect.sh start 2>&1`);
     return { status: 'ok', message: stdout.trim() || 'ClawdTalk restarted' };
   } catch (err) {
     return { status: 'error', message: (err as Error).message };
