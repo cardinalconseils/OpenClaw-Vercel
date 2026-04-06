@@ -68,30 +68,79 @@ export async function POST(request: NextRequest) {
   );
 }
 
-async function restartGateway(): Promise<{ status: string; message: string }> {
-  // Kill existing gateway process by port
+/** Find PIDs listening on a port using /proc (works without lsof/fuser) */
+async function findPidsByPort(port: string): Promise<number[]> {
   try {
-    await execAsync(
-      `lsof -ti :${GATEWAY_PORT} | xargs -r kill -TERM 2>/dev/null; sleep 1; lsof -ti :${GATEWAY_PORT} | xargs -r kill -9 2>/dev/null`
+    // Try fuser first (available in many minimal containers)
+    const { stdout } = await execAsync(`fuser ${port}/tcp 2>/dev/null || true`);
+    const pids = stdout.trim().split(/\s+/).filter(Boolean).map(Number).filter(n => !isNaN(n));
+    if (pids.length > 0) return pids;
+  } catch { /* fuser not available */ }
+
+  try {
+    // Fallback: parse /proc/net/tcp (always available on Linux)
+    const portHex = parseInt(port).toString(16).toUpperCase().padStart(4, '0');
+    const { stdout } = await execAsync(
+      `grep -i ":${portHex}" /proc/net/tcp 2>/dev/null | awk '{print $10}' | sort -u`
     );
-  } catch {
-    // Process may not exist — that's fine
+    const inodes = stdout.trim().split('\n').filter(Boolean);
+    if (inodes.length === 0) return [];
+
+    // Find PIDs that hold these inodes
+    const { stdout: pidOutput } = await execAsync(
+      `for pid in /proc/[0-9]*/fd/*; do readlink "$pid" 2>/dev/null | grep -q "socket:\\[" && echo "$pid $(readlink "$pid")"; done 2>/dev/null | grep -E "socket:\\[(${inodes.join('|')})\\]" | sed 's|/proc/\\([0-9]*\\)/.*|\\1|' | sort -u`
+    );
+    return pidOutput.trim().split('\n').filter(Boolean).map(Number).filter(n => !isNaN(n));
+  } catch { /* /proc parsing failed */ }
+
+  try {
+    // Last resort: find by process name
+    const { stdout } = await execAsync(`pgrep -f "openclaw.*gateway" 2>/dev/null || true`);
+    return stdout.trim().split('\n').filter(Boolean).map(Number).filter(n => !isNaN(n));
+  } catch { return []; }
+}
+
+async function killPids(pids: number[]): Promise<void> {
+  for (const pid of pids) {
+    try {
+      process.kill(pid, 'SIGTERM');
+    } catch { /* already dead */ }
+  }
+  // Wait a moment, then force kill survivors
+  await new Promise((r) => setTimeout(r, 2000));
+  for (const pid of pids) {
+    try {
+      process.kill(pid, 'SIGKILL');
+    } catch { /* already dead */ }
+  }
+}
+
+async function restartGateway(): Promise<{ status: string; message: string }> {
+  // Kill existing gateway process
+  const pids = await findPidsByPort(GATEWAY_PORT);
+  if (pids.length > 0) {
+    await killPids(pids);
+    // Wait for port to free up
+    await new Promise((r) => setTimeout(r, 1000));
   }
 
-  // Wait for port to be free
-  for (let i = 0; i < 5; i++) {
-    try {
-      await execAsync(`lsof -ti :${GATEWAY_PORT}`);
-      await new Promise((r) => setTimeout(r, 1000));
-    } catch {
-      break; // Port is free
+  // Find openclaw binary — may be in global npm bin or PATH
+  let openclawBin = 'openclaw';
+  try {
+    const { stdout } = await execAsync('which openclaw 2>/dev/null || npm -g bin 2>/dev/null');
+    const lines = stdout.trim().split('\n');
+    if (lines[0]?.includes('openclaw')) {
+      openclawBin = lines[0];
+    } else if (lines.length > 0) {
+      openclawBin = `${lines[lines.length - 1]}/openclaw`;
     }
-  }
+  } catch { /* use default */ }
 
   // Spawn new gateway
-  const proc = spawn('openclaw', ['gateway', '--port', GATEWAY_PORT, '--auth', 'none'], {
+  const proc = spawn(openclawBin, ['gateway', '--port', GATEWAY_PORT, '--auth', 'none'], {
     detached: true,
     stdio: ['ignore', 'pipe', 'pipe'],
+    env: { ...process.env, PATH: `${process.env.PATH}:/usr/local/bin:/usr/bin` },
   });
 
   proc.stdout?.on('data', (data: Buffer) => {
@@ -101,9 +150,14 @@ async function restartGateway(): Promise<{ status: string; message: string }> {
     process.stderr.write(`[gateway:err] ${data}`);
   });
 
+  // Log spawn errors
+  proc.on('error', (err) => {
+    console.error(`[restart-bot] Gateway spawn error: ${err.message}`);
+  });
+
   proc.unref();
 
-  // Wait for healthy
+  // Wait for healthy (up to 15s)
   for (let i = 0; i < 15; i++) {
     try {
       const res = await fetch(`http://127.0.0.1:${GATEWAY_PORT}/`, {
