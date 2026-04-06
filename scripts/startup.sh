@@ -59,8 +59,15 @@ start_backend() {
     return
   fi
 
-  # Write openclaw config
+  # Link project-local workspace into ~/.openclaw so gateway uses it
   mkdir -p "${OPENCLAW_DIR}"
+  if [[ -d "${PROJECT_DIR}/openclaw/workspace" ]]; then
+    rm -rf "${OPENCLAW_DIR}/workspace" 2>/dev/null || true
+    ln -sf "${PROJECT_DIR}/openclaw/workspace" "${OPENCLAW_DIR}/workspace"
+    log "Linked workspace: ${OPENCLAW_DIR}/workspace -> ${PROJECT_DIR}/openclaw/workspace"
+  fi
+
+  # Write openclaw config
   cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
 {
   "gateway": {

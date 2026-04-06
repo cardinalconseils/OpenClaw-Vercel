@@ -3,17 +3,36 @@ import os from 'os';
 import path from 'path';
 import { buildMurphySystemPrompt } from '../lib/ai/prompts/murphy-system.js';
 
+/** Project-local openclaw directory (checked into git) */
+const PROJECT_OPENCLAW_DIR = path.resolve(
+  process.env.OPENCLAW_PROJECT_DIR ?? path.join(process.cwd(), 'openclaw')
+);
+
 /**
  * Writes openclaw.json to the OpenClaw config directory.
  *
  * The config file tells the OpenClaw gateway how to bind, which LLM profiles
  * to use, how to authenticate, and which plugins to enable.
  *
+ * Uses the project-local openclaw/ directory for workspace files (SOUL.md, etc.)
+ * so each project can have its own agent configuration.
+ *
  * @param options.configDir - Override the config directory (default: ~/.openclaw)
  */
 export function writeOpenclawConfig(options?: { configDir?: string }): void {
   const configDir = options?.configDir ?? path.join(os.homedir(), '.openclaw');
   fs.mkdirSync(configDir, { recursive: true });
+
+  // Symlink workspace from project into ~/.openclaw so gateway finds it
+  const globalWorkspace = path.join(configDir, 'workspace');
+  const projectWorkspace = path.join(PROJECT_OPENCLAW_DIR, 'workspace');
+
+  if (fs.existsSync(projectWorkspace)) {
+    // Remove existing workspace (file, dir, or symlink)
+    try { fs.rmSync(globalWorkspace, { recursive: true, force: true }); } catch { /* ignore */ }
+    fs.symlinkSync(projectWorkspace, globalWorkspace, 'dir');
+    console.log(`[openclaw-config] Linked workspace: ${globalWorkspace} -> ${projectWorkspace}`);
+  }
 
   const config = {
     gateway: {
@@ -86,15 +105,16 @@ export function writeOpenclawConfig(options?: { configDir?: string }): void {
 }
 
 /**
- * Writes Murphy's persona files to the OpenClaw workspace directory.
+ * Writes Murphy's persona files to the project-local workspace directory.
  *
  * - SOUL.md: Full persona used as the agent's system prompt file
  * - IDENTITY.md: Lightweight identity metadata (name, vibe, emoji)
  *
- * @param options.workspaceDir - Override the workspace directory (default: ~/.openclaw/workspace)
+ * @param options.workspaceDir - Override the workspace directory
+ *   (default: <project>/openclaw/workspace)
  */
 export function writeWorkspaceFiles(options?: { workspaceDir?: string }): void {
-  const workspaceDir = options?.workspaceDir ?? path.join(os.homedir(), '.openclaw', 'workspace');
+  const workspaceDir = options?.workspaceDir ?? path.join(PROJECT_OPENCLAW_DIR, 'workspace');
   fs.mkdirSync(workspaceDir, { recursive: true });
 
   // SOUL.md — Murphy's full system prompt, used by OpenClaw gateway as systemPromptFile
