@@ -130,6 +130,8 @@ async function restartGateway(): Promise<{ status: string; message: string }> {
     '/usr/bin',
     '/app/node_modules/.bin',
     '/root/.npm-global/bin',
+    '/root/.nix-profile/bin',
+    '/nix/var/nix/profiles/default/bin',
   ].join(':');
 
   // Kill existing gateway
@@ -139,55 +141,8 @@ async function restartGateway(): Promise<{ status: string; message: string }> {
     await new Promise((r) => setTimeout(r, 1000));
   }
 
-  // Find openclaw binary — check npm global bin, nix store, and PATH
-  let openclawBin = '';
-  try {
-    // npm bin -g gives the global bin directory; also check node_modules/.bin
-    const { stdout } = await execAsync(
-      [
-        `PATH="${extendedPath}" which openclaw 2>/dev/null`,
-        'command -v openclaw 2>/dev/null',
-        'echo "$(npm bin -g 2>/dev/null)/openclaw"',
-        'echo "$(npm root -g 2>/dev/null)/../bin/openclaw"',
-        'ls /nix/store/*/bin/openclaw 2>/dev/null | head -1',
-      ].join(' || ')
-    );
-    // Filter to lines that look like real paths
-    const candidates = stdout.trim().split('\n').filter(s => s && s.startsWith('/'));
-    openclawBin = candidates[0] ?? '';
-  } catch { /* not found */ }
-
-  // Verify the binary actually exists and is executable
-  if (openclawBin) {
-    try {
-      await execAsync(`test -f "${openclawBin}" && test -x "${openclawBin}"`);
-    } catch {
-      // Path exists but file doesn't — try node to run the package directly
-      openclawBin = '';
-    }
-  }
-
-  if (!openclawBin) {
-    // Fallback: run via node directly from npm global modules
-    try {
-      const { stdout } = await execAsync('npm root -g 2>/dev/null');
-      const globalRoot = stdout.trim();
-      // Check if openclaw has a bin or main entry
-      const { stdout: pkgJson } = await execAsync(`cat "${globalRoot}/openclaw/package.json" 2>/dev/null`);
-      const pkg = JSON.parse(pkgJson);
-      const binEntry = typeof pkg.bin === 'string' ? pkg.bin : (pkg.bin?.openclaw ?? pkg.main ?? 'index.js');
-      openclawBin = `node ${globalRoot}/openclaw/${binEntry}`;
-    } catch { /* not found */ }
-  }
-
-  if (!openclawBin) {
-    let debug = '';
-    try {
-      const { stdout } = await execAsync(`npm bin -g 2>/dev/null; npm root -g 2>/dev/null; ls "$(npm root -g 2>/dev/null)/openclaw/" 2>/dev/null`);
-      debug = stdout.trim();
-    } catch { /* ignore */ }
-    return { status: 'error', message: `openclaw binary not found. Debug: ${debug}` };
-  }
+  // Use openclaw directly — installed globally via nixpacks build phase
+  const openclawBin = 'openclaw';
 
   // Start gateway as a background shell process
   const cmd = `${openclawBin} gateway --port ${GATEWAY_PORT} --auth none >> /tmp/gateway.log 2>&1 & echo $!`;
