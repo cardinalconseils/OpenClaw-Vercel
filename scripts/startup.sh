@@ -62,8 +62,15 @@ log "OK (public=${PUBLIC_PORT}, gateway=${GATEWAY_PORT})"
 # 2. Start Next.js FIRST (health check target)
 # ---------------------------------------------------------------------------
 cd "$PROJECT_DIR"
-log "Starting Next.js on port ${PUBLIC_PORT}..."
-PORT="${PUBLIC_PORT}" npx next start --port "${PUBLIC_PORT}" &
+
+# Copy static files into standalone (required for standalone mode)
+if [[ -d ".next/standalone" ]]; then
+  cp -r .next/static .next/standalone/.next/static 2>/dev/null || true
+  cp -r public .next/standalone/public 2>/dev/null || true
+fi
+
+log "Starting Next.js (standalone) on port ${PUBLIC_PORT}..."
+PORT="${PUBLIC_PORT}" HOSTNAME="0.0.0.0" node .next/standalone/server.js &
 NEXTJS_PID=$!
 
 # Wait for Next.js to be healthy (this is what Railway checks)
@@ -191,7 +198,7 @@ echo "============================================"
 while true; do
   if ! kill -0 "$NEXTJS_PID" 2>/dev/null; then
     log "WARN: Next.js died, restarting..."
-    PORT="${PUBLIC_PORT}" npx next start --port "${PUBLIC_PORT}" &
+    PORT="${PUBLIC_PORT}" HOSTNAME="0.0.0.0" node .next/standalone/server.js &
     NEXTJS_PID=$!
   fi
 
