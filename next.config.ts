@@ -2,6 +2,7 @@ import type { NextConfig } from 'next'
 
 const config: NextConfig = {
   output: 'standalone',
+  serverExternalPackages: ['child_process', 'util'],
   typescript: {
     // Server-side files (src/lib/ai, src/lib/voice, etc.) are excluded from
     // tsconfig.json but Next.js still picks them up. These have external deps
