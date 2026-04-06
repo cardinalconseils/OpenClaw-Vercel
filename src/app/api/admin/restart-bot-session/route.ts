@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { exec, spawn } from 'node:child_process';
 import { promisify } from 'node:util';
 
+/** Force Node.js runtime — this route uses child_process */
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 const execAsync = promisify(exec);
 
 const GATEWAY_PORT = process.env.OPENCLAW_GATEWAY_PORT ?? '18789';
@@ -17,55 +21,62 @@ const ADMIN_SECRET = process.env.ADMIN_SECRET;
  *   ?services=gateway,clawdtalk (default: both)
  */
 export async function POST(request: NextRequest) {
-  // Auth check
-  if (!ADMIN_SECRET) {
+  try {
+    // Auth check
+    if (!ADMIN_SECRET) {
+      return NextResponse.json(
+        { error: 'ADMIN_SECRET not configured' },
+        { status: 503 }
+      );
+    }
+
+    const authHeader = request.headers.get('x-admin-secret');
+    if (authHeader !== ADMIN_SECRET) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const services = request.nextUrl.searchParams.get('services')?.split(',') ?? [
+      'gateway',
+      'clawdtalk',
+    ];
+
+    const results: Record<string, { status: string; message: string }> = {};
+
+    // Restart gateway
+    if (services.includes('gateway')) {
+      try {
+        results.gateway = await restartGateway();
+      } catch (err) {
+        results.gateway = {
+          status: 'error',
+          message: (err as Error).message ?? String(err),
+        };
+      }
+    }
+
+    // Restart ClawdTalk
+    if (services.includes('clawdtalk')) {
+      try {
+        results.clawdtalk = await restartClawdTalk();
+      } catch (err) {
+        results.clawdtalk = {
+          status: 'error',
+          message: (err as Error).message ?? String(err),
+        };
+      }
+    }
+
+    const allOk = Object.values(results).every((r) => r.status === 'ok');
     return NextResponse.json(
-      { error: 'ADMIN_SECRET not configured' },
-      { status: 503 }
+      { results, timestamp: new Date().toISOString() },
+      { status: allOk ? 200 : 207 }
+    );
+  } catch (err) {
+    return NextResponse.json(
+      { error: 'Unhandled error', message: (err as Error).message ?? String(err), stack: (err as Error).stack },
+      { status: 500 }
     );
   }
-
-  const authHeader = request.headers.get('x-admin-secret');
-  if (authHeader !== ADMIN_SECRET) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const services = request.nextUrl.searchParams.get('services')?.split(',') ?? [
-    'gateway',
-    'clawdtalk',
-  ];
-
-  const results: Record<string, { status: string; message: string }> = {};
-
-  // Restart gateway
-  if (services.includes('gateway')) {
-    try {
-      results.gateway = await restartGateway();
-    } catch (err) {
-      results.gateway = {
-        status: 'error',
-        message: (err as Error).message,
-      };
-    }
-  }
-
-  // Restart ClawdTalk
-  if (services.includes('clawdtalk')) {
-    try {
-      results.clawdtalk = await restartClawdTalk();
-    } catch (err) {
-      results.clawdtalk = {
-        status: 'error',
-        message: (err as Error).message,
-      };
-    }
-  }
-
-  const allOk = Object.values(results).every((r) => r.status === 'ok');
-  return NextResponse.json(
-    { results, timestamp: new Date().toISOString() },
-    { status: allOk ? 200 : 207 }
-  );
 }
 
 /** Find PIDs listening on a port using /proc (works without lsof/fuser) */
