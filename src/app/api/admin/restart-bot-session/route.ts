@@ -139,29 +139,51 @@ async function restartGateway(): Promise<{ status: string; message: string }> {
     await new Promise((r) => setTimeout(r, 1000));
   }
 
-  // Find openclaw binary — check common global npm paths
+  // Find openclaw binary — check npm global bin, nix store, and PATH
   let openclawBin = '';
   try {
+    // npm bin -g gives the global bin directory; also check node_modules/.bin
     const { stdout } = await execAsync(
-      `PATH="${extendedPath}" which openclaw 2>/dev/null || command -v openclaw 2>/dev/null || ls /nix/store/*/bin/openclaw 2>/dev/null | head -1 || npm root -g 2>/dev/null | xargs -I{} echo "{}/openclaw/bin/openclaw" || echo ""`
+      [
+        `PATH="${extendedPath}" which openclaw 2>/dev/null`,
+        'command -v openclaw 2>/dev/null',
+        'echo "$(npm bin -g 2>/dev/null)/openclaw"',
+        'echo "$(npm root -g 2>/dev/null)/../bin/openclaw"',
+        'ls /nix/store/*/bin/openclaw 2>/dev/null | head -1',
+      ].join(' || ')
     );
-    const found = stdout.trim().split('\n').filter(s => s && !s.includes('not found'))[0] ?? '';
-    openclawBin = found;
+    // Filter to lines that look like real paths
+    const candidates = stdout.trim().split('\n').filter(s => s && s.startsWith('/'));
+    openclawBin = candidates[0] ?? '';
   } catch { /* not found */ }
 
-  if (!openclawBin) {
-    // Try to find it anywhere on the filesystem
+  // Verify the binary actually exists and is executable
+  if (openclawBin) {
     try {
-      const { stdout } = await execAsync('find /nix /usr /app /root -name openclaw -type f -perm -111 2>/dev/null | head -1', { timeout: 5000 });
-      openclawBin = stdout.trim().split('\n')[0] ?? '';
-    } catch { /* timeout or not found */ }
+      await execAsync(`test -f "${openclawBin}" && test -x "${openclawBin}"`);
+    } catch {
+      // Path exists but file doesn't — try node to run the package directly
+      openclawBin = '';
+    }
   }
 
   if (!openclawBin) {
-    // Debug: show what's on the path
+    // Fallback: run via node directly from npm global modules
+    try {
+      const { stdout } = await execAsync('npm root -g 2>/dev/null');
+      const globalRoot = stdout.trim();
+      // Check if openclaw has a bin or main entry
+      const { stdout: pkgJson } = await execAsync(`cat "${globalRoot}/openclaw/package.json" 2>/dev/null`);
+      const pkg = JSON.parse(pkgJson);
+      const binEntry = typeof pkg.bin === 'string' ? pkg.bin : (pkg.bin?.openclaw ?? pkg.main ?? 'index.js');
+      openclawBin = `node ${globalRoot}/openclaw/${binEntry}`;
+    } catch { /* not found */ }
+  }
+
+  if (!openclawBin) {
     let debug = '';
     try {
-      const { stdout } = await execAsync(`echo "PATH=$PATH"; ls -la /app/node_modules/.bin/open* 2>/dev/null; npm root -g 2>/dev/null; npm ls -g --depth=0 2>/dev/null | head -10`);
+      const { stdout } = await execAsync(`npm bin -g 2>/dev/null; npm root -g 2>/dev/null; ls "$(npm root -g 2>/dev/null)/openclaw/" 2>/dev/null`);
       debug = stdout.trim();
     } catch { /* ignore */ }
     return { status: 'error', message: `openclaw binary not found. Debug: ${debug}` };
