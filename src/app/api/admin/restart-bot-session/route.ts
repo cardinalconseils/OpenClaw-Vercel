@@ -139,27 +139,32 @@ async function restartGateway(): Promise<{ status: string; message: string }> {
     await new Promise((r) => setTimeout(r, 1000));
   }
 
-  // Find openclaw binary
+  // Find openclaw binary — check common global npm paths
   let openclawBin = '';
   try {
     const { stdout } = await execAsync(
-      `PATH="${extendedPath}" which openclaw 2>/dev/null || command -v openclaw 2>/dev/null || find / -name openclaw -type f 2>/dev/null | head -1 || echo ""`
+      `PATH="${extendedPath}" which openclaw 2>/dev/null || command -v openclaw 2>/dev/null || ls /nix/store/*/bin/openclaw 2>/dev/null | head -1 || npm root -g 2>/dev/null | xargs -I{} echo "{}/openclaw/bin/openclaw" || echo ""`
     );
-    openclawBin = stdout.trim().split('\n')[0] ?? '';
+    const found = stdout.trim().split('\n').filter(s => s && !s.includes('not found'))[0] ?? '';
+    openclawBin = found;
   } catch { /* not found */ }
 
   if (!openclawBin) {
-    // Try npx as fallback
+    // Try to find it anywhere on the filesystem
     try {
-      const { stdout } = await execAsync('which npx 2>/dev/null');
-      if (stdout.trim()) {
-        openclawBin = `npx openclaw`;
-      }
-    } catch { /* npx not found either */ }
+      const { stdout } = await execAsync('find /nix /usr /app /root -name openclaw -type f -perm -111 2>/dev/null | head -1', { timeout: 5000 });
+      openclawBin = stdout.trim().split('\n')[0] ?? '';
+    } catch { /* timeout or not found */ }
   }
 
   if (!openclawBin) {
-    return { status: 'error', message: 'openclaw binary not found on PATH or via npx. PATH=' + extendedPath };
+    // Debug: show what's on the path
+    let debug = '';
+    try {
+      const { stdout } = await execAsync(`echo "PATH=$PATH"; ls -la /app/node_modules/.bin/open* 2>/dev/null; npm root -g 2>/dev/null; npm ls -g --depth=0 2>/dev/null | head -10`);
+      debug = stdout.trim();
+    } catch { /* ignore */ }
+    return { status: 'error', message: `openclaw binary not found. Debug: ${debug}` };
   }
 
   // Start gateway as a background shell process
