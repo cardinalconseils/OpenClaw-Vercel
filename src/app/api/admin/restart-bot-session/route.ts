@@ -120,9 +120,17 @@ async function killPids(pids: number[]): Promise<void> {
 }
 
 async function restartGateway(): Promise<{ status: string; message: string }> {
-  const { exec, spawn } = getChildProcess();
+  const { exec } = getChildProcess();
   const { promisify } = getUtil();
   const execAsync = promisify(exec);
+
+  const extendedPath = [
+    process.env.PATH,
+    '/usr/local/bin',
+    '/usr/bin',
+    '/app/node_modules/.bin',
+    '/root/.npm-global/bin',
+  ].join(':');
 
   // Kill existing gateway
   const pids = await findGatewayPids();
@@ -132,31 +140,35 @@ async function restartGateway(): Promise<{ status: string; message: string }> {
   }
 
   // Find openclaw binary
-  let openclawBin = 'openclaw';
+  let openclawBin = '';
   try {
-    const { stdout } = await execAsync('which openclaw 2>/dev/null || echo ""');
-    const bin = stdout.trim();
-    if (bin) openclawBin = bin;
-  } catch { /* use default */ }
+    const { stdout } = await execAsync(
+      `PATH="${extendedPath}" which openclaw 2>/dev/null || command -v openclaw 2>/dev/null || find / -name openclaw -type f 2>/dev/null | head -1 || echo ""`
+    );
+    openclawBin = stdout.trim().split('\n')[0] ?? '';
+  } catch { /* not found */ }
 
-  // Spawn new gateway
-  const proc = spawn(openclawBin, ['gateway', '--port', GATEWAY_PORT, '--auth', 'none'], {
-    detached: true,
-    stdio: ['ignore', 'pipe', 'pipe'],
-    env: { ...process.env, PATH: `${process.env.PATH}:/usr/local/bin:/usr/bin` },
+  if (!openclawBin) {
+    // Try npx as fallback
+    try {
+      const { stdout } = await execAsync('which npx 2>/dev/null');
+      if (stdout.trim()) {
+        openclawBin = `npx openclaw`;
+      }
+    } catch { /* npx not found either */ }
+  }
+
+  if (!openclawBin) {
+    return { status: 'error', message: 'openclaw binary not found on PATH or via npx. PATH=' + extendedPath };
+  }
+
+  // Start gateway as a background shell process
+  const cmd = `${openclawBin} gateway --port ${GATEWAY_PORT} --auth none >> /tmp/gateway.log 2>&1 & echo $!`;
+  const { stdout: pidOutput } = await execAsync(cmd, {
+    env: { ...process.env, PATH: extendedPath },
   });
 
-  proc.stdout?.on('data', (data: Buffer) => {
-    process.stdout.write(`[gateway] ${data}`);
-  });
-  proc.stderr?.on('data', (data: Buffer) => {
-    process.stderr.write(`[gateway:err] ${data}`);
-  });
-  proc.on('error', (err) => {
-    console.error(`[restart-bot] Gateway spawn error: ${err.message}`);
-  });
-
-  proc.unref();
+  const pid = pidOutput.trim();
 
   // Wait for healthy (up to 15s)
   for (let i = 0; i < 15; i++) {
@@ -165,7 +177,7 @@ async function restartGateway(): Promise<{ status: string; message: string }> {
         signal: AbortSignal.timeout(2000),
       });
       if (res.ok) {
-        return { status: 'ok', message: `Gateway restarted (PID: ${proc.pid})` };
+        return { status: 'ok', message: `Gateway restarted (PID: ${pid})` };
       }
     } catch {
       // Not yet ready
@@ -173,7 +185,14 @@ async function restartGateway(): Promise<{ status: string; message: string }> {
     await new Promise((r) => setTimeout(r, 1000));
   }
 
-  return { status: 'ok', message: `Gateway spawned (PID: ${proc.pid}), health check pending` };
+  // Read last few lines of log for diagnostics
+  let logTail = '';
+  try {
+    const { stdout } = await execAsync('tail -5 /tmp/gateway.log 2>/dev/null || echo "no log"');
+    logTail = stdout.trim();
+  } catch { /* ignore */ }
+
+  return { status: 'error', message: `Gateway spawned (PID: ${pid}) but health check failed after 15s. Log: ${logTail}` };
 }
 
 async function restartClawdTalk(): Promise<{ status: string; message: string }> {
