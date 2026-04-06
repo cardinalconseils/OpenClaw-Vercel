@@ -204,7 +204,7 @@ async function restartGateway(): Promise<{ status: string; message: string }> {
         signal: AbortSignal.timeout(2000),
       });
       if (res.ok) {
-        return { status: 'ok', message: `Gateway restarted (PID: ${pid})` };
+        return { status: 'ok', message: `Gateway restarted (PID: ${pid}) using: ${openclawBin}` };
       }
     } catch {
       // Not yet ready
@@ -215,11 +215,18 @@ async function restartGateway(): Promise<{ status: string; message: string }> {
   // Read last few lines of log for diagnostics
   let logTail = '';
   try {
-    const { stdout } = await execAsync('tail -5 /tmp/gateway.log 2>/dev/null || echo "no log"');
+    const { stdout } = await execAsync('cat /tmp/gateway.log 2>/dev/null || echo "no log"');
     logTail = stdout.trim();
   } catch { /* ignore */ }
 
-  return { status: 'error', message: `Gateway spawned (PID: ${pid}) but health check failed after 15s. Log: ${logTail}` };
+  // Check if process is still running
+  let procStatus = '';
+  try {
+    const { stdout } = await execAsync(`kill -0 ${pid} 2>/dev/null && echo "running" || echo "dead"`);
+    procStatus = stdout.trim();
+  } catch { procStatus = 'unknown'; }
+
+  return { status: 'error', message: `Gateway spawned (PID: ${pid}, status: ${procStatus}) using "${openclawBin}" but health check failed after 15s. Log: ${logTail}` };
 }
 
 async function restartClawdTalk(): Promise<{ status: string; message: string }> {
