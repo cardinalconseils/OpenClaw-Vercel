@@ -1,80 +1,59 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 
-// ---- Mock @supabase/ssr ----
+// Mock @supabase/ssr
 const mockGetUser = vi.fn()
-const mockCreateServerClient = vi.fn()
-
 vi.mock('@supabase/ssr', () => ({
-  createServerClient: (url: string, key: string, options: { cookies: unknown }) => {
-    mockCreateServerClient(url, key, options)
-    return {
-      auth: {
-        getUser: mockGetUser,
-      },
-    }
-  },
+  createServerClient: () => ({
+    auth: { getUser: mockGetUser },
+  }),
 }))
 
-// ---- Helpers ----
 function makeRequest(pathname: string): NextRequest {
   return new NextRequest(`http://localhost:3000${pathname}`)
 }
 
-// ---- Import middleware AFTER mocks are set up ----
 const { middleware } = await import('../middleware')
 
-describe('Auth Middleware (WEB-02)', () => {
+describe('Auth Middleware', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  it('allows unauthenticated user to access /dashboard (routes removed)', async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: null }, error: null })
-    const req = makeRequest('/dashboard')
-    const res = await middleware(req)
-    expect(res?.status).toBe(200)
+  it('passes through public routes without calling Supabase', async () => {
+    const res = await middleware(makeRequest('/'))
+    expect(res.status).toBe(200)
+    expect(res.headers.get('location')).toBeNull()
+    expect(mockGetUser).not.toHaveBeenCalled()
   })
 
-  it('redirects authenticated user from /login to / (home)', async () => {
-    mockGetUser.mockResolvedValueOnce({
-      data: { user: { id: 'user-123', email: 'test@example.com' } },
-      error: null,
+  it('passes through /login without calling Supabase', async () => {
+    const res = await middleware(makeRequest('/login'))
+    expect(res.status).toBe(200)
+    expect(mockGetUser).not.toHaveBeenCalled()
+  })
+
+  it('redirects unauthenticated /admin requests to /login', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: null } })
+    const res = await middleware(makeRequest('/admin'))
+    expect(res.status).toBe(307)
+    expect(new URL(res.headers.get('location')!).pathname).toBe('/login')
+  })
+
+  it('redirects non-admin /admin requests to /', async () => {
+    mockGetUser.mockResolvedValue({
+      data: { user: { id: '1', user_metadata: {} } },
     })
-    const req = makeRequest('/login')
-    const res = await middleware(req)
-    expect(res?.status).toBe(307)
-    const location = res?.headers.get('location') ?? ''
-    expect(location).toMatch(/\/$/)
-    expect(location).not.toContain('/dashboard')
+    const res = await middleware(makeRequest('/admin'))
+    expect(res.status).toBe(307)
+    expect(new URL(res.headers.get('location')!).pathname).toBe('/')
   })
 
-  it('allows unauthenticated user to access /', async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: null }, error: null })
-    const req = makeRequest('/')
-    const res = await middleware(req)
-    // Should not redirect — NextResponse.next() has status 200
-    expect(res?.status).toBe(200)
-    const location = res?.headers.get('location')
-    expect(location).toBeNull()
-  })
-
-  it('allows unauthenticated user to access /login', async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: null }, error: null })
-    const req = makeRequest('/login')
-    const res = await middleware(req)
-    expect(res?.status).toBe(200)
-    const location = res?.headers.get('location')
-    expect(location).toBeNull()
-  })
-
-  it('uses getUser() not getSession() for auth check', async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: null }, error: null })
-    const req = makeRequest('/')
-    await middleware(req)
-    // getUser must have been called
-    expect(mockGetUser).toHaveBeenCalledTimes(1)
-    // createServerClient is called (not a getSession path)
-    expect(mockCreateServerClient).toHaveBeenCalledTimes(1)
+  it('allows admin users to access /admin', async () => {
+    mockGetUser.mockResolvedValue({
+      data: { user: { id: '1', user_metadata: { role: 'admin' } } },
+    })
+    const res = await middleware(makeRequest('/admin'))
+    expect(res.status).toBe(200)
   })
 })
