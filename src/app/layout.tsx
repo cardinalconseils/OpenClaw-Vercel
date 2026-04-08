@@ -1,21 +1,12 @@
 import type { Metadata } from 'next'
-import { Montserrat, Cormorant_Garamond } from 'next/font/google'
-import { ThemeProvider } from '@/components/theme-provider'
+import { ThemeProvider } from 'next-themes'
 import './globals.css'
 
-const montserrat = Montserrat({
-  subsets: ['latin'],
-  weight: ['400', '700'],
-  variable: '--font-montserrat',
-  display: 'swap',
-})
-
-const cormorant = Cormorant_Garamond({
-  subsets: ['latin'],
-  weight: ['700'],
-  variable: '--font-cormorant',
-  display: 'swap',
-})
+/**
+ * Font CSS variables are set via globals.css using @font-face with Google Fonts
+ * CDN URLs. This avoids next/font/google build-time fetches that fail in
+ * restricted network environments (Vercel Sandbox, some CI).
+ */
 
 export const metadata: Metadata = {
   title: 'Murphy — One call replaces five',
@@ -31,7 +22,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${montserrat.variable} ${cormorant.variable}`}
+      className="font-sans"
       suppressHydrationWarning
     >
       <body>

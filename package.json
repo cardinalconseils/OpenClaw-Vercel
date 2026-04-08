@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build && npx tsc --project tsconfig.server.json",
+    "build": "next build",
+    "build:server": "npx tsc --project tsconfig.server.json",
     "start": "node server.js",
     "lint": "next lint",
     "test": "vitest run",
