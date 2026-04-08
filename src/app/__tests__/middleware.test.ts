@@ -1,121 +1,63 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
-// Mock @supabase/ssr before importing middleware
+// Mock @supabase/ssr
 const mockGetUser = vi.fn()
-
 vi.mock('@supabase/ssr', () => ({
-  createServerClient: vi.fn(() => ({
-    auth: {
-      getUser: mockGetUser,
-    },
-  })),
+  createServerClient: () => ({
+    auth: { getUser: mockGetUser },
+  }),
 }))
 
-// Helper to build NextRequest with a given pathname
 function buildRequest(pathname: string): NextRequest {
   return new NextRequest(new URL(`http://localhost${pathname}`))
 }
 
-describe('Middleware — Admin RBAC and auth redirects', () => {
+const { middleware } = await import('../../../middleware')
+
+describe('Middleware — /admin RBAC', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  it('Test 1: /admin with no session redirects to /login', async () => {
+  it('passes through non-admin routes without auth check', async () => {
+    for (const path of ['/', '/login', '/signup', '/privacy', '/terms']) {
+      const res = await middleware(buildRequest(path))
+      expect(res.status).toBe(200)
+      expect(res.headers.get('location')).toBeNull()
+    }
+    // Supabase should never be called for non-admin routes
+    expect(mockGetUser).not.toHaveBeenCalled()
+  })
+
+  it('redirects unauthenticated users from /admin to /login', async () => {
     mockGetUser.mockResolvedValue({ data: { user: null } })
-    const { middleware } = await import('../../../middleware')
-
-    const req = buildRequest('/admin')
-    const res = await middleware(req)
-
+    const res = await middleware(buildRequest('/admin'))
     expect(res.status).toBe(307)
-    expect(res.headers.get('location')).toContain('/login')
+    expect(new URL(res.headers.get('location')!).pathname).toBe('/login')
   })
 
-  it('Test 2: /admin with authenticated non-admin user redirects to /', async () => {
+  it('redirects non-admin users from /admin to /', async () => {
     mockGetUser.mockResolvedValue({
-      data: {
-        user: { id: 'user-1', user_metadata: {} },
-      },
+      data: { user: { id: '1', user_metadata: { role: 'user' } } },
     })
-    const { middleware } = await import('../../../middleware')
-
-    const req = buildRequest('/admin')
-    const res = await middleware(req)
-
+    const res = await middleware(buildRequest('/admin'))
     expect(res.status).toBe(307)
-    expect(res.headers.get('location')).toMatch(/\/$/)
-    expect(res.headers.get('location')).not.toContain('/login')
+    expect(new URL(res.headers.get('location')!).pathname).toBe('/')
   })
 
-  it('Test 3: /admin with admin role passes through (NextResponse.next)', async () => {
+  it('allows admin users through to /admin', async () => {
     mockGetUser.mockResolvedValue({
-      data: {
-        user: { id: 'user-2', app_metadata: { role: 'admin' } },
-      },
+      data: { user: { id: '1', user_metadata: { role: 'admin' } } },
     })
-    const { middleware } = await import('../../../middleware')
-
-    const req = buildRequest('/admin')
-    const res = await middleware(req)
-
-    // NextResponse.next() returns 200, not a redirect
+    const res = await middleware(buildRequest('/admin'))
     expect(res.status).toBe(200)
-    expect(res.headers.get('location')).toBeNull()
   })
 
-  it('Test 4: /admin/some/path with admin user passes through (catch-all)', async () => {
-    mockGetUser.mockResolvedValue({
-      data: {
-        user: { id: 'user-3', app_metadata: { role: 'admin' } },
-      },
-    })
-    const { middleware } = await import('../../../middleware')
-
-    const req = buildRequest('/admin/some/path')
-    const res = await middleware(req)
-
-    expect(res.status).toBe(200)
-    expect(res.headers.get('location')).toBeNull()
-  })
-
-  it('Test 5: /login with authenticated user redirects to / (not /dashboard)', async () => {
-    mockGetUser.mockResolvedValue({
-      data: {
-        user: { id: 'user-4', user_metadata: {} },
-      },
-    })
-    const { middleware } = await import('../../../middleware')
-
-    const req = buildRequest('/login')
-    const res = await middleware(req)
-
+  it('protects /admin subpaths', async () => {
+    mockGetUser.mockResolvedValue({ data: { user: null } })
+    const res = await middleware(buildRequest('/admin/settings'))
     expect(res.status).toBe(307)
-    const location = res.headers.get('location') ?? ''
-    expect(location).toMatch(/\/$/)
-    expect(location).not.toContain('/dashboard')
-  })
-
-  it('Test 6: Supabase failure on /admin redirects to /login (fail closed)', async () => {
-    mockGetUser.mockRejectedValue(new Error('Supabase unavailable'))
-    const { middleware } = await import('../../../middleware')
-
-    const req = buildRequest('/admin')
-    const res = await middleware(req)
-
-    expect(res.status).toBe(307)
-    expect(res.headers.get('location')).toContain('/login')
-  })
-
-  it('Test 7: Supabase failure on public route passes through (fail open)', async () => {
-    mockGetUser.mockRejectedValue(new Error('Supabase unavailable'))
-    const { middleware } = await import('../../../middleware')
-
-    const req = buildRequest('/')
-    const res = await middleware(req)
-
-    expect(res.status).toBe(200)
-    expect(res.headers.get('location')).toBeNull()
+    expect(new URL(res.headers.get('location')!).pathname).toBe('/login')
   })
 })

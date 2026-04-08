@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: unknown
-stopped_at: Completed 12-03-PLAN.md
-last_updated: "2026-03-22T20:40:37.989Z"
+status: Phase complete — ready for verification
+stopped_at: Completed 11-01-PLAN.md — awaiting human verification (Task 3 checkpoint)
+last_updated: "2026-03-23T14:48:02.216Z"
 progress:
-  total_phases: 13
-  completed_phases: 9
+  total_phases: 10
+  completed_phases: 10
   total_plans: 32
-  completed_plans: 31
+  completed_plans: 32
 ---
 
 # Project State
@@ -92,6 +92,7 @@ Plan: 1 of 1
 | Phase 12-migrate-openclaw-instance-to-vercel-with-admin-auth-system P01 | 1min | 1 tasks | 3 files |
 | Phase 12-migrate-openclaw-instance-to-vercel-with-admin-auth-system P02 | 4min | 2 tasks | 10 files |
 | Phase 12-migrate-openclaw-instance-to-vercel-with-admin-auth-system P03 | 20min | 3 tasks | 4 files |
+| Phase 11 P01 | 35 | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -220,6 +221,9 @@ Recent decisions affecting current work:
 - [Phase 12-migrate-openclaw-instance-to-vercel-with-admin-auth-system]: vitest.config.ts: setupFiles changed to path.resolve to fix wrong parent-project root resolution
 - [Phase 12-migrate-openclaw-instance-to-vercel-with-admin-auth-system]: pathRewrite: { '^/admin': '' } strips /admin prefix when forwarding to OpenClaw Control UI (served at root on port 18789)
 - [Phase 12-migrate-openclaw-instance-to-vercel-with-admin-auth-system]: build script compiles server.ts via tsc --project tsconfig.server.json after next build — Railway runs node server.js as start command
+- [Phase 11-fix-murphy-phone-number-18888306873-telnyx-redirect-configuration]: Telnyx API rejects automatic call forwarding on Call Control/TeXML numbers — use TeXML GET endpoint returning <Dial> instead
+- [Phase 11-fix-murphy-phone-number-18888306873-telnyx-redirect-configuration]: ClawdTalk allow: ['sessions_send'] enables Murphy to send SMS recaps during ClawdTalk-handled calls
+- [Phase 11-fix-murphy-phone-number-18888306873-telnyx-redirect-configuration]: type:module in root package.json required for Vercel ESM/CJS resolution when tsconfig has module:esnext
 
 ### Pending Todos
 
@@ -240,6 +244,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-20T20:01:46.171Z
-Stopped at: Completed 12-03-PLAN.md
+Last session: 2026-03-23T14:48:02.214Z
+Stopped at: Completed 11-01-PLAN.md — awaiting human verification (Task 3 checkpoint)
 Resume file: None

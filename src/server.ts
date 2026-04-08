@@ -23,6 +23,24 @@ app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
+/**
+ * TeXML call forwarding endpoint for +18888306873 (Canadian toll-free).
+ *
+ * The "OpenClaw Canadian Forward" TeXML application (Telnyx connection
+ * 2920018843260684126) calls this URL when a call arrives on +18888306873.
+ * We return TeXML that dials the ClawdTalk number (+18885440160) so the
+ * caller reaches Murphy through the ClawdTalk path.
+ *
+ * Telnyx TeXML Dial docs: https://developers.telnyx.com/docs/voice/texml/verbs/dial
+ */
+app.get('/webhooks/telnyx/forward', (_req, res) => {
+  res.set('Content-Type', 'text/xml');
+  res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Dial>+18885440160</Dial>
+</Response>`);
+});
+
 /** Telnyx Call Control v2 webhook handler */
 app.use('/webhooks/telnyx', webhookRouter);
 

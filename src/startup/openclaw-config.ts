@@ -93,6 +93,7 @@ export function writeOpenclawConfig(options?: { configDir?: string }): void {
           config: {
             apiKey: process.env.CLAWDTALK_API_KEY ?? '',
             botId: process.env.CLAWDTALK_BOT_ID ?? '',
+            allow: ['sessions_send'],
           },
         },
       },
