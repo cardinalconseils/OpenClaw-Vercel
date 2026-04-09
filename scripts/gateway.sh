@@ -12,10 +12,8 @@ mkdir -p "${OPENCLAW_DIR}"
 # Find openclaw — it's installed globally during build but in nix store PATH
 OPENCLAW_BIN=$(find /nix/store -name "openclaw" -path "*/bin/openclaw" -type f 2>/dev/null | head -1)
 if [[ -z "$OPENCLAW_BIN" ]]; then
-  log "openclaw not in nix store, installing via npx..."
-  # Pre-install so openclaw can write its default config before we overwrite it
-  npx --yes openclaw@latest --version >/dev/null 2>&1 || true
-  OPENCLAW_BIN="npx openclaw@latest"
+  log "openclaw not in nix store, using npx..."
+  OPENCLAW_BIN="npx --yes openclaw@latest"
 fi
 log "Using: $OPENCLAW_BIN"
 
