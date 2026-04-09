@@ -16,7 +16,8 @@ cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
     "port": ${GATEWAY_PORT},
     "mode": "local",
     "auth": {
-      "mode": "none"
+      "mode": "token",
+      "token": "${OPENCLAW_GATEWAY_TOKEN}"
     },
     "tools": {
       "allow": ["sessions_send"]
@@ -36,5 +37,5 @@ log "Starting gateway on port ${GATEWAY_PORT}..."
 exec npx --yes openclaw@latest gateway run \
   --port "${GATEWAY_PORT}" \
   --bind lan \
-  --auth none \
+  --token "${OPENCLAW_GATEWAY_TOKEN}" \
   --allow-unconfigured
