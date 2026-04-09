@@ -13,13 +13,15 @@ mkdir -p "${OPENCLAW_DIR}"
 OPENCLAW_BIN=$(find /nix/store -name "openclaw" -path "*/bin/openclaw" -type f 2>/dev/null | head -1)
 if [[ -z "$OPENCLAW_BIN" ]]; then
   log "openclaw not in nix store, installing via npx..."
-  # Install first so openclaw can initialize its default config before we overwrite it
+  # Pre-install so openclaw can write its default config before we overwrite it
   npx --yes openclaw@latest --version >/dev/null 2>&1 || true
   OPENCLAW_BIN="npx openclaw@latest"
 fi
 log "Using: $OPENCLAW_BIN"
 
-# Write openclaw config AFTER install (prevents openclaw init from overwriting it)
+# Write openclaw config AFTER install
+# trustedProxies: trust Railway's internal proxy range (100.64.0.0/10)
+# allowedOrigins: allow the Control UI served from our public domain
 cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
 {
   "gateway": {
@@ -30,6 +32,7 @@ cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
       "mode": "token",
       "token": "${OPENCLAW_GATEWAY_TOKEN}"
     },
+    "trustedProxies": ["100.64.0.0/10"],
     "controlUi": {
       "allowedOrigins": ["${PUBLIC_ORIGIN}"]
     },
@@ -44,7 +47,7 @@ cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
   }
 }
 CONF
-log "Config written (port ${GATEWAY_PORT}, bind=lan, allowedOrigins=${PUBLIC_ORIGIN})"
+log "Config written (port=${GATEWAY_PORT}, trustedProxies=100.64.0.0/10, allowedOrigins=${PUBLIC_ORIGIN})"
 
 # Run gateway in foreground
 log "Starting gateway on port ${GATEWAY_PORT}..."
