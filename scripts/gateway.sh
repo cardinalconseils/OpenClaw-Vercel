@@ -49,12 +49,10 @@ log "Config written (port=${GATEWAY_PORT}, trustedProxies=100.64.0.0/10, allowed
 
 # Pre-seed paired device so Control UI doesn't require pairing on first access
 mkdir -p "${OPENCLAW_DIR}/devices"
-if [[ ! -s "${OPENCLAW_DIR}/devices/paired.json" ]]; then
-  cat > "${OPENCLAW_DIR}/devices/paired.json" <<'PAIRED'
+cat > "${OPENCLAW_DIR}/devices/paired.json" <<'PAIRED'
 {"4da33389d9e2c4948e02b882460c6cbd3a9991fe1bb8439ab5c59d291efc0f6d":{"deviceId":"4da33389d9e2c4948e02b882460c6cbd3a9991fe1bb8439ab5c59d291efc0f6d","publicKey":"vJHf7BxFkARdUcOvKeFEoBsFShARImKDKADdk9Xxa_g","platform":"darwin","clientId":"cli","clientMode":"probe","role":"operator","roles":["operator"],"scopes":["operator.read"],"approvedScopes":["operator.read"],"tokens":{"operator":{"token":"OPENCLAW_OPERATOR_TOKEN_REDACTED","role":"operator","scopes":["operator.read"],"createdAtMs":1775701698442}},"createdAtMs":1775701698442,"approvedAtMs":1775701698442}}
 PAIRED
-  log "Seeded paired device"
-fi
+log "Seeded paired device (forced)"
 
 # Run gateway in foreground
 log "Starting gateway on port ${GATEWAY_PORT}..."
