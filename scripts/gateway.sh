@@ -31,6 +31,7 @@ cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
       "token": "${OPENCLAW_GATEWAY_TOKEN}"
     },
     "trustedProxies": ["100.64.0.0/10"],
+    "requirePairing": false,
     "controlUi": {
       "allowedOrigins": ["${PUBLIC_ORIGIN}"]
     },
