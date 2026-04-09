@@ -96,22 +96,24 @@ CONF
   fi
 
   # Install openclaw at runtime if not present
+  NPM_GLOBAL_BIN="$(npm root -g 2>/dev/null | sed 's|/node_modules$||')/bin"
+  export PATH="${NPM_GLOBAL_BIN}:$PATH"
   if ! which openclaw &>/dev/null; then
-    log "Installing openclaw..."
-    npm install --global --prefer-online openclaw@latest 2>&1 | tail -5
+    log "Installing openclaw (npm global bin: ${NPM_GLOBAL_BIN})..."
+    npm install --global openclaw 2>&1 | grep -E "added|error|warn" | head -5
     hash -r 2>/dev/null || true
-    export PATH="$(npm root -g)/../bin:$PATH"
-    log "npm global bin: $(npm bin -g 2>/dev/null || npm root -g | sed 's|/node_modules||')/bin"
-    log "openclaw check: $(which openclaw 2>/dev/null || echo 'not found')"
+    log "Post-install check: $(ls ${NPM_GLOBAL_BIN}/openclaw 2>/dev/null || echo 'not found at '${NPM_GLOBAL_BIN})"
   fi
-  if ! which openclaw &>/dev/null; then
-    log "ERROR: openclaw install failed — gateway skipped"
+  OPENCLAW_BIN="${NPM_GLOBAL_BIN}/openclaw"
+  if [[ ! -f "$OPENCLAW_BIN" ]]; then
+    log "ERROR: openclaw not found at ${OPENCLAW_BIN} — gateway skipped"
     return
   fi
+  log "Using openclaw: $OPENCLAW_BIN"
 
   # Start gateway
   log "Starting gateway on port ${GATEWAY_PORT}..."
-  "$OPENCLAW_BIN" gateway --port "${GATEWAY_PORT}" --auth none &
+  openclaw gateway --port "${GATEWAY_PORT}" --auth none &
   GATEWAY_PID=$!
 
   # Wait for gateway
