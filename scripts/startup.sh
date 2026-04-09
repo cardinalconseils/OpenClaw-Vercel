@@ -98,8 +98,11 @@ CONF
   # Install openclaw at runtime if not present
   if ! which openclaw &>/dev/null; then
     log "Installing openclaw..."
-    npm install -g openclaw 2>&1 | tail -3
-    hash -r
+    npm install --global --prefer-online openclaw@latest 2>&1 | tail -5
+    hash -r 2>/dev/null || true
+    export PATH="$(npm root -g)/../bin:$PATH"
+    log "npm global bin: $(npm bin -g 2>/dev/null || npm root -g | sed 's|/node_modules||')/bin"
+    log "openclaw check: $(which openclaw 2>/dev/null || echo 'not found')"
   fi
   if ! which openclaw &>/dev/null; then
     log "ERROR: openclaw install failed — gateway skipped"
