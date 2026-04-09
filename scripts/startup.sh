@@ -95,25 +95,12 @@ CONF
     npx tsx src/startup/pair-device.ts 2>&1 || log "WARN: pair-device failed"
   fi
 
-  # Install openclaw at runtime if not present
-  NPM_GLOBAL_BIN="$(npm root -g 2>/dev/null | sed 's|/node_modules$||')/bin"
-  export PATH="${NPM_GLOBAL_BIN}:$PATH"
-  if ! which openclaw &>/dev/null; then
-    log "Installing openclaw (npm global bin: ${NPM_GLOBAL_BIN})..."
-    npm install --global openclaw 2>&1 | grep -E "added|error|warn" | head -5
-    hash -r 2>/dev/null || true
-    log "Post-install check: $(ls ${NPM_GLOBAL_BIN}/openclaw 2>/dev/null || echo 'not found at '${NPM_GLOBAL_BIN})"
-  fi
-  OPENCLAW_BIN="${NPM_GLOBAL_BIN}/openclaw"
-  if [[ ! -f "$OPENCLAW_BIN" ]]; then
-    log "ERROR: openclaw not found at ${OPENCLAW_BIN} — gateway skipped"
-    return
-  fi
-  log "Using openclaw: $OPENCLAW_BIN"
+  # Use npx to run openclaw without global install
+  OPENCLAW_CMD="npx --yes openclaw@latest"
 
   # Start gateway
   log "Starting gateway on port ${GATEWAY_PORT}..."
-  openclaw gateway --port "${GATEWAY_PORT}" --auth none &
+  $OPENCLAW_CMD gateway --port "${GATEWAY_PORT}" --auth none &
   GATEWAY_PID=$!
 
   # Wait for gateway
