@@ -2,7 +2,7 @@
 set -euo pipefail
 
 GATEWAY_PORT="${PORT:-18789}"
-OPENCLAW_DIR="${HOME}/.openclaw"
+OPENCLAW_DIR="${OPENCLAW_STATE_DIR:-${HOME}/.openclaw}"
 PUBLIC_ORIGIN="https://${RAILWAY_PUBLIC_DOMAIN:-openclaw-production-f318.up.railway.app}"
 
 log() { echo "[gateway] $(date -u +%Y-%m-%dT%H:%M:%SZ) $*"; }
