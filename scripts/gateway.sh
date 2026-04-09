@@ -48,6 +48,7 @@ cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
 }
 CONF
 log "Config written (port=${GATEWAY_PORT}, trustedProxies=100.64.0.0/10, allowedOrigins=${PUBLIC_ORIGIN})"
+log "Config contents: $(cat ${OPENCLAW_DIR}/openclaw.json)"
 
 # Run gateway in foreground
 log "Starting gateway on port ${GATEWAY_PORT}..."
