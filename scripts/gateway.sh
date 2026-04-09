@@ -32,9 +32,17 @@ cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
 CONF
 log "Config written (port ${GATEWAY_PORT}, bind=lan, auth=none)"
 
+# Find openclaw — it's installed globally during build but in nix store PATH
+OPENCLAW_BIN=$(find /nix/store -name "openclaw" -path "*/bin/openclaw" -type f 2>/dev/null | head -1)
+if [[ -z "$OPENCLAW_BIN" ]]; then
+  log "openclaw not in nix store, falling back to npx..."
+  OPENCLAW_BIN="npx --yes openclaw@latest"
+fi
+log "Using: $OPENCLAW_BIN"
+
 # Run gateway in foreground
 log "Starting gateway on port ${GATEWAY_PORT}..."
-exec npx --yes openclaw@latest gateway run \
+exec $OPENCLAW_BIN gateway run \
   --port "${GATEWAY_PORT}" \
   --bind lan \
   --token "${OPENCLAW_GATEWAY_TOKEN}" \
