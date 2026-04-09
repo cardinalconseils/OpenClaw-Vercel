@@ -71,15 +71,19 @@ start_backend() {
   cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
 {
   "gateway": {
-    "bind": "loopback",
+    "bind": "lan",
     "port": ${GATEWAY_PORT},
     "mode": "local",
+    "auth": {
+      "mode": "none"
+    },
     "tools": {
       "allow": ["sessions_send"]
     }
   },
   "agents": {
     "defaults": {
+      "workspace": "${OPENCLAW_DIR}/workspace",
       "model": {
         "primary": "openrouter/google/gemini-2.5-flash-lite",
         "fallbacks": ["anthropic/claude-sonnet-4-5"]
@@ -88,6 +92,7 @@ start_backend() {
   }
 }
 CONF
+  log "Wrote openclaw config to ${OPENCLAW_DIR}/openclaw.json"
 
   # Pre-pair device
   cd "$PROJECT_DIR"
@@ -100,7 +105,7 @@ CONF
 
   # Start gateway
   log "Starting gateway on port ${GATEWAY_PORT}..."
-  $OPENCLAW_CMD gateway --port "${GATEWAY_PORT}" --auth none &
+  $OPENCLAW_CMD gateway run --port "${GATEWAY_PORT}" --bind lan --auth none --allow-unconfigured &
   GATEWAY_PID=$!
 
   # Wait for gateway
