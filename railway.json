@@ -4,7 +4,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "bash scripts/startup.sh",
+    "startCommand": "bash scripts/gateway.sh",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 5
   }
