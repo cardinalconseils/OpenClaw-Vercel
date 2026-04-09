@@ -95,9 +95,17 @@ CONF
     npx tsx src/startup/pair-device.ts 2>&1 || log "WARN: pair-device failed"
   fi
 
+  # Find openclaw binary (nixpacks global installs may not be in default PATH)
+  OPENCLAW_BIN=$(which openclaw 2>/dev/null || ls /root/.npm-global/bin/openclaw 2>/dev/null || ls /usr/local/lib/node_modules/openclaw/bin/openclaw 2>/dev/null || find /root /usr/local /opt -name "openclaw" -type f 2>/dev/null | head -1 || echo "")
+  if [[ -z "$OPENCLAW_BIN" ]]; then
+    log "ERROR: openclaw binary not found — gateway skipped"
+    return
+  fi
+  log "Found openclaw at: $OPENCLAW_BIN"
+
   # Start gateway
   log "Starting gateway on port ${GATEWAY_PORT}..."
-  openclaw gateway --port "${GATEWAY_PORT}" --auth none &
+  "$OPENCLAW_BIN" gateway --port "${GATEWAY_PORT}" --auth none &
   GATEWAY_PID=$!
 
   # Wait for gateway
