@@ -3,7 +3,7 @@
 nixPkgs = ["nodejs_22", "git", "curl", "jq", "bash"]
 
 [phases.install]
-cmds = ["npm ci", "npm install -g openclaw", "ln -sf $(npm root -g)/../bin/openclaw /usr/local/bin/openclaw || true"]
+cmds = ["npm ci"]
 
 [phases.build]
 cmds = ["npm run build"]
