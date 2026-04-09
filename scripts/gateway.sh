@@ -9,6 +9,8 @@ log() { echo "[gateway] $(date -u +%Y-%m-%dT%H:%M:%SZ) $*"; }
 mkdir -p "${OPENCLAW_DIR}"
 
 # Write openclaw config
+PUBLIC_ORIGIN="https://${RAILWAY_PUBLIC_DOMAIN:-openclaw-production-f318.up.railway.app}"
+
 cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
 {
   "gateway": {
@@ -18,6 +20,9 @@ cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
     "auth": {
       "mode": "token",
       "token": "${OPENCLAW_GATEWAY_TOKEN}"
+    },
+    "controlUi": {
+      "allowedOrigins": ["${PUBLIC_ORIGIN}"]
     },
     "tools": {
       "allow": ["sessions_send"]
