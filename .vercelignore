@@ -1,0 +1,10 @@
+# Exclude custom server (Express) — Vercel should use Next.js serverless
+/server.js
+/server.ts
+
+# Exclude backend codebase (runs on Sandbox, not Vercel)
+frontend/
+
+# Exclude planning and tooling
+.planning/
+.claude/

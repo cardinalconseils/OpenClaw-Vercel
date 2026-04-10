@@ -47,12 +47,15 @@ cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
 CONF
 log "Config written (port=${GATEWAY_PORT}, trustedProxies=100.64.0.0/10, allowedOrigins=${PUBLIC_ORIGIN})"
 
-# Pre-seed paired device so Control UI doesn't require pairing on first access
+# Pre-seed paired device from environment variable (set OPENCLAW_PAIRED_DEVICE in Railway)
+# Format: the full paired.json content as a JSON string
 mkdir -p "${OPENCLAW_DIR}/devices"
-cat > "${OPENCLAW_DIR}/devices/paired.json" <<'PAIRED'
-{"4da33389d9e2c4948e02b882460c6cbd3a9991fe1bb8439ab5c59d291efc0f6d":{"deviceId":"4da33389d9e2c4948e02b882460c6cbd3a9991fe1bb8439ab5c59d291efc0f6d","publicKey":"vJHf7BxFkARdUcOvKeFEoBsFShARImKDKADdk9Xxa_g","platform":"darwin","clientId":"cli","clientMode":"probe","role":"operator","roles":["operator"],"scopes":["operator.read"],"approvedScopes":["operator.read"],"tokens":{"operator":{"token":"OPENCLAW_OPERATOR_TOKEN_REDACTED","role":"operator","scopes":["operator.read"],"createdAtMs":1775701698442}},"createdAtMs":1775701698442,"approvedAtMs":1775701698442}}
-PAIRED
-log "Seeded paired device (forced)"
+if [[ -n "${OPENCLAW_PAIRED_DEVICE:-}" ]]; then
+  echo "${OPENCLAW_PAIRED_DEVICE}" > "${OPENCLAW_DIR}/devices/paired.json"
+  log "Seeded paired device from env"
+else
+  log "WARNING: OPENCLAW_PAIRED_DEVICE not set — pairing will be required on first access"
+fi
 
 # Run gateway in foreground
 log "Starting gateway on port ${GATEWAY_PORT}..."

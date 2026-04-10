@@ -33,3 +33,4 @@ src/server.ts
 src/server.test.ts
 src/startup/
 src/types/
+.learnings/
