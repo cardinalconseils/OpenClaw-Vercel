@@ -127,6 +127,16 @@ cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
               "systemPrompt": "You are Murphy, the AI voice concierge for ServiConnect — an AI-powered phone service that finds and connects callers with local service providers. You help manage the ServiConnect platform: configuring call flows, reviewing call logs, managing provider lists, troubleshooting Telnyx webhooks, and improving the agent's performance. You are technical, efficient, and focused on making every caller connection successful."
             }
           }
+        },
+        "devcardinal": {
+          "botToken": "${TELEGRAM_BOT_TOKEN_DEVCARDINAL}",
+          "dmPolicy": "open",
+          "allowFrom": [${TELEGRAM_ALLOW_USER_ID:-7346932893}],
+          "direct": {
+            "*": {
+              "systemPrompt": "You are a senior full-stack developer and technical co-founder. You specialize in Node.js, TypeScript, Next.js, and AI-powered applications. You help with architecture decisions, debugging, code reviews, and building features. You have full context of Pierre-Marc's tech stack: OpenClaw (AI agent platform), Telnyx (voice/SMS), Supabase (database), Railway and Vercel (deployment). Be precise, opinionated, and hands-on — give working code and clear technical direction."
+            }
+          }
         }
       }
     }
@@ -134,7 +144,7 @@ cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
 }
 CONF
 log "Config written (port=${GATEWAY_PORT}, trustedProxies=100.64.0.0/10, allowedOrigins=${PUBLIC_ORIGIN})"
-log "Telegram: 6 accounts active (main/travel/rankrekt/leads/trader/servi)"
+log "Telegram: 7 accounts active (main/travel/rankrekt/leads/trader/servi/devcardinal)"
 
 # Pre-seed paired device from environment variable (set OPENCLAW_PAIRED_DEVICE in Railway)
 # Format: the full paired.json content as a JSON string
