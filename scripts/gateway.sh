@@ -42,19 +42,19 @@ cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
     "defaults": {
       "workspace": "${OPENCLAW_DIR}/workspace",
       "model": {
-        "primary": "google/gemini-2.0-flash"
+        "primary": "openrouter/deepseek/deepseek-v3.2"
       },
       "models": {
-        "google/gemini-2.0-flash": {}
+        "openrouter/deepseek/deepseek-v3.2": {}
       }
     }
   },
   "auth": {
     "profiles": {
-      "google:default": {
-        "provider": "google",
+      "openrouter:default": {
+        "provider": "openrouter",
         "mode": "api_key",
-        "apiKey": "${GEMINI_API_KEY}"
+        "apiKey": "${OPENROUTER_API_KEY}"
       }
     }
   },
@@ -151,14 +151,14 @@ log "Telegram: 7 accounts active (main/travel/rankrekt/leads/trader/servi/devcar
 mkdir -p "${OPENCLAW_DIR}/agents/main/agent"
 cat > "${OPENCLAW_DIR}/agents/main/agent/auth-profiles.json" <<AUTH
 {
-  "google:default": {
-    "provider": "google",
+  "openrouter:default": {
+    "provider": "openrouter",
     "mode": "api_key",
-    "apiKey": "${GEMINI_API_KEY}"
+    "apiKey": "${OPENROUTER_API_KEY}"
   }
 }
 AUTH
-log "Agent auth-profiles written (google:default)"
+log "Agent auth-profiles written (openrouter:default)"
 
 # Pre-seed paired device from environment variable (set OPENCLAW_PAIRED_DEVICE in Railway)
 # Format: the full paired.json content as a JSON string
