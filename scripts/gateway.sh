@@ -146,6 +146,20 @@ CONF
 log "Config written (port=${GATEWAY_PORT}, trustedProxies=100.64.0.0/10, allowedOrigins=${PUBLIC_ORIGIN})"
 log "Telegram: 7 accounts active (main/travel/rankrekt/leads/trader/servi/devcardinal)"
 
+# Write auth-profiles.json for the main agent so it uses Google/Gemini not OpenAI
+# This file persists on the /data volume and can become stale — always overwrite it
+mkdir -p "${OPENCLAW_DIR}/agents/main/agent"
+cat > "${OPENCLAW_DIR}/agents/main/agent/auth-profiles.json" <<AUTH
+{
+  "google:default": {
+    "provider": "google",
+    "mode": "api_key",
+    "apiKey": "${GEMINI_API_KEY}"
+  }
+}
+AUTH
+log "Agent auth-profiles written (google:default)"
+
 # Pre-seed paired device from environment variable (set OPENCLAW_PAIRED_DEVICE in Railway)
 # Format: the full paired.json content as a JSON string
 mkdir -p "${OPENCLAW_DIR}/devices"
