@@ -52,19 +52,12 @@ cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
   "agents": {
     "defaults": {
       "workspace": "${OPENCLAW_DIR}/workspace",
+      "skipBootstrap": true,
       "model": {
         "primary": "openrouter/deepseek/deepseek-v3.2"
       },
       "models": {
         "openrouter/deepseek/deepseek-v3.2": {}
-      }
-    }
-  },
-  "auth": {
-    "profiles": {
-      "openrouter:default": {
-        "provider": "openrouter",
-        "mode": "api_key"
       }
     }
   },
@@ -79,9 +72,10 @@ cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
       "defaultAccount": "main",
       "accounts": {
         "main": {
+          "enabled": true,
           "botToken": "${TELEGRAM_BOT_TOKEN_MAIN:-}",
           "dmPolicy": "open",
-          "allowFrom": [${TELEGRAM_ALLOW_USER_ID:-7346932893}, "*"],
+          "allowFrom": ["${TELEGRAM_ALLOW_USER_ID:-7346932893}", "*"],
           "direct": {
             "*": {
               "systemPrompt": "You are Pierre-Marc's main business partner and strategic advisor. You help him brainstorm, develop, and execute business ideas across all his ventures. You have full context of his portfolio: rank-and-rent SEO, lead generation, travel deals, penny stock trading, and the ServiConnect AI phone concierge (OpenClaw). Be direct, entrepreneurial, and think in systems. Help him move from idea to action."
@@ -89,9 +83,10 @@ cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
           }
         },
         "travel": {
+          "enabled": true,
           "botToken": "${TELEGRAM_BOT_TOKEN_TRAVEL:-}",
           "dmPolicy": "open",
-          "allowFrom": [${TELEGRAM_ALLOW_USER_ID:-7346932893}, "*"],
+          "allowFrom": ["${TELEGRAM_ALLOW_USER_ID:-7346932893}", "*"],
           "direct": {
             "*": {
               "systemPrompt": "You are a travel deal expert. Your job is to find, analyze, and present the best travel deals — flights, hotels, packages, mistake fares, and last-minute offers. You know how to use points and miles, error fares, positioning flights, and travel hacks. When asked for a deal, be specific: give real options with prices, dates, and booking links when possible. Think like a seasoned deal hunter, not a generic travel agent."
@@ -99,9 +94,10 @@ cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
           }
         },
         "rankrekt": {
+          "enabled": true,
           "botToken": "${TELEGRAM_BOT_TOKEN_RANKREKT:-}",
           "dmPolicy": "open",
-          "allowFrom": [${TELEGRAM_ALLOW_USER_ID:-7346932893}, "*"],
+          "allowFrom": ["${TELEGRAM_ALLOW_USER_ID:-7346932893}", "*"],
           "direct": {
             "*": {
               "systemPrompt": "You are a rank-and-rent SEO specialist. You help build, rank, and monetize local lead generation websites. You are an expert in niche selection, keyword research, on-page SEO, local citations, link building, Google Business Profile optimization, and renting ranked sites to local businesses. You think in terms of ROI, monthly rental income, and portfolio scale. Be tactical and specific — give actionable steps, not theory."
@@ -109,9 +105,10 @@ cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
           }
         },
         "leads": {
+          "enabled": true,
           "botToken": "${TELEGRAM_BOT_TOKEN_LEADS:-}",
           "dmPolicy": "open",
-          "allowFrom": [${TELEGRAM_ALLOW_USER_ID:-7346932893}, "*"],
+          "allowFrom": ["${TELEGRAM_ALLOW_USER_ID:-7346932893}", "*"],
           "direct": {
             "*": {
               "systemPrompt": "You are a lead generation and lead creation expert. You specialize in building systems that consistently generate high-quality leads for local businesses and online offers. You know cold outreach, paid ads, SEO funnels, landing page optimization, CRM workflows, and lead qualification. You help build lead gen assets, write copy, and design campaigns. Be specific and results-driven — every conversation should end with a clear next action."
@@ -119,9 +116,10 @@ cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
           }
         },
         "trader": {
+          "enabled": true,
           "botToken": "${TELEGRAM_BOT_TOKEN_TRADER:-}",
           "dmPolicy": "open",
-          "allowFrom": [${TELEGRAM_ALLOW_USER_ID:-7346932893}, "*"],
+          "allowFrom": ["${TELEGRAM_ALLOW_USER_ID:-7346932893}", "*"],
           "direct": {
             "*": {
               "systemPrompt": "You are a penny stock trading expert. You specialize in OTC markets, sub-\$5 stocks, momentum plays, pump detection, technical analysis on low-float stocks, and risk management for volatile positions. You understand catalysts, Level 2 tape reading, short squeezes, and SEC filings. Always include risk warnings. Help identify setups, analyze charts, research tickers, and build trading plans. Never give financial advice — provide analysis and education only."
@@ -129,9 +127,10 @@ cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
           }
         },
         "servi": {
+          "enabled": true,
           "botToken": "${TELEGRAM_BOT_TOKEN_SERVI:-}",
           "dmPolicy": "open",
-          "allowFrom": [${TELEGRAM_ALLOW_USER_ID:-7346932893}, "*"],
+          "allowFrom": ["${TELEGRAM_ALLOW_USER_ID:-7346932893}", "*"],
           "direct": {
             "*": {
               "systemPrompt": "You are Murphy, the AI voice concierge for ServiConnect — an AI-powered phone service that finds and connects callers with local service providers. You help manage the ServiConnect platform: configuring call flows, reviewing call logs, managing provider lists, troubleshooting Telnyx webhooks, and improving the agent's performance. You are technical, efficient, and focused on making every caller connection successful."
@@ -139,9 +138,10 @@ cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
           }
         },
         "devcardinal": {
+          "enabled": true,
           "botToken": "${TELEGRAM_BOT_TOKEN_DEVCARDINAL:-}",
           "dmPolicy": "open",
-          "allowFrom": [${TELEGRAM_ALLOW_USER_ID:-7346932893}, "*"],
+          "allowFrom": ["${TELEGRAM_ALLOW_USER_ID:-7346932893}", "*"],
           "direct": {
             "*": {
               "systemPrompt": "You are a senior full-stack developer and technical co-founder. You specialize in Node.js, TypeScript, Next.js, and AI-powered applications. You help with architecture decisions, debugging, code reviews, and building features. You have full context of Pierre-Marc's tech stack: OpenClaw (AI agent platform), Telnyx (voice/SMS), Supabase (database), Railway and Vercel (deployment). Be precise, opinionated, and hands-on — give working code and clear technical direction."
@@ -154,7 +154,7 @@ cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
 }
 CONF
 log "Config written (port=${GATEWAY_PORT}, trustedProxies=100.64.0.0/10, allowedOrigins=${PUBLIC_ORIGIN})"
-log "Telegram: 7 accounts active (main/travel/rankrekt/leads/trader/servi/devcardinal)"
+log "Telegram: 7 accounts enabled (main/travel/rankrekt/leads/trader/servi/devcardinal)"
 
 
 # Pre-seed workspace context so agents never hit the empty-workspace onboarding flow
@@ -181,21 +181,9 @@ IDENTITY
 log "Workspace pre-seeded (USER.md, IDENTITY.md)"
 
 
-# Write auth-profiles.json — correct format: {profiles: {id: {key: value}}}
-# This gives ALL agents (including ephemeral Telegram agents) OpenRouter credentials
-mkdir -p "${OPENCLAW_DIR}/agents/main/agent"
-cat > "${OPENCLAW_DIR}/agents/main/agent/auth-profiles.json" <<AUTH
-{
-  "profiles": {
-    "openrouter:default": {
-      "type": "api_key",
-      "provider": "openrouter",
-      "key": "${OPENROUTER_API_KEY}"
-    }
-  }
-}
-AUTH
-log "Agent auth-profiles written (profiles.openrouter:default.key)"
+# Auth: openclaw auto-reads OPENROUTER_API_KEY from the environment.
+# No auth-profiles.json or auth block in openclaw.json needed.
+log "Auth: relying on OPENROUTER_API_KEY env var (auto-detected by openclaw)"
 
 # Pre-seed paired device from environment variable (set OPENCLAW_PAIRED_DEVICE in Railway)
 # Format: the full paired.json content as a JSON string
@@ -217,4 +205,5 @@ exec $OPENCLAW_BIN gateway run \
   --port "${GATEWAY_PORT}" \
   --bind lan \
   --token "${OPENCLAW_GATEWAY_TOKEN}" \
-  --allow-unconfigured
+  --allow-unconfigured \
+  --force
