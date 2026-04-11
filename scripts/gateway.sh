@@ -64,8 +64,7 @@ cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
     "profiles": {
       "openrouter:default": {
         "provider": "openrouter",
-        "mode": "api_key",
-        "key": "${OPENROUTER_API_KEY}"
+        "mode": "api_key"
       }
     }
   },
