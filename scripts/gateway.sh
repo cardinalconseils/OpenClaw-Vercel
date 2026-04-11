@@ -42,10 +42,10 @@ cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
     "defaults": {
       "workspace": "${OPENCLAW_DIR}/workspace",
       "model": {
-        "primary": "google/gemini-3.1-pro-preview"
+        "primary": "google/gemini-2.0-flash"
       },
       "models": {
-        "google/gemini-3.1-pro-preview": {}
+        "google/gemini-2.0-flash": {}
       }
     }
   },
