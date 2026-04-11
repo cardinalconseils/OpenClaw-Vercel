@@ -157,6 +157,30 @@ log "Config written (port=${GATEWAY_PORT}, trustedProxies=100.64.0.0/10, allowed
 log "Telegram: 7 accounts active (main/travel/rankrekt/leads/trader/servi/devcardinal)"
 
 
+# Pre-seed workspace context so agents never hit the empty-workspace onboarding flow
+mkdir -p "${OPENCLAW_DIR}/workspace"
+cat > "${OPENCLAW_DIR}/workspace/USER.md" <<'USER'
+# User: Pierre-Marc Cardinal
+
+- **Preferred name:** Pierre-Marc (or PM)
+- **Timezone:** America/Toronto (Eastern)
+- **Role:** Entrepreneur, builder, technical founder
+- **Ventures:** Rank-and-rent SEO, local lead generation, travel deals, penny stock trading, ServiConnect (AI phone concierge powered by OpenClaw + Telnyx)
+- **Tech stack:** Node.js, TypeScript, Next.js, OpenClaw, Telnyx, Supabase, Railway, Vercel
+- **Communication style:** Direct and action-oriented — skip preamble, give working answers
+USER
+
+cat > "${OPENCLAW_DIR}/workspace/IDENTITY.md" <<'IDENTITY'
+# Agent Identity
+
+Your identity, personality, and expertise are defined by the system prompt active for this conversation.
+Do NOT run any onboarding or persona-setup flow — you are already fully configured.
+Read USER.md to understand who you are talking to, then get straight to work.
+IDENTITY
+
+log "Workspace pre-seeded (USER.md, IDENTITY.md)"
+
+
 # Write auth-profiles.json — correct format: {profiles: {id: {key: value}}}
 # This gives ALL agents (including ephemeral Telegram agents) OpenRouter credentials
 mkdir -p "${OPENCLAW_DIR}/agents/main/agent"
