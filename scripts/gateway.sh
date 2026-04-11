@@ -56,9 +56,7 @@ cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
         "primary": "openrouter/deepseek/deepseek-v3.2"
       },
       "models": {
-        "openrouter/deepseek/deepseek-v3.2": {
-          "authProfile": "openrouter:default"
-        }
+        "openrouter/deepseek/deepseek-v3.2": {}
       }
     }
   },
