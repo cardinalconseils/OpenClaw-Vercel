@@ -1,5 +1,8 @@
 FROM node:22-alpine
 
+# bash is not included in alpine — required by gateway.sh
+RUN apk add --no-cache bash
+
 # Install openclaw globally at build time — no npx download at runtime
 RUN npm install -g openclaw@latest
 
