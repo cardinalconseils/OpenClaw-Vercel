@@ -44,7 +44,7 @@ export class GatewayManager {
   }
 
   private _spawnProcess(): void {
-    const proc = spawn('openclaw', ['gateway', '--allow-unconfigured', '--port', '18789', '--auth', 'none'], {
+    const proc = spawn('openclaw', ['gateway', '--allow-unconfigured', '--port', '18789', '--auth', 'none', '--dev'], {
       detached: false,
       stdio: ['ignore', 'pipe', 'pipe'],
     });

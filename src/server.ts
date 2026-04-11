@@ -126,12 +126,12 @@ if (isDirectExecution) {
     }
 
     // Initialize mission system — wire callbacks and recover incomplete missions
+    // Non-fatal: gateway works without Supabase (missions degrade gracefully)
     try {
       await initMissions();
       console.log('[server] Mission system initialized');
     } catch (err) {
-      console.error('[server] FATAL: Mission system initialization failed:', err);
-      process.exit(1);
+      console.warn('[server] Mission system initialization skipped:', (err as Error).message);
     }
 
     // Bind Express on port 18790
