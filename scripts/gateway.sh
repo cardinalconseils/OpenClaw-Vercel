@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+set -x  # print every command before execution — helps diagnose silent failures
 
 GATEWAY_PORT="${PORT:-18789}"
 OPENCLAW_DIR="${OPENCLAW_STATE_DIR:-${HOME}/.openclaw}"
@@ -9,10 +10,20 @@ log() { echo "[gateway] $(date -u +%Y-%m-%dT%H:%M:%SZ) $*"; }
 
 mkdir -p "${OPENCLAW_DIR}"
 
-# Find openclaw — it's installed globally during build but in nix store PATH
-OPENCLAW_BIN=$(find /nix/store -name "openclaw" -path "*/bin/openclaw" -type f 2>/dev/null | head -1)
-if [[ -z "$OPENCLAW_BIN" ]]; then
-  log "openclaw not in nix store, using npx..."
+# Find openclaw — prefer the globally-installed binary (put there at build time),
+# fall back to npx only if it is genuinely missing from PATH.
+if command -v openclaw &>/dev/null; then
+  OPENCLAW_BIN="openclaw"
+  log "Found openclaw on PATH: $(command -v openclaw) ($(openclaw --version 2>&1 || true))"
+else
+  log "WARNING: openclaw not found on PATH"
+  # Verify npm/npx are available before attempting the fallback
+  if ! command -v npm &>/dev/null; then
+    log "ERROR: npm is not available — cannot fall back to npx. Aborting."
+    exit 1
+  fi
+  log "npm available: $(npm --version), npx available: $(npx --version)"
+  log "Falling back to: npx --yes openclaw@latest"
   OPENCLAW_BIN="npx --yes openclaw@latest"
 fi
 log "Using: $OPENCLAW_BIN"
