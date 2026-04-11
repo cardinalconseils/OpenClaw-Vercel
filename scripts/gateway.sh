@@ -42,10 +42,10 @@ cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
     "defaults": {
       "workspace": "${OPENCLAW_DIR}/workspace",
       "model": {
-        "primary": "google/gemini-2.5-pro-preview"
+        "primary": "google/gemini-3.1-pro-preview"
       },
       "models": {
-        "google/gemini-2.5-pro-preview": {}
+        "google/gemini-3.1-pro-preview": {}
       }
     }
   },
@@ -54,7 +54,7 @@ cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
       "google:default": {
         "provider": "google",
         "mode": "api_key",
-        "apiKey": "${GOOGLE_API_KEY}"
+        "apiKey": "${GEMINI_API_KEY}"
       }
     }
   },
