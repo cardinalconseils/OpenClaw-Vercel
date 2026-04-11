@@ -51,7 +51,6 @@ cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
   },
   "agents": {
     "defaults": {
-      "workspace": "${OPENCLAW_DIR}/workspace",
       "skipBootstrap": true,
       "model": {
         "primary": "openrouter/deepseek/deepseek-v3.2"
@@ -59,7 +58,45 @@ cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
       "models": {
         "openrouter/deepseek/deepseek-v3.2": {}
       }
-    }
+    },
+    "list": [
+      {
+        "id": "main",
+        "default": true,
+        "workspace": "${OPENCLAW_DIR}/agents/main/workspace",
+        "agentDir": "${OPENCLAW_DIR}/agents/main/agent"
+      },
+      {
+        "id": "travel",
+        "workspace": "${OPENCLAW_DIR}/agents/travel/workspace",
+        "agentDir": "${OPENCLAW_DIR}/agents/travel/agent"
+      },
+      {
+        "id": "rankrekt",
+        "workspace": "${OPENCLAW_DIR}/agents/rankrekt/workspace",
+        "agentDir": "${OPENCLAW_DIR}/agents/rankrekt/agent"
+      },
+      {
+        "id": "leads",
+        "workspace": "${OPENCLAW_DIR}/agents/leads/workspace",
+        "agentDir": "${OPENCLAW_DIR}/agents/leads/agent"
+      },
+      {
+        "id": "trader",
+        "workspace": "${OPENCLAW_DIR}/agents/trader/workspace",
+        "agentDir": "${OPENCLAW_DIR}/agents/trader/agent"
+      },
+      {
+        "id": "servi",
+        "workspace": "${OPENCLAW_DIR}/agents/servi/workspace",
+        "agentDir": "${OPENCLAW_DIR}/agents/servi/agent"
+      },
+      {
+        "id": "devcardinal",
+        "workspace": "${OPENCLAW_DIR}/agents/devcardinal/workspace",
+        "agentDir": "${OPENCLAW_DIR}/agents/devcardinal/agent"
+      }
+    ]
   },
   "channels": {
     "telegram": {
@@ -150,16 +187,29 @@ cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
         }
       }
     }
-  }
+  },
+  "bindings": [
+    { "type": "route", "agentId": "main",       "match": { "channel": "telegram", "accountId": "main" } },
+    { "type": "route", "agentId": "travel",      "match": { "channel": "telegram", "accountId": "travel" } },
+    { "type": "route", "agentId": "rankrekt",    "match": { "channel": "telegram", "accountId": "rankrekt" } },
+    { "type": "route", "agentId": "leads",       "match": { "channel": "telegram", "accountId": "leads" } },
+    { "type": "route", "agentId": "trader",      "match": { "channel": "telegram", "accountId": "trader" } },
+    { "type": "route", "agentId": "servi",       "match": { "channel": "telegram", "accountId": "servi" } },
+    { "type": "route", "agentId": "devcardinal", "match": { "channel": "telegram", "accountId": "devcardinal" } }
+  ]
 }
 CONF
 log "Config written (port=${GATEWAY_PORT}, trustedProxies=100.64.0.0/10, allowedOrigins=${PUBLIC_ORIGIN})"
-log "Telegram: 7 accounts enabled (main/travel/rankrekt/leads/trader/servi/devcardinal)"
+log "Telegram: 7 accounts enabled, each routed to its own isolated agent"
 
 
-# Pre-seed workspace context so agents never hit the empty-workspace onboarding flow
-mkdir -p "${OPENCLAW_DIR}/workspace"
-cat > "${OPENCLAW_DIR}/workspace/USER.md" <<'USER'
+# Pre-seed workspace + identity for each agent — prevents onboarding flow
+AGENT_IDS="main travel rankrekt leads trader servi devcardinal"
+for agent_id in ${AGENT_IDS}; do
+  agent_ws="${OPENCLAW_DIR}/agents/${agent_id}/workspace"
+  mkdir -p "${agent_ws}"
+
+  cat > "${agent_ws}/USER.md" <<'USER'
 # User: Pierre-Marc Cardinal
 
 - **Preferred name:** Pierre-Marc (or PM)
@@ -170,15 +220,16 @@ cat > "${OPENCLAW_DIR}/workspace/USER.md" <<'USER'
 - **Communication style:** Direct and action-oriented — skip preamble, give working answers
 USER
 
-cat > "${OPENCLAW_DIR}/workspace/IDENTITY.md" <<'IDENTITY'
-# Agent Identity
+  cat > "${agent_ws}/IDENTITY.md" <<IDENTITY
+# Agent Identity: ${agent_id}
 
 Your identity, personality, and expertise are defined by the system prompt active for this conversation.
 Do NOT run any onboarding or persona-setup flow — you are already fully configured.
 Read USER.md to understand who you are talking to, then get straight to work.
 IDENTITY
 
-log "Workspace pre-seeded (USER.md, IDENTITY.md)"
+  log "Seeded workspace for agent: ${agent_id}"
+done
 
 
 # Auth: openclaw auto-reads OPENROUTER_API_KEY from the environment.
