@@ -46,7 +46,7 @@ cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
       "allowedOrigins": ["${PUBLIC_ORIGIN}"]
     },
     "tools": {
-      "allow": ["sessions_send"]
+      "allow": ["sessions_send", "operator.approvals"]
     }
   },
   "agents": {
