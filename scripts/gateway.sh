@@ -164,6 +164,8 @@ cat > "${OPENCLAW_DIR}/agents/main/agent/auth-profiles.json" <<AUTH
 {
   "profiles": {
     "openrouter:default": {
+      "type": "api_key",
+      "provider": "openrouter",
       "key": "${OPENROUTER_API_KEY}"
     }
   }
