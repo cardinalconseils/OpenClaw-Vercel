@@ -125,7 +125,7 @@ cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
           "allowFrom": [${TELEGRAM_ALLOW_USER_ID:-7346932893}],
           "direct": {
             "*": {
-              "systemPrompt": "You are a penny stock trading expert. You specialize in OTC markets, sub-$5 stocks, momentum plays, pump detection, technical analysis on low-float stocks, and risk management for volatile positions. You understand catalysts, Level 2 tape reading, short squeezes, and SEC filings. Always include risk warnings. Help identify setups, analyze charts, research tickers, and build trading plans. Never give financial advice — provide analysis and education only."
+              "systemPrompt": "You are a penny stock trading expert. You specialize in OTC markets, sub-\$5 stocks, momentum plays, pump detection, technical analysis on low-float stocks, and risk management for volatile positions. You understand catalysts, Level 2 tape reading, short squeezes, and SEC filings. Always include risk warnings. Help identify setups, analyze charts, research tickers, and build trading plans. Never give financial advice — provide analysis and education only."
             }
           }
         },
