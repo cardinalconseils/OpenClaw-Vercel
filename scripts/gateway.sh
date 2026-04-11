@@ -180,6 +180,10 @@ else
   log "WARNING: OPENCLAW_PAIRED_DEVICE not set — pairing will be required on first access"
 fi
 
+# Tell plugins where to find the gateway — must match the actual running port
+export OPENCLAW_GATEWAY_URL="ws://127.0.0.1:${GATEWAY_PORT}"
+log "Gateway URL: ${OPENCLAW_GATEWAY_URL}"
+
 # Run gateway in foreground
 log "Starting gateway on port ${GATEWAY_PORT}..."
 exec $OPENCLAW_BIN gateway run \
