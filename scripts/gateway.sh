@@ -157,6 +157,20 @@ log "Config written (port=${GATEWAY_PORT}, trustedProxies=100.64.0.0/10, allowed
 log "Telegram: 7 accounts active (main/travel/rankrekt/leads/trader/servi/devcardinal)"
 
 
+# Write auth-profiles.json — correct format: {profiles: {id: {key: value}}}
+# This gives ALL agents (including ephemeral Telegram agents) OpenRouter credentials
+mkdir -p "${OPENCLAW_DIR}/agents/main/agent"
+cat > "${OPENCLAW_DIR}/agents/main/agent/auth-profiles.json" <<AUTH
+{
+  "profiles": {
+    "openrouter:default": {
+      "key": "${OPENROUTER_API_KEY}"
+    }
+  }
+}
+AUTH
+log "Agent auth-profiles written (profiles.openrouter:default.key)"
+
 # Pre-seed paired device from environment variable (set OPENCLAW_PAIRED_DEVICE in Railway)
 # Format: the full paired.json content as a JSON string
 mkdir -p "${OPENCLAW_DIR}/devices"
