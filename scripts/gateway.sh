@@ -9,10 +9,10 @@ log() { echo "[gateway] $(date -u +%Y-%m-%dT%H:%M:%SZ) $*"; }
 
 mkdir -p "${OPENCLAW_DIR}"
 
-# Find openclaw — it's installed globally during build but in nix store PATH
-OPENCLAW_BIN=$(find /nix/store -name "openclaw" -path "*/bin/openclaw" -type f 2>/dev/null | head -1)
+# Find openclaw — installed globally via npm install -g at build time
+OPENCLAW_BIN=$(which openclaw 2>/dev/null)
 if [[ -z "$OPENCLAW_BIN" ]]; then
-  log "openclaw not in nix store, using npx..."
+  log "openclaw not in PATH, falling back to npx..."
   OPENCLAW_BIN="npx --yes openclaw@latest"
 fi
 log "Using: $OPENCLAW_BIN"
