@@ -80,7 +80,7 @@ cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
       "defaultAccount": "main",
       "accounts": {
         "main": {
-          "botToken": "${TELEGRAM_BOT_TOKEN_MAIN}",
+          "botToken": "${TELEGRAM_BOT_TOKEN_MAIN:-}",
           "dmPolicy": "open",
           "allowFrom": [${TELEGRAM_ALLOW_USER_ID:-7346932893}],
           "direct": {
@@ -90,7 +90,7 @@ cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
           }
         },
         "travel": {
-          "botToken": "${TELEGRAM_BOT_TOKEN_TRAVEL}",
+          "botToken": "${TELEGRAM_BOT_TOKEN_TRAVEL:-}",
           "dmPolicy": "open",
           "allowFrom": [${TELEGRAM_ALLOW_USER_ID:-7346932893}],
           "direct": {
@@ -100,7 +100,7 @@ cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
           }
         },
         "rankrekt": {
-          "botToken": "${TELEGRAM_BOT_TOKEN_RANKREKT}",
+          "botToken": "${TELEGRAM_BOT_TOKEN_RANKREKT:-}",
           "dmPolicy": "open",
           "allowFrom": [${TELEGRAM_ALLOW_USER_ID:-7346932893}],
           "direct": {
@@ -110,7 +110,7 @@ cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
           }
         },
         "leads": {
-          "botToken": "${TELEGRAM_BOT_TOKEN_LEADS}",
+          "botToken": "${TELEGRAM_BOT_TOKEN_LEADS:-}",
           "dmPolicy": "open",
           "allowFrom": [${TELEGRAM_ALLOW_USER_ID:-7346932893}],
           "direct": {
@@ -120,7 +120,7 @@ cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
           }
         },
         "trader": {
-          "botToken": "${TELEGRAM_BOT_TOKEN_TRADER}",
+          "botToken": "${TELEGRAM_BOT_TOKEN_TRADER:-}",
           "dmPolicy": "open",
           "allowFrom": [${TELEGRAM_ALLOW_USER_ID:-7346932893}],
           "direct": {
@@ -130,7 +130,7 @@ cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
           }
         },
         "servi": {
-          "botToken": "${TELEGRAM_BOT_TOKEN_SERVI}",
+          "botToken": "${TELEGRAM_BOT_TOKEN_SERVI:-}",
           "dmPolicy": "open",
           "allowFrom": [${TELEGRAM_ALLOW_USER_ID:-7346932893}],
           "direct": {
@@ -140,7 +140,7 @@ cat > "${OPENCLAW_DIR}/openclaw.json" <<CONF
           }
         },
         "devcardinal": {
-          "botToken": "${TELEGRAM_BOT_TOKEN_DEVCARDINAL}",
+          "botToken": "${TELEGRAM_BOT_TOKEN_DEVCARDINAL:-}",
           "dmPolicy": "open",
           "allowFrom": [${TELEGRAM_ALLOW_USER_ID:-7346932893}],
           "direct": {
